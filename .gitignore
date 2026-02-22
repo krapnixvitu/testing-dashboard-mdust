@@ -1,0 +1,25 @@
+# Build output
+build/
+
+# CMake / tool caches
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Qt / QML tooling
+*.qmlc
+*.jsc
+*.rcc
+.qmake.stash
+
+# IDE/editor
+.vscode/
+.idea/
+*.user
+*.user.*
+
+# OS
+Thumbs.db
+.DS_Store
