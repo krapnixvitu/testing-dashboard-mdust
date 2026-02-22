@@ -31,11 +31,11 @@ Item {
         spacing: 10
 
         // ═══════════════════════════════════════
-        // BATTERY GAUGE (vertical bar)
+        // BATTERY GAUGE (horizontal bar)
         // ═══════════════════════════════════════
         Item {
             width: parent.width
-            height: parent.height * 0.40
+            height: 60
 
             // Label
             Text {
@@ -51,30 +51,30 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // Bar background
+            // Horizontal bar background
             Rectangle {
                 id: barBg
-                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.left: parent.left
+                anchors.right: parent.right
                 anchors.top: batLabel.bottom
-                anchors.topMargin: 6
-                width: 32
-                height: parent.height - batLabel.height - voltageText.height - 20
+                anchors.topMargin: 4
+                height: 20
                 radius: 4
                 color: "#1A1A1A"
                 border.color: "#333333"
                 border.width: 1
 
-                // Bar fill (bottom-up)
+                // Bar fill (left-to-right)
                 Rectangle {
-                    anchors.bottom: parent.bottom
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
                     anchors.margins: 2
-                    width: parent.width - 4
-                    height: Math.max(2, (parent.height - 4) * root._batteryPercent)
+                    width: Math.max(2, (parent.width - 4) * root._batteryPercent)
+                    height: parent.height - 4
                     radius: 3
                     color: root._batteryColor(root._batteryPercent)
 
-                    Behavior on height { NumberAnimation { duration: 300; easing.type: Easing.OutQuad } }
+                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutQuad } }
                     Behavior on color { ColorAnimation { duration: 500 } }
                 }
             }
@@ -83,7 +83,8 @@ Item {
             Text {
                 id: voltageText
                 anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
+                anchors.top: barBg.bottom
+                anchors.topMargin: 4
                 text: root.busVoltage.toFixed(1) + " V"
                 font.pixelSize: 15
                 font.weight: Font.Bold
@@ -165,7 +166,7 @@ Item {
                 text: "CONSUMED"
                 font.pixelSize: 10
                 font.family: "Segoe UI"
-                color: "#555555"
+                color: "#FFFFFF"
                 horizontalAlignment: Text.AlignHCenter
             }
         }
@@ -184,7 +185,7 @@ Item {
                 font.weight: Font.Bold
                 font.family: "Segoe UI"
                 color: {
-                    if (root.efficiency <= 0) return "#555555";
+                    if (root.efficiency <= 0) return "#FFFFFF";
                     if (root.efficiency < 100) return "#00E676";
                     if (root.efficiency < 150) return "#FFB300";
                     return "#FF1744";

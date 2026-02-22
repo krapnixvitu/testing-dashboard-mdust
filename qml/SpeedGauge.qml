@@ -191,7 +191,7 @@ Item {
         font.pixelSize: 13
         font.weight: Font.Normal
         font.family: "Segoe UI"
-        color: "#555555"
+        color: "#FFFFFF"
         horizontalAlignment: Text.AlignHCenter
     }
 }

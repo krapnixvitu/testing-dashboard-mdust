@@ -33,7 +33,7 @@ Item {
             font.pixelSize: 10
             font.family: "Segoe UI"
             font.capitalization: Font.AllUppercase
-            color: "#666666"
+            color: "#FFFFFF"
         }
 
         Text {

@@ -54,141 +54,115 @@ Item {
     }
 
     // ═══════════════════════════════════════════════════════
-    // TOP BAR (36px) -- Blinkers + Title
-    // ═══════════════════════════════════════════════════════
-    Rectangle {
-        id: topBar
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: 36
-        color: "#000000"
-        z: 10
-
-        // Left blinker
-        Text {
-            id: leftBlinker
-            anchors.left: parent.left
-            anchors.leftMargin: 20
-            anchors.verticalCenter: parent.verticalCenter
-            text: "\u25C0"  // ◀
-            font.pixelSize: 28
-            color: backend.leftBlinker ? "#00E676" : "#1A1A1A"
-
-            Behavior on color { ColorAnimation { duration: 100 } }
-
-            // Gentle glow effect via scale
-            scale: backend.leftBlinker ? 1.1 : 1.0
-            Behavior on scale { NumberAnimation { duration: 150 } }
-        }
-
-        // Title
-        Text {
-            anchors.centerIn: parent
-            text: "MDU SOLAR TEAM"
-            font.pixelSize: 14
-            font.weight: Font.Medium
-            font.family: "Segoe UI"
-            font.letterSpacing: 4
-            color: "#3D6B3D"  // very dim green
-            horizontalAlignment: Text.AlignHCenter
-        }
-
-        // Right blinker
-        Text {
-            id: rightBlinker
-            anchors.right: parent.right
-            anchors.rightMargin: 20
-            anchors.verticalCenter: parent.verticalCenter
-            text: "\u25B6"  // ▶
-            font.pixelSize: 28
-            color: backend.rightBlinker ? "#00E676" : "#1A1A1A"
-
-            Behavior on color { ColorAnimation { duration: 100 } }
-
-            scale: backend.rightBlinker ? 1.1 : 1.0
-            Behavior on scale { NumberAnimation { duration: 150 } }
-        }
-
-        // Bottom edge line
-        Rectangle {
-            anchors.bottom: parent.bottom
-            width: parent.width
-            height: 1
-            color: "#1A1A1A"
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // MAIN CONTENT AREA (between top bar and footer)
+    // MAIN CONTENT AREA (full height minus footer)
     // ═══════════════════════════════════════════════════════
     Item {
         id: contentArea
-        anchors.top: topBar.bottom
+        anchors.top: parent.top
         anchors.bottom: footer.top
         anchors.left: parent.left
         anchors.right: parent.right
+        anchors.margins: 12
 
-        // ─── LEFT SIDEBAR (InfoBar) ───
-        InfoBar {
-            id: infoBar
+        // ─── LEFT CARD (Energy/Strategy) ───
+        Rectangle {
+            id: leftCard
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: 140
+            color: "#333333"
+            radius: 10
 
-            busVoltage: backend.busVoltage
-            busCurrent: backend.busCurrent
-            netPower: backend.netPower
-            dcBusAmpHours: backend.dcBusAmpHours
-            efficiency: backend.efficiency
+            InfoBar {
+                id: infoBar
+                anchors.fill: parent
+                anchors.margins: 8
+
+                busVoltage: backend.busVoltage
+                busCurrent: backend.busCurrent
+                netPower: backend.netPower
+                dcBusAmpHours: backend.dcBusAmpHours
+                efficiency: backend.efficiency
+            }
         }
 
-        // Left sidebar separator
+        // ─── CENTER CARD (Speed) ───
         Rectangle {
-            anchors.left: infoBar.right
+            id: centerCard
+            anchors.left: leftCard.right
+            anchors.leftMargin: 12
+            anchors.right: rightCard.left
+            anchors.rightMargin: 12
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: 1
-            color: "#1A1A1A"
+            color: "#333333"
+            radius: 10
+
+            SpeedGauge {
+                id: speedGauge
+                anchors.fill: parent
+                anchors.margins: 8
+
+                speed: backend.vehicleSpeed
+                maxSpeed: 120.0
+                rpm: backend.motorRpm
+                odometer: backend.odometer.toFixed(1)
+            }
+
+            // Left blinker indicator
+            Text {
+                id: leftBlinker
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.margins: 12
+                text: "\u25C0"  // ◀
+                font.pixelSize: 24
+                color: backend.leftBlinker ? "#00E676" : "#1A1A1A"
+                z: 100
+
+                Behavior on color { ColorAnimation { duration: 100 } }
+                scale: backend.leftBlinker ? 1.1 : 1.0
+                Behavior on scale { NumberAnimation { duration: 150 } }
+            }
+
+            // Right blinker indicator
+            Text {
+                id: rightBlinker
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 12
+                text: "\u25B6"  // ▶
+                font.pixelSize: 24
+                color: backend.rightBlinker ? "#00E676" : "#1A1A1A"
+                z: 100
+
+                Behavior on color { ColorAnimation { duration: 100 } }
+                scale: backend.rightBlinker ? 1.1 : 1.0
+                Behavior on scale { NumberAnimation { duration: 150 } }
+            }
         }
 
-        // ─── CENTER (SpeedGauge) ───
-        SpeedGauge {
-            id: speedGauge
-            anchors.left: infoBar.right
-            anchors.right: tempBar.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.margins: 4
-
-            speed: backend.vehicleSpeed
-            maxSpeed: 120.0
-            rpm: backend.motorRpm
-            odometer: backend.odometer.toFixed(1)
-        }
-
-        // Right sidebar separator
+        // ─── RIGHT CARD (Temperatures) ───
         Rectangle {
-            anchors.right: tempBar.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: 1
-            color: "#1A1A1A"
-        }
-
-        // ─── RIGHT SIDEBAR (TempBar) ───
-        TempBar {
-            id: tempBar
+            id: rightCard
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: 140
+            color: "#333333"
+            radius: 10
 
-            motorTemp: backend.motorTemp
-            heatsinkTemp: backend.heatsinkTemp
-            dspBoardTemp: backend.dspBoardTemp
-            limitFlags: backend.limitFlags
+            TempBar {
+                id: tempBar
+                anchors.fill: parent
+                anchors.margins: 8
+
+                motorTemp: backend.motorTemp
+                heatsinkTemp: backend.heatsinkTemp
+                dspBoardTemp: backend.dspBoardTemp
+                limitFlags: backend.limitFlags
+            }
         }
     }
 
@@ -233,7 +207,7 @@ Item {
                 text: "CAN"
                 font.pixelSize: 11
                 font.family: "Segoe UI"
-                color: "#666666"
+                color: "#FFFFFF"
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
@@ -267,7 +241,7 @@ Item {
             text: backend.busCurrent.toFixed(1) + " A"
             font.pixelSize: 12
             font.family: "Segoe UI"
-            color: "#555555"
+            color: "#FFFFFF"
             horizontalAlignment: Text.AlignRight
         }
     }
