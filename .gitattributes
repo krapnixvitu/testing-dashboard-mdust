@@ -1,0 +1,44 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Line ending policy
+#
+# This project is written on Windows and deployed on Raspberry Pi OS.
+# Windows ends lines with CRLF, Linux with LF. Left unmanaged, the choice
+# is made by each developer's personal Git config, so the same file can be
+# committed two different ways and every line shows as changed.
+#
+# Policy: LF in the repository and LF in the working tree, on every
+# platform. Windows tooling (Qt Creator, VS Code, MSVC, CMake, Git Bash)
+# reads LF without complaint. Only Windows-native scripts keep CRLF.
+#
+# This file overrides core.autocrlf, so the rule travels with the repo
+# instead of depending on how each machine happens to be configured.
+# ─────────────────────────────────────────────────────────────────────────
+
+# Default for anything Git detects as text.
+* text=auto eol=lf
+
+# ── Scripts ────────────────────────────────────────────────────────────
+# Shell scripts run on the Pi. A CRLF here makes the kernel read the
+# shebang as "/bin/bash\r" and fail with a confusing "bad interpreter"
+# error, so these must stay LF.
+*.sh    text eol=lf
+
+# PowerShell and batch files only ever run on Windows. Keep them native.
+*.ps1   text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# ── Binary ─────────────────────────────────────────────────────────────
+# Marked explicitly so Git never attempts line ending conversion on them,
+# which would corrupt the file.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.zip   binary
+*.ttf   binary
+*.otf   binary
+*.woff  binary
+*.woff2 binary
