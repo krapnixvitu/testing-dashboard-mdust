@@ -110,7 +110,7 @@ generates plausible fake data, so it runs happily with no CAN hardware at all.
 
 ```bash
 sudo apt install -y git cmake build-essential \
-  qt6-base-dev qt6-declarative-dev qt6-svg-dev libqt6svg6 \
+  qt6-base-dev qt6-declarative-dev qt6-svg-dev qt6-svg-plugins \
   qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtquick-shapes
 ```
 
@@ -123,14 +123,15 @@ What each piece is for:
   to *compile* against Qt and QML.
 - **`qt6-svg-dev`** — headers/CMake config needed to *compile* against
   `Qt6::Svg`. Our blinker arrow icons (`ArrowIndicator.qml`) are SVGs loaded
-  through a QML `Image`.
-- **`libqt6svg6`** — the *runtime* SVG image plugin (`imageformats/libqsvg.so`).
-  This is the one that's easy to miss: the app links and starts fine without
-  it, but every `Image` pointed at an `.svg` file silently fails to render
-  with `QML Image: Error decoding: ...: Unsupported image format`, because
-  Qt has no plugin registered that knows how to decode SVG into a raster
-  image. `qt6-svg-dev` does not pull this in automatically on all Raspberry
-  Pi OS setups, so it's worth confirming it's actually installed.
+  through a QML `Image`. Pulls in `libqt6svg6` (the `QSvgRenderer` library)
+  as a dependency, but *not* the plugin below.
+- **`qt6-svg-plugins`** — the *runtime* SVG image plugin
+  (`imageformats/libqsvg.so`). This is the one that's easy to miss and is not
+  a dependency of `qt6-svg-dev` or `libqt6svg6`: the app links and starts
+  fine without it, but every `Image` pointed at an `.svg` file silently fails
+  to render with `QML Image: Error decoding: ...: Unsupported image format`,
+  because Qt has no plugin registered that knows how to decode SVG into a
+  raster image.
 - **`qml6-module-*`** — the QML pieces needed at *run time*. Our QML imports
   `QtQuick`, `QtQuick.Window` and `QtQuick.Shapes`. All three must be present or
   the app starts and immediately fails.
@@ -570,9 +571,12 @@ falling back to nothing, with just the console warning to go on.
 Install the runtime plugin package and relaunch (no rebuild needed):
 
 ```bash
-sudo apt install -y libqt6svg6
+sudo apt install -y qt6-svg-plugins
 ./build/SolarDashboard --simulate
 ```
+
+Note this is a different package from `libqt6svg6`/`qt6-svg-dev` — installing
+those alone is not enough, since neither depends on `qt6-svg-plugins`.
 
 If you rebuilt from a checkout older than this fix, also reconfigure so the
 app links `Qt6::Svg` and `qt6-svg-dev` is present to compile against it (see
