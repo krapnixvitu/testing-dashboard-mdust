@@ -25,6 +25,13 @@ qt_add_executable(SolarDashboard
 qt_add_qml_module(SolarDashboard
     URI SolarDashboard
     VERSION 1.0
+    # The URI matches the executable target name, so Qt's default module
+    # output directory (build/SolarDashboard) is the same path as the binary
+    # itself on any platform without an .exe suffix. On Linux this fails at
+    # link time with "cannot open output file SolarDashboard: Is a directory".
+    # Nesting the module output one level deeper keeps the final directory
+    # named after the URI, which filesystem imports need, without the clash.
+    OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/qml_modules/SolarDashboard
     QML_FILES
         qml/Main.qml
         qml/RaceDashboard.qml

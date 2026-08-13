@@ -505,6 +505,32 @@ fault is in hardware and no software change will fix it.
 
 ## Troubleshooting
 
+**Build fails at the linking step with `cannot open output file SolarDashboard:
+Is a directory`.**
+
+This is fixed in the CMake configuration, but you will hit it if you are on an
+older checkout, and it is worth understanding because it only happens on Linux.
+
+Our QML module URI is `SolarDashboard` and so is the executable target. Qt
+generates the module's `qmldir` and `.qmltypes` into a directory named after the
+URI, which by default lands at `build/SolarDashboard` — the exact path the linker
+wants to write the binary to. On Windows the binary is `SolarDashboard.exe`, so
+the names never collide and the build succeeds; on Linux there is no suffix, the
+linker finds a directory sitting where its output file should go, and stops.
+
+`CMakeLists.txt` now sets `OUTPUT_DIRECTORY` so the module is generated under
+`build/qml_modules/SolarDashboard` instead.
+
+If you already have a failed build tree, **the fix alone is not enough** — the
+stale `build/SolarDashboard` directory is still on disk and will still block the
+linker. Delete the build directory and start over:
+
+```bash
+rm -rf build
+cmake -B build
+cmake --build build
+```
+
 **`candump` shows frames but the dashboard ignores them.**
 The message ID is probably outside the ranges we listen to. For efficiency, the
 app asks the kernel to discard everything except `0x400`–`0x41F` (motor
