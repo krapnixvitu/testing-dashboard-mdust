@@ -2,9 +2,11 @@
 
 - App entry: `main.cpp` loads `qrc:/SolarDashboard/qml/Main.qml`.
 - QML files are packaged via `qt_add_qml_module` in `CMakeLists.txt`.
-- `MockBackend.qml` is the data source (Phase 1 only).
+- `VehicleData` (C++, `src/`) is the data source, exposed to QML as the context property `backend`.
+- It is fed by `SocketCanReader` (Linux, real CAN) or `VehicleSimulator` (mock); QML cannot tell which.
+- `MockBackend.qml` was deleted in Phase 2; its drive-cycle logic moved into `VehicleSimulator`.
 - `Main.qml` is a mode controller that loads `RaceDashboard.qml` or `DebugDashboard.qml` via Loader.
-- Mode switching: Press 'D' key to toggle between Race and Debug modes (will be physical button in Phase 2).
+- Mode switching: Press 'D' key to toggle between Race and Debug modes (still keyboard; a physical input is a Phase 3 decision).
 - Dashboard variants:
   - `RaceDashboard.qml`: race-focused dashboard (default), will be customized for driving
   - `DebugDashboard.qml`: debug/diagnostic dashboard, frozen reference copy
@@ -15,4 +17,7 @@
   - `CriticalOverlay.qml`: full-screen critical alert
   - `WarningBanner.qml`: top warning banner
 - Build: `cmake -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.x.x/mingw_64"` then `cmake --build build`.
-- Phase 2: replace `MockBackend` with C++ `VehicleData` + CAN driver (`Q_OS_LINUX` / `Q_OS_WINDOWS`).
+- Tests: `cmake -B build -DBUILD_TESTING=ON` then `ctest --test-dir build`.
+- Flags: `--can-interface <name>` (default `can0`), `--simulate` to force the simulator.
+- Windows has no SocketCAN, so it always falls back to the simulator.
+- Pi/CAN hardware bring-up: see `docs/pi-setup.md`.

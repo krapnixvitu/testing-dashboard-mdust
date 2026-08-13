@@ -189,6 +189,9 @@ Item {
             heatsinkTemp: backend.heatsinkTemp
             dspBoardTemp: backend.dspBoardTemp
             limitFlags: backend.limitFlags
+            packTemp: backend.packTemp
+            packDeltaV: backend.packDeltaV
+            bmsValid: backend.bmsValid
         }
     }
 
@@ -280,8 +283,8 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
 
-        active: root._hasWarning && !root._hasCritical
-        message: root._warningMessage
+        active: (root._hasWarning && !root._hasCritical) || backend.debugWarningActive
+        message: backend.debugWarningActive ? "TEST WARNING" : root._warningMessage
     }
 
     // ═══════════════════════════════════════════════════════
@@ -291,7 +294,7 @@ Item {
         id: criticalOverlay
         anchors.fill: parent
 
-        active: root._hasCritical
-        message: root._criticalMessage
+        active: root._hasCritical || backend.debugCriticalActive
+        message: backend.debugCriticalActive ? "TEST CRITICAL FAULT" : root._criticalMessage
     }
 }

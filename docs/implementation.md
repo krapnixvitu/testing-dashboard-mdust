@@ -1,14 +1,33 @@
 # Implementation Guide (Detailed)
 
 This document describes how the current dashboard implementation works.
-Audience: senior developers. It focuses on architecture, data flow, and
-extension points (Phase 2), not UI layout (see `docs/ui-layout.md`).
+Audience: developers. It focuses on architecture, data flow and extension
+points, not UI layout (see `docs/ui-layout.md`) and not CAN concepts (see
+`docs/concepts.md`).
 
 ## 1) Overview
-- Current phase: **Phase 1 (QML + mock data)**.
-- Target runtime: Windows (development), Raspberry Pi 4 (deployment later).
-- Architecture: QML UI + a mock QML backend (`MockBackend.qml`).
+- Architecture: QML UI driven by a **C++ backend**, `VehicleData`.
+- That backend is fed by **one of two sources**, chosen at runtime:
+  - `SocketCanReader` — real CAN frames. Linux only.
+  - `VehicleSimulator` — a synthetic drive cycle. All platforms.
+- Target runtime: Raspberry Pi 4. Development on Windows, which has no
+  SocketCAN and therefore always uses the simulator.
 - Build system: CMake + Qt 6 QML module.
+
+### Design rule: QML cannot tell which source is live
+
+QML only ever sees `VehicleData`. Nothing in the UI branches on platform or on
+whether data is real. This is why the simulator is plain cross-platform C++
+rather than a Windows-only mock: both platforms exercise the same backend code
+path, so Windows testing is meaningful.
+
+Only `SocketCanReader` is wrapped in `#ifdef Q_OS_LINUX`.
+
+### Design rule: absent data is never a plausible number
+
+Values with no hardware behind them read as unknown, not as zero. BMS readouts
+show `--` with a grey dot, and an unreported gear dims all three of D/N/R. A
+zero that looks like a measurement is worse than an obvious blank.
 
 ## 2) Build + Run
 
@@ -16,6 +35,8 @@ extension points (Phase 2), not UI layout (see `docs/ui-layout.md`).
 ```
 cmake -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.x.x/mingw_64"
 ```
+
+On the Pi, Qt comes from `apt` and CMake finds it without `CMAKE_PREFIX_PATH`.
 
 ### Build
 ```
@@ -27,77 +48,157 @@ cmake --build build
 ./build/SolarDashboard.exe
 ```
 
+### Command-line flags
+
+| Flag | Effect |
+| :--- | :--- |
+| `--can-interface <name>` | CAN interface to open. Default `can0`. |
+| `--simulate` | Force the simulator even where SocketCAN exists. |
+
+With no flags on Linux the app tries real CAN and falls back to the simulator if
+the interface cannot be opened. On Windows it prints
+`SocketCAN unavailable on this platform; using simulator.` and continues.
+
+### Tests
+```
+cmake -B build -DBUILD_TESTING=ON
+ctest --test-dir build
+```
+
+Two suites, both runnable on Windows:
+- `test_decoder` — frame decoding for every supported message, plus malformed
+  input and NaN/infinity handling.
+- `test_vehicledata` — gear source ownership, BMS validity gating, CAN health
+  watchdog, derived power.
+
+`WaveSculptorDecoder` deliberately has no Qt and no socket dependencies, which
+is what makes decoding testable without hardware or a CAN bus.
+
 ## 3) Runtime Architecture
 
 ### C++ Entry Point
 File: `main.cpp`
-- Creates `QGuiApplication`
-- Creates `QQmlApplicationEngine`
-- Loads `qrc:/SolarDashboard/qml/Main.qml`
+- Creates `QGuiApplication` and `QQmlApplicationEngine`.
+- Parses the command-line flags above.
+- Constructs `VehicleData`, then picks a source: `SocketCanReader` on Linux if
+  the interface opens, otherwise `VehicleSimulator`.
+- Exposes the backend to QML as the **context property `backend`**.
+- Loads `qrc:/SolarDashboard/qml/Main.qml`.
+
+### Backend sources (`src/`)
+
+| File | Responsibility |
+| :--- | :--- |
+| `VehicleData.h/.cpp` | The `QObject` QML binds to. Holds all telemetry as `Q_PROPERTY`, computes derived values, runs the bus watchdog. |
+| `WaveSculptorDecoder.h/.cpp` | Pure function: CAN ID + 8 bytes → `DecodedFrame`. No Qt, no sockets. |
+| `SocketCanReader.h/.cpp` | Opens a raw CAN socket, installs a kernel filter, reads frames via `QSocketNotifier`. Linux only. |
+| `VehicleSimulator.h/.cpp` | Timer-driven synthetic drive cycle. Replaced the old `MockBackend.qml`. |
 
 ### QML Module
 File: `CMakeLists.txt`
 - `qt_add_qml_module(...)` registers the QML files as a module.
 - All QML is embedded into the executable as resources (`qrc:/`).
 
-## 4) Data Flow (Phase 1)
+## 4) Data Flow
 
-### Single Source of Truth: `MockBackend.qml`
-File: `qml/MockBackend.qml`
-- Holds all telemetry properties (speed, temps, power, etc).
-- Simulates real-time data on a 200ms timer.
+```
+  CAN bus                                    (development only)
+     |                                              |
+  SocketCanReader  --\                              |
+  (Linux, filtered)   \                             |
+                       >--  VehicleData  <-----  VehicleSimulator
+  WaveSculptorDecoder /         |
+  (pure C++)                    |  context property `backend`
+                                v
+                          qml/Main.qml
+                                |  Loader + colorMode
+                                v
+              RaceDashboard.qml  or  DebugDashboard.qml
+                                |
+              SpeedGauge / InfoBar / TempBar / overlays
+```
 
-### Binding Flow
-File: `qml/Main.qml`
-- Instantiates `MockBackend`
-- Acts as mode controller, loading either `RaceDashboard.qml` or `DebugDashboard.qml`
-- Passes backend reference to the active dashboard component
+### Ingest path (real CAN)
+1. `SocketCanReader` is woken by `QSocketNotifier` when a frame arrives.
+2. The kernel has already dropped anything outside the accepted ID ranges.
+3. `ws22::decode()` turns the raw frame into a `DecodedFrame`.
+4. `VehicleData::applyDecodedFrame()` stores the values, recomputes derived
+   figures, emits change signals, and pets the watchdog.
+5. QML bindings update automatically.
 
-File: `qml/RaceDashboard.qml` or `qml/DebugDashboard.qml`
-- Receives backend as a property
-- Binds backend values into UI components:
-  - `SpeedGauge`
-  - `InfoBar`
-  - `TempBar`
-- Computes alert logic (warnings, critical) based on backend values
+### Watchdog
+`VehicleData` runs a timer that marks `canHealthy` false when frames stop
+arriving, which drives the red CAN dot in the footer. The watchdog is disabled
+in simulator mode, since there is no bus to lose.
+
+### Derived values
+Computed in `VehicleData::recomputeDerived()`, not in QML, so there is one
+authoritative definition:
+- `netPower` = bus voltage × bus current
+- `efficiency` = Wh per km, from amp-hours, voltage and distance
+
+### Gear ownership
+`setDriveMode()` **rejects writes unless the backend is in simulator mode.**
+Gear is selected elsewhere in the car and announced over CAN; the dashboard only
+displays it. Keyboard gear input is development-only fake data, so it is
+accepted from the simulator and ignored on a live bus. The rule lives in C++
+rather than QML so there is a single place it can be enforced.
+
+A real gear message is **not yet decoded** — the protocol is still being agreed
+with the driver-controls and ECU owners. Until then a live bus reports no gear,
+and the UI dims all three letters.
 
 ## 5) Component Responsibilities
 
 ### `qml/Main.qml`
-- Root window (800x480)
-- Instantiates `MockBackend`
-- Mode controller: loads `RaceDashboard.qml` or `DebugDashboard.qml` via Loader
-- Handles 'D' key press to toggle between Race and Debug modes
-- Displays brief mode indicator on switch
+- Root window (800x480); background colour follows the active theme
+- Owns `dashboardMode` ("race"/"debug") and `colorMode` ("night"/"day")
+- Mode controller: loads `RaceDashboard.qml` or `DebugDashboard.qml` via Loader,
+  injecting `backend` and binding `colorMode`
+- Handles all development key input: `D`, `M`, `L`, `W`, `C`, arrow keys
+- Displays a brief mode indicator on switch (not theme-aware; hardcoded dark)
 
 ### `qml/RaceDashboard.qml`
-- Race-focused dashboard variant (default mode)
-- Receives backend as property from Main.qml
-- Full UI layout: top bar, content area (InfoBar + SpeedGauge + TempBar), footer
+- Race-focused dashboard variant (default mode), and **the only maintained one**
+- Receives `backend` and `colorMode` from Main.qml
+- Owns the theme palette as `readonly property color` values derived from
+  `colorMode`, and passes those colours down to every child component
+- Layout: three rounded cards (InfoBar / SpeedGauge / TempBar) over a 32 px
+  footer. **No top bar** — blinkers are overlaid on the centre card
 - Computes alert states and manages overlays (CriticalOverlay, WarningBanner)
-- Currently identical to DebugDashboard but will diverge for race-specific optimizations
 
 ### `qml/DebugDashboard.qml`
-- Debug/diagnostic dashboard variant
-- Receives backend as property from Main.qml
-- Full UI layout: top bar, content area (InfoBar + SpeedGauge + TempBar), footer
-- Computes alert states and manages overlays (CriticalOverlay, WarningBanner)
-- Frozen reference copy; changes to Race mode won't affect this variant
+- Debug/diagnostic variant. Frozen copy of the pre-theme design
+- Layout: 36 px top bar (glyph blinkers + title), flat sidebars separated by
+  lines, footer with CAN dot / pipe-separated limits / bus current
+- Duplicates the alert logic from RaceDashboard rather than sharing it
+
+> **Broken — see §9.** It has no `colorMode` property and passes no theme
+> colours to its children, so they fall back to a default near-black text colour
+> against a near-black background.
 
 ### `qml/SpeedGauge.qml`
-- Large speed arc (0–120 km/h)
-- Speed value, RPM, odometer
+- Large animated speed number + "km/h", D/N/R gear triplet, lap delta and
+  "LAP MODE" caption
+- Swaps the speed for the team logo via a QML state machine while in Neutral
+- Contains the retired speed arc, tick marks and RPM readout, all
+  `visible: false`
 
 ### `qml/InfoBar.qml`
-- Battery gauge (bus voltage)
-- Net power, amp-hours, efficiency
+- Battery bar + bus voltage, net power, pack current, efficiency
+- Gates the current readout behind `netCurrentValid`
 
 ### `qml/TempBar.qml`
-- Motor/heatsink/DSP temps
-- Limit indicators (PWM, I_M, VEL, I_B, V_H, V_L, TMP)
+- MOTOR / CONTROLLER / PACK temperature rows plus PACK DELTA V
+- Gates the two BMS rows behind `bmsValid`
 
 ### `qml/TempReadout.qml`
-- Reusable component for one temperature line
+- Reusable single temperature row: label, status dot, value
+- `valid: false` renders `--` with a grey dot
+
+### `qml/ArrowIndicator.qml`
+- Blinker arrow. Picks a day or night SVG based on `colorMode`; colour is baked
+  into the SVG, so its `activeColor` property is unused
 
 ### `qml/CriticalOverlay.qml`
 - Full-screen flashing overlay
@@ -109,11 +210,23 @@ File: `qml/RaceDashboard.qml` or `qml/DebugDashboard.qml`
 
 ## 6) Alert Logic
 
-Defined in `qml/RaceDashboard.qml` and `qml/DebugDashboard.qml`:
-- **Critical overlay** triggers on hard faults or motor > 100 C.
-- **Warning banner** triggers on soft faults or motor > 80 C.
+Duplicated in `qml/RaceDashboard.qml` and `qml/DebugDashboard.qml`. Both derive
+booleans from `backend.errorFlags` and `backend.limitFlags` by masking
+individual bits, per the WaveSculptor status message.
 
-Critical has priority over warning.
+- **Critical overlay** — hardware/software over-current, DC bus over-voltage,
+  IGBT desaturation, motor above 100 °C, or a BMS fault.
+- **Warning banner** — motor 80–100 °C, heatsink above 80 °C, bus voltage lower
+  limit, motor over-speed, 15 V rail under-voltage, bad hall sequence.
+
+Critical suppresses the warning banner, so only one message shows at a time.
+Exact thresholds and message strings are tabulated in `docs/ui-layout.md`.
+
+`backend.debugWarningActive` and `backend.debugCriticalActive` force each layer
+for testing, via `W` and `C`.
+
+> The two dashboards hold **copies** of this logic. A threshold change must be
+> made in both files or the modes will disagree.
 
 ## 7) Dashboard Mode Switching
 
@@ -122,9 +235,9 @@ Critical has priority over warning.
 - Mode state stored in `dashboardMode` property ("race" or "debug")
 - Default mode: "race"
 
-### Toggle Mechanism (Phase 1)
-- **Current**: Press 'D' key to toggle between modes
-- **Future (Phase 2)**: Physical button connected to Raspberry Pi GPIO
+### Toggle Mechanism
+- **Current**: press `D` to toggle between modes
+- **Future**: physical button on Raspberry Pi GPIO, once the enclosure is decided
 
 ### Mode Indicator
 - Brief visual feedback (1.5 seconds) appears bottom-right when mode switches
@@ -136,19 +249,60 @@ Critical has priority over warning.
 - Both modes share the same backend data source
 - UI changes to Race mode don't affect Debug mode (complete isolation)
 
-## 8) Extension Points (Phase 2)
+## 8) Extension Points
 
-### Planned Integration
-- Replace `MockBackend` with a C++ `VehicleData` QObject.
-- Use a platform-specific CAN driver:
-  - `#ifdef Q_OS_LINUX` for SocketCAN
-  - `#ifdef Q_OS_WINDOWS` for mock CAN
+### Adding a decoded CAN message
+1. Add the ID constant to `src/WaveSculptorDecoder.h`.
+2. Add a `case` to `ws22::decode()` reading the fields at their byte offsets.
+   Check the layout against `docs/WaveSculptor22_CAN_Protocol_Reference.md`, not
+   against `reference/esp32-simulator/protocol.hpp`, whose struct field order is
+   misleading.
+3. **Confirm the ID falls inside the kernel filter ranges** — currently
+   `0x400`–`0x41F` and `0x500`–`0x51F`. Outside them the frame is dropped by the
+   kernel and never arrives, with no error. See `docs/concepts.md`.
+4. Store it in `VehicleData::applyDecodedFrame()` and add a `Q_PROPERTY`.
+5. Add a decoder unit test.
 
-### Where to Plug In
-- In `main.cpp`, register the backend object to QML.
-- Replace QML instantiation of `MockBackend` with the C++ object.
+### Outstanding integrations
+- **Gear** — blocked on the ECU/driver-controls protocol. The UI, the unknown
+  state and the write-rejection rule are already in place; only decoding and an
+  internal setter that bypasses the simulator guard are missing.
+- **BMS** — blocked on device selection. `packTemp`, `packDeltaV`, `netCurrent`
+  and `bmsFault` exist with `bmsValid` gating them; they need a real source.
 
-## 9) Known Constraints
+### Replacing keyboard input with hardware
+Keys are handled in one place, `Main.qml`'s `Keys.onPressed`. GPIO or CAN inputs
+should set the same backend properties, except gear, which must arrive through
+the CAN ingest path rather than the QML setter.
+
+## 9) Known Constraints and Issues
+
+### Constraints
 - QML components must be listed in `CMakeLists.txt` to be packaged.
-- Inline components can cause runtime resolution issues; prefer standalone QML files for reusable UI blocks.
+- Inline components can cause runtime resolution issues; prefer standalone QML
+  files for reusable UI blocks.
+- `SpeedGauge.qml` imports `QtQuick.Shapes`, so the corresponding runtime module
+  must be installed on the Pi even though the shapes it draws are hidden.
+
+### Open issues
+
+**`DebugDashboard.qml` is unreadable.** When theming was added, the child
+components gained colour properties that RaceDashboard supplies and Debug does
+not, so they fall back to defaults — a near-black text colour on a near-black
+background. `Main.qml` also binds `colorMode` on the loaded item, which Debug
+does not declare. Either give it the same theme plumbing or retire it.
+
+**Alert logic is duplicated** across the two dashboards (see §6).
+
+### Dead code
+Decoded and plumbed through, but not displayed anywhere:
+- `dspBoardTemp` — passed into `TempBar`, no row renders it
+- `busCurrent` and `dcBusAmpHours` — passed into `InfoBar`, not shown
+- `motorRpm` — only feeds the hidden RPM text in `SpeedGauge`
+- `odometer` on `SpeedGauge` — unused; the footer reads `backend.odometer`
+  directly
+- `maxSpeed` — only scales the hidden arc
+
+None of it is harmful, but it makes the components look like they show more than
+they do.
 

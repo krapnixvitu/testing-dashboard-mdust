@@ -12,6 +12,14 @@ qt_standard_project_setup()
 
 qt_add_executable(SolarDashboard
     main.cpp
+    src/WaveSculptorDecoder.h
+    src/WaveSculptorDecoder.cpp
+    src/VehicleData.h
+    src/VehicleData.cpp
+    src/VehicleSimulator.h
+    src/VehicleSimulator.cpp
+    src/SocketCanReader.h
+    src/SocketCanReader.cpp
 )
 
 qt_add_qml_module(SolarDashboard
@@ -19,7 +27,6 @@ qt_add_qml_module(SolarDashboard
     VERSION 1.0
     QML_FILES
         qml/Main.qml
-        qml/MockBackend.qml
         qml/RaceDashboard.qml
         qml/DebugDashboard.qml
         qml/SpeedGauge.qml
@@ -28,8 +35,44 @@ qt_add_qml_module(SolarDashboard
         qml/TempReadout.qml
         qml/CriticalOverlay.qml
         qml/WarningBanner.qml
+        qml/ArrowIndicator.qml
+    RESOURCES
+        assets/images/mdu-solar-team-logo.png
+        assets/images/blinker-left.svg
+        assets/images/blinker-right.svg
+        assets/images/blinker-left-day.svg
+        assets/images/blinker-right-day.svg
 )
 
 target_link_libraries(SolarDashboard PRIVATE
     Qt6::Quick
 )
+
+# ── Decoder tests ────────────────────────────────────────────────────────
+# The decoder has no Qt or socket dependencies, so this builds and runs on
+# any platform without CAN hardware. Build with -DBUILD_TESTING=ON.
+option(BUILD_TESTING "Build the decoder unit tests" OFF)
+
+if(BUILD_TESTING)
+    enable_testing()
+
+    # Pure decoder: no Qt, no sockets, no moc.
+    add_executable(test_decoder
+        tests/test_decoder.cpp
+        src/WaveSculptorDecoder.cpp
+    )
+    set_target_properties(test_decoder PROPERTIES AUTOMOC OFF)
+
+    add_test(NAME decoder COMMAND test_decoder)
+
+    # Source-ownership rules. Needs Qt Core for QObject, but not Quick: these
+    # are backend rules, not UI, so they run headless.
+    add_executable(test_vehicledata
+        tests/test_vehicledata.cpp
+        src/VehicleData.cpp
+        src/WaveSculptorDecoder.cpp
+    )
+    target_link_libraries(test_vehicledata PRIVATE Qt6::Core)
+
+    add_test(NAME vehicledata COMMAND test_vehicledata)
+endif()

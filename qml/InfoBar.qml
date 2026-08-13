@@ -10,6 +10,18 @@ Item {
     property real dcBusAmpHours: 0.0  // Ah
     property real efficiency: 0.0     // Wh/km
 
+    // Pack current from the BMS. Not the same quantity as bus current: on a
+    // solar car the array feeds the pack, so this goes negative while bus
+    // current stays positive. Inert until a BMS is decoded.
+    property real netCurrent: 0.0     // A
+    property bool netCurrentValid: false
+    
+    // ── Theme colors ──
+    property color textColor: "#000000"
+    property color accentGreen: "#00E676"
+    property color accentAmber: "#FFB300"
+    property color separatorColor: "#1A1A1A"
+
     // Battery bar range (adjust to your pack)
     property real minVoltage: 80.0
     property real maxVoltage: 150.0
@@ -21,8 +33,8 @@ Item {
 
     function _batteryColor(pct) {
         if (pct < 0.2) return "#FF1744";
-        if (pct < 0.4) return "#FFB300";
-        return "#00E676";
+        if (pct < 0.4) return root.accentAmber;
+        return root.accentGreen;
     }
 
     Column {
@@ -47,7 +59,7 @@ Item {
                 font.weight: Font.Medium
                 font.family: "Segoe UI"
                 font.capitalization: Font.AllUppercase
-                color: "#00E676"
+                color: root.textColor
                 horizontalAlignment: Text.AlignHCenter
             }
 
@@ -89,7 +101,7 @@ Item {
                 font.pixelSize: 15
                 font.weight: Font.Bold
                 font.family: "Segoe UI"
-                color: "#FFFFFF"
+                color: root.textColor
                 horizontalAlignment: Text.AlignHCenter
             }
         }
@@ -100,7 +112,7 @@ Item {
         Rectangle {
             width: parent.width
             height: 1
-            color: "#1A1A1A"
+            color: root.separatorColor
         }
 
         // ═══════════════════════════════════════
@@ -117,7 +129,7 @@ Item {
                 font.weight: Font.Medium
                 font.family: "Segoe UI"
                 font.capitalization: Font.AllUppercase
-                color: "#00E676"
+                color: root.textColor
                 horizontalAlignment: Text.AlignHCenter
             }
 
@@ -130,7 +142,7 @@ Item {
                 font.pixelSize: 22
                 font.weight: Font.Bold
                 font.family: "Segoe UI"
-                color: root.netPower >= 0 ? "#FFFFFF" : "#40C4FF"  // blue for regen
+                color: root.netPower >= 0 ? root.textColor : "#40C4FF"  // theme text for power, blue for regen
                 horizontalAlignment: Text.AlignHCenter
             }
         }
@@ -141,34 +153,49 @@ Item {
         Rectangle {
             width: parent.width
             height: 1
-            color: "#1A1A1A"
+            color: root.separatorColor
         }
 
         // ═══════════════════════════════════════
-        // AMP-HOURS
+        // NET CURRENT
         // ═══════════════════════════════════════
         Column {
             width: parent.width
-            spacing: 1
+            spacing: 2
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: root.dcBusAmpHours.toFixed(2) + " Ah"
-                font.pixelSize: 15
+                text: "CURRENT"
+                font.pixelSize: 11
+                font.weight: Font.Medium
+                font.family: "Segoe UI"
+                font.capitalization: Font.AllUppercase
+                color: root.textColor
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: root.netCurrentValid ? root.netCurrent.toFixed(1) + " A" : "--"
+                font.pixelSize: 22
                 font.weight: Font.Bold
                 font.family: "Segoe UI"
-                color: "#FFFFFF"
+                color: {
+                    if (!root.netCurrentValid) return root.textColor;
+                    // theme text for discharge, blue for charge
+                    return root.netCurrent >= 0 ? root.textColor : "#40C4FF";
+                }
                 horizontalAlignment: Text.AlignHCenter
             }
+        }
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "CONSUMED"
-                font.pixelSize: 10
-                font.family: "Segoe UI"
-                color: "#FFFFFF"
-                horizontalAlignment: Text.AlignHCenter
-            }
+        // ═══════════════════════════════════════
+        // SEPARATOR
+        // ═══════════════════════════════════════
+        Rectangle {
+            width: parent.width
+            height: 1
+            color: root.separatorColor
         }
 
         // ═══════════════════════════════════════
@@ -176,7 +203,18 @@ Item {
         // ═══════════════════════════════════════
         Column {
             width: parent.width
-            spacing: 1
+            spacing: 2
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "EFFICIENCY"
+                font.pixelSize: 11
+                font.weight: Font.Medium
+                font.family: "Segoe UI"
+                font.capitalization: Font.AllUppercase
+                color: root.textColor
+                horizontalAlignment: Text.AlignHCenter
+            }
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -185,9 +223,9 @@ Item {
                 font.weight: Font.Bold
                 font.family: "Segoe UI"
                 color: {
-                    if (root.efficiency <= 0) return "#FFFFFF";
-                    if (root.efficiency < 100) return "#00E676";
-                    if (root.efficiency < 150) return "#FFB300";
+                    if (root.efficiency <= 0) return root.textColor;
+                    if (root.efficiency < 100) return root.accentGreen;
+                    if (root.efficiency < 150) return root.accentAmber;
                     return "#FF1744";
                 }
                 horizontalAlignment: Text.AlignHCenter
@@ -195,10 +233,10 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "Wh/km"
+                text: "(Wh/km)"
                 font.pixelSize: 11
                 font.family: "Segoe UI"
-                color: "#00E676"
+                color: root.textColor
                 horizontalAlignment: Text.AlignHCenter
             }
         }

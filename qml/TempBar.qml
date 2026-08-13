@@ -9,31 +9,28 @@ Item {
     property real dspBoardTemp: 32.0   // °C
     property int limitFlags: 0x0000    // 16-bit limit flags
 
+    // BMS-sourced. Inert until a BMS is identified and decoded.
+    property real packTemp: 0.0        // °C
+    property real packDeltaV: 0.0      // V
+    property bool bmsValid: false
+    
+    // ── Theme colors ──
+    property color textColor: "#000000"
+    property color accentGreen: "#00E676"
+    property color accentAmber: "#FFB300"
+    property color separatorColor: "#1A1A1A"
+
     // ── Temperature thresholds ──
     function _tempColor(temp, warnThresh, critThresh) {
         if (temp >= critThresh) return "#FF1744";
-        if (temp >= warnThresh) return "#FFB300";
-        return "#00E676";
+        if (temp >= warnThresh) return root.accentAmber;
+        return root.accentGreen;
     }
 
     Column {
         anchors.fill: parent
         anchors.margins: 12
         spacing: 8
-
-        // ═══════════════════════════════════════
-        // HEADER
-        // ═══════════════════════════════════════
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: "TEMPS"
-            font.pixelSize: 11
-            font.weight: Font.Medium
-            font.family: "Segoe UI"
-            font.capitalization: Font.AllUppercase
-            color: "#00E676"
-            horizontalAlignment: Text.AlignHCenter
-        }
 
         // ═══════════════════════════════════════
         // MOTOR TEMP
@@ -43,26 +40,30 @@ Item {
             label: "MOTOR"
             value: root.motorTemp
             dotColor: root._tempColor(root.motorTemp, 80, 100)
+            textColor: root.textColor
         }
 
         // ═══════════════════════════════════════
-        // HEATSINK TEMP
+        // CONTROLLER TEMP
         // ═══════════════════════════════════════
         TempReadout {
             width: parent.width
-            label: "HEATSINK"
+            label: "CONTROLLER"
             value: root.heatsinkTemp
             dotColor: root._tempColor(root.heatsinkTemp, 80, 100)
+            textColor: root.textColor
         }
 
         // ═══════════════════════════════════════
-        // DSP BOARD TEMP
+        // PACK TEMP (BMS)
         // ═══════════════════════════════════════
         TempReadout {
             width: parent.width
-            label: "DSP"
-            value: root.dspBoardTemp
-            dotColor: root._tempColor(root.dspBoardTemp, 70, 90)
+            label: "PACK"
+            value: root.packTemp
+            valid: root.bmsValid
+            dotColor: root._tempColor(root.packTemp, 45, 60)
+            textColor: root.textColor
         }
 
         // ═══════════════════════════════════════
@@ -71,55 +72,39 @@ Item {
         Rectangle {
             width: parent.width
             height: 1
-            color: "#1A1A1A"
+            color: root.separatorColor
         }
 
         // ═══════════════════════════════════════
-        // LIMIT FLAGS
+        // PACK DELTA V
         // ═══════════════════════════════════════
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: "LIMITS"
-            font.pixelSize: 11
-            font.weight: Font.Medium
-            font.family: "Segoe UI"
-            font.capitalization: Font.AllUppercase
-            color: "#00E676"
-            horizontalAlignment: Text.AlignHCenter
-        }
+        Column {
+            width: parent.width
+            spacing: 2
 
-        // Limit flag indicators as labeled dots
-        Grid {
-            anchors.horizontalCenter: parent.horizontalCenter
-            columns: 2
-            columnSpacing: 6
-            rowSpacing: 6
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "PACK DELTA V"
+                font.pixelSize: 10
+                font.family: "Segoe UI"
+                font.capitalization: Font.AllUppercase
+                color: root.textColor
+                horizontalAlignment: Text.AlignHCenter
+            }
 
-            Repeater {
-                model: [
-                    { label: "PWM", bit: 0x01 }, { label: "I_M", bit: 0x02 },
-                    { label: "VEL", bit: 0x04 }, { label: "I_B", bit: 0x08 },
-                    { label: "V_H", bit: 0x10 }, { label: "V_L", bit: 0x20 },
-                    { label: "TMP", bit: 0x40 }
-                ]
-                delegate: Row {
-                    spacing: 4
-                    Rectangle {
-                        width: 6
-                        height: 6
-                        radius: 3
-                        anchors.verticalCenter: parent.verticalCenter
-                        color: (root.limitFlags & modelData.bit) ? "#FFB300" : "#333333"
-                        Behavior on color { ColorAnimation { duration: 300 } }
-                    }
-                    Text {
-                        text: modelData.label
-                        font.pixelSize: 9
-                        font.family: "Segoe UI"
-                        color: (root.limitFlags & modelData.bit) ? "#FFB300" : "#444444"
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: root.bmsValid ? root.packDeltaV.toFixed(3) + " V" : "--"
+                font.pixelSize: 20
+                font.weight: Font.Bold
+                font.family: "Segoe UI"
+                color: {
+                    if (!root.bmsValid) return root.textColor;
+                    if (root.packDeltaV < 0.050) return root.accentGreen;  // Good: < 50mV
+                    if (root.packDeltaV < 0.100) return root.accentAmber;  // Warning: 50-100mV
+                    return "#FF1744";  // Critical: > 100mV
                 }
+                horizontalAlignment: Text.AlignHCenter
             }
         }
     }

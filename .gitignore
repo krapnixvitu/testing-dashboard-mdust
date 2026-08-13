@@ -23,3 +23,10 @@ compile_commands.json
 # OS
 Thumbs.db
 .DS_Store
+
+# Credentials -- never commit these
+raspberrypi_login_info.txt
+*login_info*
+*credentials*
+*.pem
+*.key

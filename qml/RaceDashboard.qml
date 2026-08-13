@@ -5,6 +5,16 @@ Item {
 
     // ── Backend connection (injected by parent) ──
     property QtObject backend
+    property string colorMode: "night"  // Injected by parent
+    
+    // ── Theme colors ──
+    readonly property color _cardColor: colorMode === "night" ? "#1E1E1E" : "#F4F4F9"
+    readonly property color _textColor: colorMode === "night" ? "#E0E0E0" : "#111827"
+    readonly property color _accentGreen: colorMode === "night" ? "#00E676" : "#059669"
+    readonly property color _accentAmber: "#FFB300"
+    readonly property color _footerColor: colorMode === "night" ? "#121212" : "#374151"
+    readonly property color _separatorColor: colorMode === "night" ? "#E0E0E0" : "#1A1A1A"
+    readonly property color _footerTextColor: "#FFFFFF"  // Always white for contrast on dark footer
 
     // ═══════════════════════════════════════════════════════
     // DERIVED ALERT STATE
@@ -71,7 +81,7 @@ Item {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: 140
-            color: "#333333"
+            color: root._cardColor
             radius: 10
 
             InfoBar {
@@ -84,6 +94,13 @@ Item {
                 netPower: backend.netPower
                 dcBusAmpHours: backend.dcBusAmpHours
                 efficiency: backend.efficiency
+                netCurrent: backend.netCurrent
+                netCurrentValid: backend.netCurrentValid
+                
+                textColor: root._textColor
+                accentGreen: root._accentGreen
+                accentAmber: root._accentAmber
+                separatorColor: root._separatorColor
             }
         }
 
@@ -96,7 +113,7 @@ Item {
             anchors.rightMargin: 12
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            color: "#333333"
+            color: root._cardColor
             radius: 10
 
             SpeedGauge {
@@ -108,38 +125,40 @@ Item {
                 maxSpeed: 120.0
                 rpm: backend.motorRpm
                 odometer: backend.odometer.toFixed(1)
+                driveMode: backend.driveMode
+                lapModeActive: backend.lapModeActive
+                targetDeltaTime: backend.targetDeltaTime
+                
+                textColor: root._textColor
+                accentGreen: root._accentGreen
             }
 
             // Left blinker indicator
-            Text {
+            ArrowIndicator {
                 id: leftBlinker
                 anchors.left: parent.left
+                anchors.leftMargin: 8
                 anchors.top: parent.top
-                anchors.margins: 12
-                text: "\u25C0"  // ◀
-                font.pixelSize: 24
-                color: backend.leftBlinker ? "#00E676" : "#1A1A1A"
+                anchors.topMargin: 12
+                active: backend.leftBlinker
+                pointsLeft: true
+                activeColor: root._accentGreen
+                colorMode: root.colorMode
                 z: 100
-
-                Behavior on color { ColorAnimation { duration: 100 } }
-                scale: backend.leftBlinker ? 1.1 : 1.0
-                Behavior on scale { NumberAnimation { duration: 150 } }
             }
 
             // Right blinker indicator
-            Text {
+            ArrowIndicator {
                 id: rightBlinker
                 anchors.right: parent.right
+                anchors.rightMargin: 8
                 anchors.top: parent.top
-                anchors.margins: 12
-                text: "\u25B6"  // ▶
-                font.pixelSize: 24
-                color: backend.rightBlinker ? "#00E676" : "#1A1A1A"
+                anchors.topMargin: 12
+                active: backend.rightBlinker
+                pointsLeft: false
+                activeColor: root._accentGreen
+                colorMode: root.colorMode
                 z: 100
-
-                Behavior on color { ColorAnimation { duration: 100 } }
-                scale: backend.rightBlinker ? 1.1 : 1.0
-                Behavior on scale { NumberAnimation { duration: 150 } }
             }
         }
 
@@ -150,7 +169,7 @@ Item {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: 140
-            color: "#333333"
+            color: root._cardColor
             radius: 10
 
             TempBar {
@@ -162,6 +181,14 @@ Item {
                 heatsinkTemp: backend.heatsinkTemp
                 dspBoardTemp: backend.dspBoardTemp
                 limitFlags: backend.limitFlags
+                packTemp: backend.packTemp
+                packDeltaV: backend.packDeltaV
+                bmsValid: backend.bmsValid
+                
+                textColor: root._textColor
+                accentGreen: root._accentGreen
+                accentAmber: root._accentAmber
+                separatorColor: root._separatorColor
             }
         }
     }
@@ -175,7 +202,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         height: 32
-        color: "#000000"
+        color: root._footerColor
         z: 10
 
         // Top edge line
@@ -186,62 +213,119 @@ Item {
             color: "#1A1A1A"
         }
 
-        // CAN health dot
+        // Three health dots
         Row {
             anchors.left: parent.left
             anchors.leftMargin: 16
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 6
+            spacing: 12
 
-            Rectangle {
-                width: 8
-                height: 8
-                radius: 4
-                anchors.verticalCenter: parent.verticalCenter
-                color: backend.canHealthy ? "#00E676" : "#FF1744"
-
-                Behavior on color { ColorAnimation { duration: 300 } }
+            // CAN health
+            Row {
+                spacing: 6
+                Rectangle {
+                    width: 8
+                    height: 8
+                    radius: 4
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: backend.canHealthy ? root._accentGreen : "#FF1744"
+                    Behavior on color { ColorAnimation { duration: 300 } }
+                }
+                Text {
+                    text: "CAN"
+                    font.pixelSize: 11
+                    font.family: "Segoe UI"
+                    color: root._footerTextColor
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
 
-            Text {
-                text: "CAN"
-                font.pixelSize: 11
-                font.family: "Segoe UI"
-                color: "#FFFFFF"
-                anchors.verticalCenter: parent.verticalCenter
+            // BMS health
+            Row {
+                spacing: 6
+                Rectangle {
+                    width: 8
+                    height: 8
+                    radius: 4
+                    anchors.verticalCenter: parent.verticalCenter
+                    // Grey when no BMS is connected: a green dot would read as
+                    // "pack healthy" when nothing is actually being measured.
+                    color: {
+                        if (!backend.bmsValid) return "#6B7280";
+                        return backend.bmsFault ? "#FF1744" : root._accentGreen;
+                    }
+                    Behavior on color { ColorAnimation { duration: 300 } }
+                }
+                Text {
+                    text: "BMS"
+                    font.pixelSize: 11
+                    font.family: "Segoe UI"
+                    color: root._footerTextColor
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            // Motor health (yellow when limiting)
+            Row {
+                spacing: 6
+                Rectangle {
+                    width: 8
+                    height: 8
+                    radius: 4
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: (backend.limitFlags !== 0) ? root._accentAmber : root._accentGreen
+                    Behavior on color { ColorAnimation { duration: 300 } }
+                }
+                Text {
+                    text: "Motor"
+                    font.pixelSize: 11
+                    font.family: "Segoe UI"
+                    color: root._footerTextColor
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
         }
 
-        // Active limits summary (center)
+        // Limit flag display (center)
         Text {
             anchors.centerIn: parent
             text: {
                 if (backend.limitFlags === 0) return "";
-                var parts = [];
-                if (backend.limitFlags & 0x01) parts.push("PWM");
-                if (backend.limitFlags & 0x02) parts.push("I_MOT");
-                if (backend.limitFlags & 0x04) parts.push("VEL");
-                if (backend.limitFlags & 0x08) parts.push("I_BUS");
-                if (backend.limitFlags & 0x10) parts.push("V_HI");
-                if (backend.limitFlags & 0x20) parts.push("V_LO");
-                if (backend.limitFlags & 0x40) parts.push("TEMP");
-                return "LIMITING: " + parts.join(" | ");
+                
+                // Count number of flags set
+                var count = 0;
+                var flagName = "";
+                
+                // Bit meanings per the WaveSculptor22 protocol reference.
+                if (backend.limitFlags & 0x0001) { count++; flagName = "PWM LIMIT"; }
+                if (backend.limitFlags & 0x0002) { count++; flagName = "MOTOR CURRENT LIMIT"; }
+                if (backend.limitFlags & 0x0004) { count++; flagName = "VELOCITY LIMIT"; }
+                if (backend.limitFlags & 0x0008) { count++; flagName = "BUS CURRENT LIMIT"; }
+                if (backend.limitFlags & 0x0010) { count++; flagName = "BUS V HIGH"; }
+                if (backend.limitFlags & 0x0020) { count++; flagName = "BUS V LOW"; }
+                if (backend.limitFlags & 0x0040) { count++; flagName = "TEMP LIMIT"; }
+                
+                if (count === 0) return "";
+                if (count === 1) return flagName;
+                return "MULTIPLE LIMITS (" + count + ")";
             }
             font.pixelSize: 11
+            font.weight: Font.Bold
             font.family: "Segoe UI"
-            color: "#FFB300"
+            color: root._accentAmber
             horizontalAlignment: Text.AlignHCenter
+            visible: backend.limitFlags !== 0
         }
 
-        // Bus current readout (right side, secondary)
+        // Odometer (right side)
         Text {
             anchors.right: parent.right
             anchors.rightMargin: 16
             anchors.verticalCenter: parent.verticalCenter
-            text: backend.busCurrent.toFixed(1) + " A"
+            text: "ODO  " + backend.odometer.toFixed(1) + " km"
             font.pixelSize: 12
             font.family: "Segoe UI"
-            color: "#FFFFFF"
+            color: root._footerTextColor
             horizontalAlignment: Text.AlignRight
         }
     }
@@ -254,8 +338,8 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
 
-        active: root._hasWarning && !root._hasCritical
-        message: root._warningMessage
+        active: (root._hasWarning && !root._hasCritical) || backend.debugWarningActive
+        message: backend.debugWarningActive ? "TEST WARNING" : root._warningMessage
     }
 
     // ═══════════════════════════════════════════════════════
@@ -265,7 +349,7 @@ Item {
         id: criticalOverlay
         anchors.fill: parent
 
-        active: root._hasCritical
-        message: root._criticalMessage
+        active: root._hasCritical || backend.debugCriticalActive
+        message: backend.debugCriticalActive ? "TEST CRITICAL FAULT" : root._criticalMessage
     }
 }

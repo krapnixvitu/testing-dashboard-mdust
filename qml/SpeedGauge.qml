@@ -9,6 +9,13 @@ Item {
     property real maxSpeed: 120.0    // km/h (arc range)
     property real rpm: 0.0           // motor RPM
     property string odometer: "0.0"  // km string
+    property string driveMode: "D"   // "D", "N", "R"
+    property bool lapModeActive: false
+    property real targetDeltaTime: 0.0  // seconds (driver time - ghost time)
+    
+    // ── Theme colors ──
+    property color textColor: "#000000"
+    property color accentGreen: "#00E676"
 
     // ── Internal ──
     readonly property real _arcRadius: Math.min(width, height) * 0.42
@@ -133,6 +140,32 @@ Item {
     }
 
     // ═══════════════════════════════════════════
+    // TARGET DELTA TIME (lap mode only)
+    // ═══════════════════════════════════════════
+    Text {
+        id: deltaTimeText
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: speedText.y - 18
+        text: {
+            if (!root.lapModeActive) return "";
+            var sign = root.targetDeltaTime >= 0 ? "+" : "";
+            return sign + root.targetDeltaTime.toFixed(3);
+        }
+        font.pixelSize: 20
+        font.weight: Font.Bold
+        font.family: "Segoe UI"
+        color: {
+            if (Math.abs(root.targetDeltaTime) < 0.001) return root.textColor;
+            return root.targetDeltaTime > 0 ? "#FF1744" : root.accentGreen;
+        }
+        horizontalAlignment: Text.AlignHCenter
+        opacity: root.lapModeActive ? 1.0 : 0.0
+        visible: opacity > 0
+        
+        Behavior on opacity { NumberAnimation { duration: 150 } }
+    }
+
+    // ═══════════════════════════════════════════
     // SPEED TEXT (hero element)
     // ═══════════════════════════════════════════
     Text {
@@ -144,14 +177,17 @@ Item {
         font.pixelSize: 110
         font.weight: Font.Bold
         font.family: "Segoe UI"
-        color: "#FFFFFF"
+        color: root.textColor
         horizontalAlignment: Text.AlignHCenter
+        opacity: 1.0
+        visible: opacity > 0
     }
 
     // ═══════════════════════════════════════════
     // "km/h" LABEL
     // ═══════════════════════════════════════════
     Text {
+        id: kmhLabel
         anchors.horizontalCenter: speedText.horizontalCenter
         anchors.top: speedText.bottom
         anchors.topMargin: -6
@@ -159,8 +195,110 @@ Item {
         font.pixelSize: 20
         font.weight: Font.Normal
         font.family: "Segoe UI"
-        color: "#00E676"
+        color: root.textColor
         horizontalAlignment: Text.AlignHCenter
+        opacity: 1.0
+        visible: opacity > 0
+    }
+
+    // ═══════════════════════════════════════════
+    // TEAM LOGO (shown in Neutral mode)
+    // ═══════════════════════════════════════════
+    Image {
+        id: teamLogo
+        anchors.centerIn: parent
+        anchors.verticalCenterOffset: -20
+        width: 120
+        height: 120
+        fillMode: Image.PreserveAspectFit
+        source: "../assets/images/mdu-solar-team-logo.png"
+        opacity: 0.0
+        visible: opacity > 0
+        smooth: true
+    }
+
+    // ═══════════════════════════════════════════
+    // D/N/R GEAR INDICATORS + LAP MODE INDICATOR
+    // ═══════════════════════════════════════════
+    Item {
+        id: gearIndicatorContainer
+        anchors.top: kmhLabel.bottom
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+
+        Row {
+            id: gearIndicators
+            anchors.centerIn: parent
+            spacing: 16
+
+            // Drive
+            Text {
+                text: "D"
+                font.pixelSize: root.driveMode === "D" ? 24 : 18
+                font.weight: root.driveMode === "D" ? Font.Bold : Font.Normal
+                font.family: "Segoe UI"
+                color: root.textColor
+                opacity: root.driveMode === "D" ? 1.0 : 0.2
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                anchors.verticalCenter: parent.verticalCenter
+
+                Behavior on font.pixelSize { NumberAnimation { duration: 150 } }
+                Behavior on opacity { NumberAnimation { duration: 150 } }
+            }
+
+            // Neutral
+            Text {
+                text: "N"
+                font.pixelSize: root.driveMode === "N" ? 24 : 18
+                font.weight: root.driveMode === "N" ? Font.Bold : Font.Normal
+                font.family: "Segoe UI"
+                color: root.textColor
+                opacity: root.driveMode === "N" ? 1.0 : 0.2
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                anchors.verticalCenter: parent.verticalCenter
+
+                Behavior on font.pixelSize { NumberAnimation { duration: 150 } }
+                Behavior on opacity { NumberAnimation { duration: 150 } }
+            }
+
+            // Reverse
+            Text {
+                text: "R"
+                font.pixelSize: root.driveMode === "R" ? 24 : 18
+                font.weight: root.driveMode === "R" ? Font.Bold : Font.Normal
+                font.family: "Segoe UI"
+                color: root.textColor
+                opacity: root.driveMode === "R" ? 1.0 : 0.2
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                anchors.verticalCenter: parent.verticalCenter
+
+                Behavior on font.pixelSize { NumberAnimation { duration: 150 } }
+                Behavior on opacity { NumberAnimation { duration: 150 } }
+            }
+        }
+
+        // Lap mode indicator
+        Text {
+            id: lapModeIndicator
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 8
+            text: "LAP MODE"
+            font.pixelSize: 11
+            font.weight: Font.Medium
+            font.family: "Segoe UI"
+            font.capitalization: Font.AllUppercase
+            color: root.accentGreen
+            horizontalAlignment: Text.AlignHCenter
+            opacity: root.lapModeActive ? 1.0 : 0.0
+            visible: opacity > 0
+            
+            Behavior on opacity { NumberAnimation { duration: 150 } }
+        }
     }
 
     // ═══════════════════════════════════════════
@@ -169,7 +307,7 @@ Item {
     Text {
         visible: false
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: odometerText.top
+        anchors.bottom: parent.bottom
         anchors.bottomMargin: 4
         text: Math.round(root.rpm) + " RPM"
         font.pixelSize: 16
@@ -180,18 +318,47 @@ Item {
     }
 
     // ═══════════════════════════════════════════
-    // ODOMETER readout
+    // STATES AND TRANSITIONS
     // ═══════════════════════════════════════════
-    Text {
-        id: odometerText
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 4
-        text: "ODO  " + root.odometer + " km"
-        font.pixelSize: 13
-        font.weight: Font.Normal
-        font.family: "Segoe UI"
-        color: "#FFFFFF"
-        horizontalAlignment: Text.AlignHCenter
-    }
+    states: [
+        State {
+            name: "neutral"
+            when: root.driveMode === "N"
+            PropertyChanges { target: speedText; opacity: 0.0 }
+            PropertyChanges { target: kmhLabel; opacity: 0.0 }
+            PropertyChanges { target: teamLogo; opacity: 1.0 }
+        },
+        State {
+            name: "driving"
+            when: root.driveMode !== "N"
+            PropertyChanges { target: speedText; opacity: 1.0 }
+            PropertyChanges { target: kmhLabel; opacity: 1.0 }
+            PropertyChanges { target: teamLogo; opacity: 0.0 }
+        }
+    ]
+
+    transitions: [
+        Transition {
+            from: "driving"
+            to: "neutral"
+            SequentialAnimation {
+                ParallelAnimation {
+                    NumberAnimation { target: speedText; property: "opacity"; to: 0.0; duration: 150 }
+                    NumberAnimation { target: kmhLabel; property: "opacity"; to: 0.0; duration: 150 }
+                }
+                NumberAnimation { target: teamLogo; property: "opacity"; to: 1.0; duration: 150 }
+            }
+        },
+        Transition {
+            from: "neutral"
+            to: "driving"
+            SequentialAnimation {
+                NumberAnimation { target: teamLogo; property: "opacity"; to: 0.0; duration: 150 }
+                ParallelAnimation {
+                    NumberAnimation { target: speedText; property: "opacity"; to: 1.0; duration: 150 }
+                    NumberAnimation { target: kmhLabel; property: "opacity"; to: 1.0; duration: 150 }
+                }
+            }
+        }
+    ]
 }

@@ -4,7 +4,12 @@ Audience: team members who need to understand the on-screen layout and meaning,
 not the implementation details.
 
 Screen size: 800 x 480 (7-inch display)
-Theme: dark, high-contrast (black background, green text, red warnings)
+Theme: two palettes, night (default) and day, switchable at runtime. Both are
+high-contrast for outdoor readability.
+
+> This document describes what is actually on screen today. Where a feature was
+> removed but its code still exists (the speed arc, the RPM readout), that is
+> noted so nobody goes looking for a rendered element that is switched off.
 
 ## Dashboard Modes
 
@@ -22,108 +27,247 @@ The dashboard supports two independent modes:
 - Remains unchanged as Race Mode evolves (frozen reference)
 
 ### Switching Between Modes
-- **Current (Phase 1)**: Press 'D' key to toggle between modes
-- **Future (Phase 2)**: Physical button on dashboard will toggle modes
-- Brief indicator appears bottom-right showing active mode
+- **Current**: press `D` to toggle between modes
+- **Future**: a physical button once the enclosure is decided
+- A brief indicator appears bottom-right showing the active mode, for 1.5 s
 
-**Note**: Both modes currently display identical layouts (as described below), but Race Mode will diverge as it's optimized for driving.
+**The two modes no longer look alike.** Race Mode was rebuilt around rounded
+cards and the day/night theme. Debug Mode is a frozen pre-theme copy and still
+has the old top bar and flat sidebars.
 
-## Layout Map (High-Level)
+> **Known issue:** Debug Mode was not updated when theming was added, so its
+> child components fall back to their default black text and are largely
+> unreadable against the dark background. Race Mode is the only maintained view.
+
+### Keyboard controls (development)
+
+| Key | Effect |
+| :--- | :--- |
+| `D` | Toggle Race / Debug mode |
+| `M` | Toggle day / night theme |
+| `L` | Toggle lap mode |
+| `W` | Force the warning banner (shows "TEST WARNING") |
+| `C` | Force the critical overlay (shows "TEST CRITICAL FAULT") |
+| `←` `→` | Cycle gear D / N / R |
+
+Gear keys are development-only. On a live CAN bus the backend rejects keyboard
+gear writes, so the arrow keys do nothing once real data is flowing.
+
+## Layout Map — Race Mode
+
+There is **no top bar**. Three rounded cards fill the screen above a slim footer,
+and the blinkers are overlaid on the top corners of the centre card.
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│ Top Bar: Blinkers + Title (MDU SOLAR)                     │
-├───────────────┬───────────────────────────┬───────────────┤
-│ Left Sidebar  │ Center Speed Gauge        │ Right Sidebar │
-│ (Battery/     │ (Speed + RPM + Odometer)  │ (Temps/Limits)│
-│ Power/Eff.)   │                           │               │
-├───────────────┴───────────────────────────┴───────────────┤
-│ Footer: CAN status + limiting summary + bus current       │
-└──────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│ ┌────────────┐ ┌────────────────────┐ ┌────────────┐       │
+│ │ BATTERY    │ │ ◀              ▶   │ │ MOTOR      │       │
+│ │  120.0 V   │ │                    │ │ CONTROLLER │       │
+│ │ POWER      │ │        62          │ │ PACK       │       │
+│ │  1200 W    │ │       km/h         │ │ ────────── │       │
+│ │ CURRENT    │ │                    │ │ PACK ΔV    │       │
+│ │  --        │ │     D   N   R      │ │  --        │       │
+│ │ EFFICIENCY │ │                    │ │            │       │
+│ └────────────┘ └────────────────────┘ └────────────┘       │
+├────────────────────────────────────────────────────────────┤
+│ ●CAN ●BMS ●Motor        BUS V LOW           ODO  12.3 km   │
+└────────────────────────────────────────────────────────────┘
 ```
 
-## Top Bar (Status Strip)
-Location: very top of the screen, full width.
+Side cards are a fixed 140 px wide; the centre card takes the remaining width.
+The footer is 32 px tall.
 
-Elements:
-- Left blinker arrow (green when active).
-- Title text: "MDU SOLAR" centered.
-- Right blinker arrow (green when active).
+## Blinkers
+Location: overlaid on the top-left and top-right corners of the centre card.
 
-Purpose: quick visibility for legal indicators and system identity.
+- Drawn from SVG files in `assets/images/`, with separate day and night versions
+  so the arrow colour suits the active theme.
+- Fade in and out over 150 ms. They do **not** self-flash — the arrow is simply
+  on or off, and whatever drives the blinker state controls the rhythm.
 
-## Left Sidebar (Energy / Efficiency)
-Location: left column.
+Purpose: legal indicators, visible without moving the eyes far from the speed.
 
-Elements:
-- Battery bar (vertical): visual battery level derived from bus voltage.
-- Bus voltage value (V): numeric readout below the bar.
-- Net power (W): large number; blue if regenerative (negative).
-- Amp-hours consumed (Ah): energy usage since reset.
-- Efficiency (Wh/km): energy cost per distance, color-coded.
+## Left Card (Energy / Strategy)
+Location: left column, 140 px wide.
 
-Purpose: energy management and strategy.
+Top to bottom:
 
-## Center (Speedometer)
+- **BATTERY** — a *horizontal* bar plus the bus voltage in volts underneath.
+  The bar maps 80 V (empty) to 150 V (full). Fill colour: red below 20 %,
+  amber below 40 %, otherwise green.
+- **POWER** — net power in watts. Rendered blue (`#40C4FF`) when negative,
+  meaning regeneration.
+- **CURRENT** — pack current in amps from the BMS. Shows `--` until a BMS is
+  decoded. Blue when negative, meaning the pack is charging.
+- **EFFICIENCY** — watt-hours per kilometre, with a `(Wh/km)` caption. Green
+  below 100, amber below 150, red above. Shows `--` before the car has moved
+  far enough for the figure to mean anything.
+
+Purpose: energy management and race strategy.
+
+> Bus current and amp-hours are passed into this card by the backend but are not
+> currently displayed anywhere in it.
+
+## Centre Card (Speed + Gear)
 Location: middle of the screen, largest element.
 
 Elements:
-- Circular speed arc (0–120 km/h).
-- Large numeric speed value (km/h).
-- Small "km/h" label.
-- Motor RPM below speed.
-- Odometer at the bottom (km).
 
-Purpose: primary driving focus, speed awareness.
+- **Speed** — a very large numeric value (110 px), animated so it eases toward
+  new readings rather than jumping.
+- **"km/h"** caption directly beneath it.
+- **Team logo** — replaces the speed number entirely while in Neutral. Leaving
+  Neutral cross-fades back to the speed.
+- **Gear indicator** — `D  N  R` in a row. The active letter is larger and fully
+  opaque; the other two are dimmed to 20 %. **When no gear is reported at all,
+  all three are dimmed**, which is how "unknown" is shown rather than guessing.
+- **Lap delta** — appears above the speed in lap mode only, as a signed value to
+  three decimals. Red when behind the target, green when ahead.
+- **"LAP MODE"** caption at the bottom of the card while lap mode is active.
 
-## Right Sidebar (Safety / Limits)
-Location: right column.
+Purpose: primary driving focus.
 
-Elements:
-- Motor temperature (C) with colored dot.
-- Heatsink temperature (C) with colored dot.
-- DSP temperature (C) with colored dot.
-- Limit indicators (small dots + labels):
-  - PWM, I_M, VEL, I_B, V_H, V_L, TMP.
+> **Removed but still in the code:** the circular speed arc, its tick marks and
+> the RPM readout are all present in `SpeedGauge.qml` with `visible: false`. The
+> arc's 0–120 km/h range and the RPM value therefore have no effect on screen.
+> The odometer moved to the footer.
 
-Purpose: thermal safety and feedback on control limits.
+## Right Card (Thermal / Battery Health)
+Location: right column, 140 px wide.
+
+Each temperature row is a label, a coloured status dot and a value in °C:
+
+| Row | Source | Amber above | Red above |
+| :--- | :--- | :--- | :--- |
+| **MOTOR** | Motor controller | 80 °C | 100 °C |
+| **CONTROLLER** | Motor controller heatsink | 80 °C | 100 °C |
+| **PACK** | BMS | 45 °C | 60 °C |
+
+Below a separator:
+
+- **PACK DELTA V** — the spread between the highest and lowest cell, to three
+  decimals. Green below 50 mV, amber below 100 mV, red above.
+
+Rows with no live source show `--` with a grey dot instead of a colour, so a
+missing sensor can never be mistaken for a healthy reading. Both PACK rows are
+in that state until a BMS is chosen and decoded.
+
+Purpose: thermal safety and battery health.
+
+> **Removed:** the DSP board temperature row, and the per-flag limit dots
+> (`PWM`, `I_M`, `VEL`, …). Active limits are now summarised in the footer
+> instead. DSP temperature is still decoded from CAN and passed into this card,
+> but nothing displays it.
 
 ## Footer (System Status)
-Location: bottom of the screen, full width.
+Location: bottom of the screen, full width, 32 px tall. Text is always white, so
+it stays legible against the dark footer in both themes.
 
-Elements:
-- CAN status dot + "CAN" label (green = healthy).
-- Limiting summary text if any limits are active.
-- Bus current readout (A) on right.
+**Left — three health dots:**
 
-Purpose: background diagnostics without distracting from driving.
+| Dot | Green | Amber | Red | Grey |
+| :--- | :--- | :--- | :--- | :--- |
+| **CAN** | Frames arriving | — | Bus silent | — |
+| **BMS** | Pack healthy | — | BMS fault | No BMS connected |
+| **Motor** | No limits active | Controller is limiting | — | — |
 
-## Alert Overlays (Popups)
+The grey BMS state matters: a green dot would claim the pack is healthy when
+nothing is being measured at all.
 
-### Layer 1: Critical Overlay (Full Screen)
-Trigger examples: BMS fault, motor overheat > 100 C, over-current, over-voltage.
+**Centre — active limit summary.** Blank when the controller is not limiting.
+With one limit active it names it (e.g. `BUS CURRENT LIMIT`); with several it
+shows `MULTIPLE LIMITS (n)` rather than an unreadable list.
 
-Behavior:
-- Full-screen red/black flashing background.
-- Large warning text (e.g., "BMS FAULT").
-- Blocks the rest of the UI.
+**Right — odometer**, as `ODO  12.3 km`.
 
-### Layer 2: Warning Banner (Top Strip)
-Trigger examples: motor temp > 80 C, low voltage, overspeed.
+Purpose: background diagnostics that never compete with the speed for attention.
 
-Behavior:
-- Amber banner across the top.
-- Warning text only; does not block driving view.
+> **Moved:** the bus current readout that used to sit here was replaced by the
+> odometer.
 
-## Color & Units Legend
-- Green: normal / safe
-- Amber: warning
-- Red: critical
+## Alert Overlays
 
-Units:
+Two layers. Critical always wins: while a critical fault is active the warning
+banner is suppressed, so the driver is never shown two competing messages.
+
+### Layer 1: Critical Overlay (full screen)
+
+Behaviour: the whole screen flashes between black and red roughly once per
+second, with a large warning symbol, the fault name, and the sub-heading
+**"STOP VEHICLE IMMEDIATELY"**. It covers everything and swallows input.
+
+Triggers, in the order the message is chosen:
+
+| Condition | Message |
+| :--- | :--- |
+| BMS fault | `BMS FAULT` |
+| Motor temperature above 100 °C | `MOTOR OVERHEAT` |
+| Hardware over-current | `HARDWARE OVER CURRENT` |
+| Software over-current | `SOFTWARE OVER CURRENT` |
+| DC bus over-voltage | `DC BUS OVER VOLTAGE` |
+| IGBT desaturation fault | `IGBT DESAT FAULT` |
+
+### Layer 2: Warning Banner (top strip)
+
+Behaviour: a semi-transparent amber banner slides down from the top with a
+warning symbol and text. It does not block the view.
+
+| Condition | Message |
+| :--- | :--- |
+| Motor temperature 80–100 °C | `MOTOR TEMP WARNING  n°C` |
+| Heatsink above 80 °C | `HEATSINK TEMP WARNING` |
+| Bus voltage lower limit active | `LOW BUS VOLTAGE` |
+| Motor over-speed | `MOTOR OVER SPEED` |
+| 15 V rail under-voltage | `15V RAIL UNDER VOLTAGE` |
+| Bad motor position hall sequence | `BAD HALL SEQUENCE` |
+
+All error and limit conditions come from the motor controller's status message.
+See `WaveSculptor22_CAN_Protocol_Reference.md` for the bit definitions.
+
+## Debug Mode Layout
+
+A frozen copy of the pre-theme design, kept as a reference. It differs from Race
+Mode in several ways:
+
+- Has a **36 px top bar** with text-glyph blinker arrows and a dim
+  "MDU SOLAR TEAM" title.
+- **No cards** — the sidebars sit directly on the background, divided by thin
+  vertical lines.
+- Footer shows only the **CAN** dot, a pipe-separated limit list
+  (`LIMITING: PWM | I_MOT | …`) and **bus current** on the right.
+- **Not theme-aware.** It ignores the day/night setting entirely.
+
+As noted above, it currently renders most of its numbers in near-black and is
+not usable as-is.
+
+## Colour & Units Legend
+
+### Semantic colours
+- **Green** — normal / safe
+- **Amber** — warning, or the controller actively limiting
+- **Red** — critical
+- **Blue** — regeneration or charging (negative power/current)
+- **Grey** — no data source; value unknown
+
+### Theme palettes
+
+| Element | Night (default) | Day |
+| :--- | :--- | :--- |
+| Screen background | `#000000` | `#D1D5DB` |
+| Card background | `#1E1E1E` | `#F4F4F9` |
+| Primary text | `#E0E0E0` | `#111827` |
+| Accent green | `#00E676` | `#059669` |
+| Footer background | `#121212` | `#374151` |
+
+Amber (`#FFB300`), red (`#FF1744`), blue (`#40C4FF`) and grey (`#6B7280`) are
+shared by both themes, as is the white footer text.
+
+### Units
 - Speed: km/h
 - Power: W
 - Voltage: V
 - Current: A
-- Temperature: C
+- Temperature: °C
 - Energy: Ah, Wh/km
+- Cell imbalance: V (three decimals)
+- Lap delta: s (three decimals)
