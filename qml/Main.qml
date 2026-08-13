@@ -11,6 +11,15 @@ Window {
     color: colorMode === "night" ? "#000000" : "#D1D5DB"
 
     // ═══════════════════════════════════════════════════════
+    // KIOSK MODE -- borderless and fullscreen, covering any
+    // desktop taskbar/panel. Enabled with the --kiosk command
+    // line flag (see main.cpp); left off by default so the
+    // Windows dev workflow keeps a normal, resizable window.
+    // ═══════════════════════════════════════════════════════
+    flags: kioskMode ? (Qt.Window | Qt.FramelessWindowHint) : Qt.Window
+    visibility: kioskMode ? Window.FullScreen : Window.Windowed
+
+    // ═══════════════════════════════════════════════════════
     // BACKEND
     // `backend` is the C++ VehicleData instance, registered as a context
     // property in main.cpp. It is fed by either SocketCanReader or
@@ -31,8 +40,16 @@ Window {
         focus: true
 
         Keys.onPressed: function(event) {
+            // Kiosk mode has no window chrome to close, so give it an escape
+            // hatch. Harmless elsewhere, but only wired to quit in kiosk mode
+            // so an accidental Escape doesn't kill a normal dev session.
+            if (event.key === Qt.Key_Escape) {
+                if (kioskMode) Qt.quit();
+                event.accepted = true;
+            }
+
             // Dashboard mode toggle
-            if (event.key === Qt.Key_D) {
+            else if (event.key === Qt.Key_D) {
                 window.dashboardMode = (window.dashboardMode === "race") ? "debug" : "race";
                 modeIndicator.show();
                 event.accepted = true;

@@ -31,6 +31,12 @@ int main(int argc, char *argv[])
         QStringLiteral("can0"));
     parser.addOption(interfaceOption);
 
+    QCommandLineOption kioskOption(
+        QStringLiteral("kiosk"),
+        QStringLiteral("Run borderless and fullscreen, covering any desktop "
+                        "taskbar/panel. Intended for the dashboard's in-car display."));
+    parser.addOption(kioskOption);
+
     parser.process(app);
 
     VehicleData vehicleData;
@@ -65,6 +71,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("backend"), &vehicleData);
+    engine.rootContext()->setContextProperty(QStringLiteral("kioskMode"), parser.isSet(kioskOption));
 
     const QUrl url(QStringLiteral("qrc:/SolarDashboard/qml/Main.qml"));
 

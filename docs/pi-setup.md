@@ -110,7 +110,7 @@ generates plausible fake data, so it runs happily with no CAN hardware at all.
 
 ```bash
 sudo apt install -y git cmake build-essential \
-  qt6-base-dev qt6-declarative-dev \
+  qt6-base-dev qt6-declarative-dev qt6-svg-dev libqt6svg6 \
   qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtquick-shapes
 ```
 
@@ -121,6 +121,16 @@ What each piece is for:
 - **`build-essential`** — the C++ compiler and core build tools.
 - **`qt6-base-dev` / `qt6-declarative-dev`** — Qt libraries and headers needed
   to *compile* against Qt and QML.
+- **`qt6-svg-dev`** — headers/CMake config needed to *compile* against
+  `Qt6::Svg`. Our blinker arrow icons (`ArrowIndicator.qml`) are SVGs loaded
+  through a QML `Image`.
+- **`libqt6svg6`** — the *runtime* SVG image plugin (`imageformats/libqsvg.so`).
+  This is the one that's easy to miss: the app links and starts fine without
+  it, but every `Image` pointed at an `.svg` file silently fails to render
+  with `QML Image: Error decoding: ...: Unsupported image format`, because
+  Qt has no plugin registered that knows how to decode SVG into a raster
+  image. `qt6-svg-dev` does not pull this in automatically on all Raspberry
+  Pi OS setups, so it's worth confirming it's actually installed.
 - **`qml6-module-*`** — the QML pieces needed at *run time*. Our QML imports
   `QtQuick`, `QtQuick.Window` and `QtQuick.Shapes`. All three must be present or
   the app starts and immediately fails.
@@ -166,6 +176,19 @@ terminal:
 
 `--simulate` forces the built-in fake data generator and skips CAN entirely.
 
+Add `--kiosk` to run borderless and fullscreen instead of in a normal desktop
+window:
+
+```bash
+./build/SolarDashboard --simulate --kiosk
+```
+
+This is the mode intended for the actual in-car display, since it covers the
+Pi desktop's taskbar/panel instead of running alongside it. There is no window
+chrome to close it with, so press `Esc` to quit. `--kiosk` only changes the
+window's frame and fullscreen state — it has no effect on `--simulate` or
+`--can-interface`, so use whichever combination fits what you're testing.
+
 **Success looks like:** the dashboard appears with three rounded cards over a
 dark footer. The large speed number in the middle rises and falls, and the
 temperature and power values move.
@@ -179,6 +202,7 @@ Keys to try:
 | `W` | Amber warning banner slides down from the top |
 | `C` | Screen flashes red with "STOP VEHICLE IMMEDIATELY" |
 | `D` | Switches to Debug mode |
+| `Esc` | Quits (only wired up in `--kiosk` mode) |
 
 > **Note on Debug mode:** it is a frozen pre-theme layout and most of its
 > numbers currently render near-black on a near-black background, so it looks
@@ -530,6 +554,29 @@ rm -rf build
 cmake -B build
 cmake --build build
 ```
+
+**The dashboard runs, but the turn signal arrows never appear, and the
+terminal prints `QML Image: Error decoding: .../blinker-left.svg: Unsupported
+image format`.**
+
+Qt is missing the SVG image plugin. The blinker icons are `.svg` files loaded
+through a QML `Image`, which decodes them via `QImageReader` — that requires
+the `imageformats/libqsvg.so` plugin to be installed and discoverable at
+run time, completely separately from whether the app itself links against
+`Qt6::Svg` at build time. It's possible to build and launch the app
+successfully with this plugin missing; only the SVG images fail, silently
+falling back to nothing, with just the console warning to go on.
+
+Install the runtime plugin package and relaunch (no rebuild needed):
+
+```bash
+sudo apt install -y libqt6svg6
+./build/SolarDashboard --simulate
+```
+
+If you rebuilt from a checkout older than this fix, also reconfigure so the
+app links `Qt6::Svg` and `qt6-svg-dev` is present to compile against it (see
+Stage 1's install command above).
 
 **`candump` shows frames but the dashboard ignores them.**
 The message ID is probably outside the ranges we listen to. For efficiency, the
