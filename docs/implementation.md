@@ -62,7 +62,7 @@ cmake --build build
 | :--- | :--- |
 | `--can-interface <name>` | CAN interface to open. Default `can0`. |
 | `--simulate` | Force the simulator even where SocketCAN exists. |
-| `--kiosk` | Borderless fullscreen for the in-car display. `Esc` quits, wired only in this mode. Independent of the other two flags. |
+| `--kiosk` | Borderless fullscreen for the in-car display, mouse cursor hidden. `Esc` quits, wired only in this mode. Independent of the other two flags. |
 
 With no flags on Linux the app tries real CAN and falls back to the simulator if
 the interface cannot be opened. On Windows it prints

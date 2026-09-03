@@ -1,5 +1,6 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
+#include <QCursor>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -38,6 +39,12 @@ int main(int argc, char *argv[])
     parser.addOption(kioskOption);
 
     parser.process(app);
+
+    // There is no mouse in the car, so a cursor parked on the display is pure
+    // noise -- and on the Pi it sits wherever the pointer was last left. Only
+    // in kiosk mode: a development run on a desktop still needs its cursor.
+    if (parser.isSet(kioskOption))
+        app.setOverrideCursor(QCursor(Qt::BlankCursor));
 
     VehicleData vehicleData;
 

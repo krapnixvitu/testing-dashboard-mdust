@@ -168,12 +168,41 @@ cmake --build build
 
 ### Run it
 
-On the Pi's own desktop — not over SSH, since it needs a screen — open a
-terminal:
+The dashboard is a graphical app, so it has to draw on a screen. **Running it
+straight from an SSH session fails**, because an SSH login is not attached to a
+display:
+
+```
+qt.qpa.xcb: could not connect to display
+qt.qpa.plugin: Could not load the Qt platform plugin "xcb" in "" even though it was found.
+This application failed to start because no Qt platform plugin could be initialized.
+```
+
+Nothing is wrong with the build when this happens. Two ways round it.
+
+**Either** open a terminal on the Pi's own desktop, using the monitor and
+keyboard attached to it:
 
 ```bash
 ./build/SolarDashboard --simulate
 ```
+
+**Or** stay on SSH and tell Qt to render on the Pi's attached screen:
+
+```bash
+DISPLAY=:0 ./build/SolarDashboard --simulate
+```
+
+`DISPLAY=:0` names the Pi's own display. Without it Qt looks for a screen in
+your SSH session and finds none. This is the convenient one — you keep
+copy-paste and a real keyboard, and the dashboard appears on the Pi.
+
+If that reports `Authorization required`, the desktop session owns the display
+and will not let a second login draw on it. Run `xhost +local:` once in a
+terminal *on the Pi*, or just use the Pi's own terminal.
+
+If Qt additionally complains that `xcb-cursor0 or libxcb-cursor0 is needed`,
+install it: `sudo apt install -y libxcb-cursor0`. Not every image needs this.
 
 `--simulate` forces the built-in fake data generator and skips CAN entirely.
 
@@ -186,9 +215,15 @@ window:
 
 This is the mode intended for the actual in-car display, since it covers the
 Pi desktop's taskbar/panel instead of running alongside it. There is no window
-chrome to close it with, so press `Esc` to quit. `--kiosk` only changes the
-window's frame and fullscreen state — it has no effect on `--simulate` or
-`--can-interface`, so use whichever combination fits what you're testing.
+chrome to close it with, so press `Esc` to quit. `--kiosk` changes the window's
+frame and fullscreen state and **hides the mouse cursor** — there is no mouse in
+the car, and a cursor parked on the display is just noise. It has no effect on
+`--simulate` or `--can-interface`, so use whichever combination fits what you're
+testing.
+
+> If the Pi's desktop panel is still visible across the top with the dashboard
+> squeezed underneath, check you are actually passing `--kiosk`. Without it the
+> window is an ordinary desktop window and the panel keeps its space.
 
 **Success looks like:** the dashboard appears with three rounded cards over a
 dark footer. The large speed number in the middle rises and falls, and the

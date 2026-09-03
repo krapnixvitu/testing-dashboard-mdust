@@ -43,7 +43,7 @@ relaunches.
 | :--- | :--- |
 | `--can-interface <name>` | SocketCAN interface to open. Default `can0`. |
 | `--simulate` | Force the built-in drive-cycle simulator. |
-| `--kiosk` | Borderless fullscreen for the in-car display. `Esc` quits, wired only in this mode. |
+| `--kiosk` | Borderless fullscreen for the in-car display, mouse cursor hidden. `Esc` quits, wired only in this mode. |
 
 **Windows has no SocketCAN and always falls back to the simulator**, so a Windows run
 never exercises `SocketCanReader`. Only the Pi can test the real ingest path.
