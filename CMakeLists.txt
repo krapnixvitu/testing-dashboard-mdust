@@ -43,12 +43,14 @@ qt_add_qml_module(SolarDashboard
         qml/CriticalOverlay.qml
         qml/WarningBanner.qml
         qml/ArrowIndicator.qml
+        qml/HazardIndicator.qml
     RESOURCES
         assets/images/mdu-solar-team-logo.png
         assets/images/blinker-left.svg
         assets/images/blinker-right.svg
         assets/images/blinker-left-day.svg
         assets/images/blinker-right-day.svg
+        assets/images/hazard.svg
 )
 
 target_link_libraries(SolarDashboard PRIVATE

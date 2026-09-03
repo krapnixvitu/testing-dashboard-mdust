@@ -3,7 +3,10 @@
 Audience: team members who need to understand the on-screen layout and meaning,
 not the implementation details.
 
-Screen size: 800 x 480 (7-inch display)
+Design resolution: 800 x 480. The physical display is **not yet chosen** — the two
+panels bought are a 5″ at 800×480 (exact match) and a 7″ at 1024×600 (needs proportional
+layout work). Every pixel figure below is at the 800×480 design size; see
+`docs/display-hardware.md`.
 Theme: two palettes, night (default) and day, switchable at runtime. Both are
 high-contrast for outdoor readability.
 
@@ -45,6 +48,7 @@ has the old top bar and flat sidebars.
 | :--- | :--- |
 | `D` | Toggle Race / Debug mode |
 | `M` | Toggle day / night theme |
+| `H` | Toggle hazard lights (both arrows flash together) |
 | `L` | Toggle lap mode |
 | `W` | Force the warning banner (shows "TEST WARNING") |
 | `C` | Force the critical overlay (shows "TEST CRITICAL FAULT") |
@@ -61,7 +65,7 @@ and the blinkers are overlaid on the top corners of the centre card.
 ```
 ┌────────────────────────────────────────────────────────────┐
 │ ┌────────────┐ ┌────────────────────┐ ┌────────────┐       │
-│ │ BATTERY    │ │ ◀              ▶   │ │ MOTOR      │       │
+│ │ BATTERY    │ │ ◀       ⚠      ▶   │ │ MOTOR      │       │
 │ │  120.0 V   │ │                    │ │ CONTROLLER │       │
 │ │ POWER      │ │        62          │ │ PACK       │       │
 │ │  1200 W    │ │       km/h         │ │ ────────── │       │
@@ -77,15 +81,22 @@ and the blinkers are overlaid on the top corners of the centre card.
 Side cards are a fixed 140 px wide; the centre card takes the remaining width.
 The footer is 32 px tall.
 
-## Blinkers
-Location: overlaid on the top-left and top-right corners of the centre card.
+## Blinkers and hazard
+Location: overlaid across the top of the centre card — arrows in the two corners,
+hazard triangle centred between them and level with them.
 
-- Drawn from SVG files in `assets/images/`, with separate day and night versions
-  so the arrow colour suits the active theme.
-- Fade in and out over 150 ms. They do **not** self-flash — the arrow is simply
-  on or off, and whatever drives the blinker state controls the rhythm.
+- Drawn from SVG files in `assets/images/`. The arrows have separate day and night
+  versions so the green suits the active theme; the hazard triangle is a single
+  file, because its red is shared by both palettes.
+- All three fade in and out over 150 ms. They do **not** self-flash — each is
+  simply on or off, and whatever drives the state controls the rhythm.
+- **Hazard** shows a red triangle and is *steady* while engaged. The flashing the
+  regulations require you to verify is carried by the two arrows, which flash
+  **together** rather than alternating. The triangle says "this is hazard, not a
+  turn".
 
 Purpose: legal indicators, visible without moving the eyes far from the speed.
+Both are mandatory under iESC Reg. 2.26.1 — see `docs/regulatory-compliance.md`.
 
 ## Left Card (Energy / Strategy)
 Location: left column, 140 px wide.

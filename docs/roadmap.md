@@ -41,7 +41,46 @@ Stages 1 and 2 need no CAN hardware. Even though the board modification is
 already done, work through them first so any fault found in Stage 3 is
 definitely wiring and not software.
 
+### Open decision — which display
+
+Two Riverdi HDMI panels have been bought and neither has been committed to: a **5″ at
+800×480**, which matches the current design exactly and needs no layout work, and a
+**7″ at 1024×600**, which needs the fixed pixel constants replaced with proportional
+ones before it looks designed rather than merely functional. The 7″ also has internal
+backlight PWM and a metal mounting frame, both of which matter later.
+
+Comparison, layout impact and the recommended approach are in
+`docs/display-hardware.md`. Nothing is blocked on this yet — Stages 1–3 work on either
+panel — but Race Mode UI refinement should not start until it is settled, or the work
+risks being redone.
+
+### Regulatory compliance
+
+Audited against the iESC display requirements on 2026-09-03; full per-item status in
+`docs/regulatory-compliance.md`.
+
+- ✅ **Hazard indicator added.** Red triangle centred between the blinker arrows;
+  both arrows flash together while engaged. UI complete, awaiting a live source.
+- ✅ **Rear-vision feed: out of scope.** Decision recorded — not this dashboard's
+  focus. Only applies at all if the car uses a camera instead of mirrors.
+- ⏸ **ESS warnings: deferred until a BMS is chosen.** The regulations list four
+  trigger conditions (cell under/over voltage, over-current, cell under/over
+  temperature); the backend models one opaque `bmsFault` boolean, and no
+  low-temperature threshold exists anywhere in the codebase. To be implemented
+  alongside the BMS itself once its message codes are known. **When selecting the
+  BMS, require that it reports those conditions individually** — a summary-only
+  fault bit caps what the dashboard can ever warn about.
+- ⚠ **Open question for the electrical team.** The dashboard must run off the main
+  pack (Reg. 2.26.2) while hazards run off the auxiliary battery (Reg. 2.30) — so
+  the screen dies during a main-battery cut-off while the hazards keep flashing,
+  making the on-screen hazard verification unavailable exactly when it matters.
+
 ### Blocked on other teams
+- **Blinker and hazard state.** Neither has a live source: nothing decodes a
+  driver-controls message, so on a real bus the arrows and the hazard triangle never
+  light. Blocked on the lights owner, who has not yet confirmed a layout. Decide with
+  them whether the source sends actual lamp state or merely "indicator requested" —
+  the regulation asks for *verification*, which argues for mirroring the real lamp.
 - **Gear message.** Under active discussion with the ECU (ESP32) and
   driver-controls (Arduino) owners. Agreed so far: the ECU should own gear state
   and broadcast it periodically rather than the dashboard trusting a button
@@ -81,5 +120,7 @@ definitely wiring and not software.
 - `implementation-tldr.md` — one-screen quick reference
 - `concepts.md` — CAN filters/masks and byte order, explained from scratch
 - `pi-setup.md` — staged Raspberry Pi and CAN bring-up guide
+- `display-hardware.md` — the two candidate Riverdi panels and their layout impact
+- `regulatory-compliance.md` — iESC display requirements and where we stand
 - `WaveSculptor22_CAN_Protocol_Reference.md` — motor controller protocol
   spec-of-record

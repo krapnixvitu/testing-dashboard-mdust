@@ -73,6 +73,34 @@ void testGearWritesAcceptedInSimulator()
     check(data.driveMode() == QLatin1String("N"), "arrow keys still cycle gear");
 }
 
+void testHazardWritesRejectedOnLiveBus()
+{
+    std::printf("Hazard writes are rejected on a live bus\n");
+
+    VehicleData data;
+    // Not simulated. The hazard tell-tale is a regulatory verification that
+    // the indicators really are flashing; a keypress must not be able to
+    // claim that on a car nobody is measuring.
+    data.setHazardActive(true);
+    check(!data.hazardActive(), "keyboard cannot set hazard on real CAN");
+}
+
+void testHazardWritesAcceptedInSimulator()
+{
+    std::printf("Hazard writes are accepted in simulator mode\n");
+
+    VehicleData data;
+    data.setSimulated(true);
+
+    check(!data.hazardActive(), "hazard starts off");
+
+    data.setHazardActive(true);
+    check(data.hazardActive(), "simulator can engage hazard");
+
+    data.setHazardActive(false);
+    check(!data.hazardActive(), "simulator can clear hazard");
+}
+
 void testBmsValidityFollowsSource()
 {
     std::printf("BMS validity follows the source\n");
@@ -133,6 +161,8 @@ int main(int argc, char *argv[])
     testGearUnknownByDefault();
     testGearWritesRejectedOnLiveBus();
     testGearWritesAcceptedInSimulator();
+    testHazardWritesRejectedOnLiveBus();
+    testHazardWritesAcceptedInSimulator();
     testBmsValidityFollowsSource();
     testCanHealthStartsUnhealthy();
     testDerivedPowerFromBusFrame();

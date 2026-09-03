@@ -16,6 +16,7 @@
   - `TempBar.qml`: temps + limits (uses `TempReadout.qml`)
   - `CriticalOverlay.qml`: full-screen critical alert
   - `WarningBanner.qml`: top warning banner
+  - `ArrowIndicator.qml` / `HazardIndicator.qml`: blinker arrows and the hazard triangle
 - Build: `cmake -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.x.x/mingw_64"` then `cmake --build build`.
 - Tests: `cmake -B build -DBUILD_TESTING=ON` then `ctest --test-dir build`.
 - Flags: `--can-interface <name>` (default `can0`), `--simulate` to force the simulator, `--kiosk` for borderless fullscreen (in-car display; `Esc` quits, only wired up in this mode).

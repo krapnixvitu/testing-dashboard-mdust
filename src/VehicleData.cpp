@@ -274,6 +274,21 @@ void VehicleData::setRightBlinker(bool v)
     emit rightBlinkerChanged();
 }
 
+void VehicleData::setHazardActive(bool v)
+{
+    // Hazard state is a regulatory verification that the car's indicators are
+    // actually flashing together (iESC Reg. 2.26.1). Announcing it from a
+    // keypress on a live bus would assert something about lamps nobody has
+    // measured, so writes are accepted only from the simulator. A real source
+    // will write through the CAN ingest path, as gear will.
+    if (!m_simulated)
+        return;
+    if (m_hazardActive == v)
+        return;
+    m_hazardActive = v;
+    emit hazardActiveChanged();
+}
+
 void VehicleData::setDriveMode(const QString &v)
 {
     // Gear is selected elsewhere and announced over CAN; the dashboard only

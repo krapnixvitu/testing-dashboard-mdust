@@ -147,6 +147,18 @@ Item {
                 z: 100
             }
 
+            // Hazard indicator -- sits between the two arrows, level with them.
+            // Steady while engaged; the flashing verification the regulations
+            // ask for comes from both arrows flashing together.
+            HazardIndicator {
+                id: hazardIndicator
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.topMargin: 12
+                active: backend.hazardActive
+                z: 100
+            }
+
             // Right blinker indicator
             ArrowIndicator {
                 id: rightBlinker

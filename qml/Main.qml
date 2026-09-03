@@ -92,6 +92,13 @@ Window {
                 window.colorMode = (window.colorMode === "night") ? "day" : "night";
                 event.accepted = true;
             }
+
+            // Hazard lights. Development-only: the backend rejects this write
+            // on a live bus, where hazard state must come from the car.
+            else if (event.key === Qt.Key_H) {
+                backend.hazardActive = !backend.hazardActive;
+                event.accepted = true;
+            }
         }
 
         // ═══════════════════════════════════════════════════════

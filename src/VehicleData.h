@@ -56,6 +56,10 @@ class VehicleData : public QObject
     // ── Driver inputs: keyboard for now, GPIO or CAN device later ──
     Q_PROPERTY(bool leftBlinker READ leftBlinker WRITE setLeftBlinker NOTIFY leftBlinkerChanged)
     Q_PROPERTY(bool rightBlinker READ rightBlinker WRITE setRightBlinker NOTIFY rightBlinkerChanged)
+    // Hazard: all indicators flashing together. Mandatory on-screen verification
+    // under iESC Reg. 2.26.1, so it is guarded like gear rather than freely
+    // writable -- see setHazardActive().
+    Q_PROPERTY(bool hazardActive READ hazardActive WRITE setHazardActive NOTIFY hazardActiveChanged)
     Q_PROPERTY(QString driveMode READ driveMode WRITE setDriveMode NOTIFY driveModeChanged)
 
     // ── UI-only state ──
@@ -94,6 +98,7 @@ public:
 
     bool leftBlinker() const { return m_leftBlinker; }
     bool rightBlinker() const { return m_rightBlinker; }
+    bool hazardActive() const { return m_hazardActive; }
     QString driveMode() const { return m_driveMode; }
     bool lapModeActive() const { return m_lapModeActive; }
     qreal targetDeltaTime() const { return m_targetDeltaTime; }
@@ -103,6 +108,7 @@ public:
 
     void setLeftBlinker(bool v);
     void setRightBlinker(bool v);
+    void setHazardActive(bool v);
     void setDriveMode(const QString &v);
     void setLapModeActive(bool v);
     void setTargetDeltaTime(qreal v);
@@ -147,6 +153,7 @@ signals:
     void bmsValidChanged();
     void leftBlinkerChanged();
     void rightBlinkerChanged();
+    void hazardActiveChanged();
     void driveModeChanged();
     void lapModeActiveChanged();
     void targetDeltaTimeChanged();
@@ -183,6 +190,7 @@ private:
 
     bool m_leftBlinker = false;
     bool m_rightBlinker = false;
+    bool m_hazardActive = false;
     // Empty means "no gear reported". Every QML comparison against D/N/R then
     // fails, so no letter is highlighted.
     QString m_driveMode;

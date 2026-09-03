@@ -10,7 +10,11 @@ namespace {
 // Matches the CAN high-frequency broadcast rate the real controller uses.
 constexpr int kSimIntervalMs = 200;
 constexpr qreal kSimDt = 0.2;
-constexpr int kBlinkerIntervalMs = 500;
+// iESC Reg. 2.26.1 verifies an indicator flash rate of 90 +/- 30 per minute.
+// Aim for the middle, 90/min. One flash is an on-off pair, so the lamp state
+// toggles at twice that rate: 60000 / (2 * 90) = 333 ms per toggle.
+constexpr int kBlinkerFlashesPerMinute = 90;
+constexpr int kBlinkerIntervalMs = 60000 / (2 * kBlinkerFlashesPerMinute);
 
 constexpr qreal kDriveCycleSeconds = 60.0;
 constexpr qreal kRpmPerKmh = 17.0;
@@ -126,6 +130,15 @@ void VehicleSimulator::tickBlinkers()
     ++m_blinkerCount;
     const qreal phase = std::fmod(m_blinkerCount * 0.5, 30.0);
     const bool flash = (m_blinkerCount % 2) == 0;
+
+    // Hazard drives every indicator at once, so it overrides the turn cycle
+    // rather than running alongside it. This is what the hazard tell-tale is
+    // verifying: not "hazard was requested" but "both sides are flashing".
+    if (m_data->hazardActive()) {
+        m_data->setLeftBlinker(flash);
+        m_data->setRightBlinker(flash);
+        return;
+    }
 
     if (phase >= 10.0 && phase < 20.0) {
         m_data->setLeftBlinker(flash);

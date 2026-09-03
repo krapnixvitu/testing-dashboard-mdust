@@ -33,7 +33,15 @@ zero that looks like a measurement is worse than an obvious blank.
 
 ### Configure
 ```
-cmake -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.x.x/mingw_64"
+cmake -B build -G "MinGW Makefiles"
+```
+
+On the current Windows dev machine Qt 6.10.1 is at `Z:/Qt/6.10.1/mingw_64` and is
+already on `PATH`, so CMake finds it unaided. On a machine where it is not, point at it
+explicitly:
+
+```
+cmake -B build -DCMAKE_PREFIX_PATH="<qt-install>/mingw_64"
 ```
 
 On the Pi, Qt comes from `apt` and CMake finds it without `CMAKE_PREFIX_PATH`.
@@ -54,6 +62,7 @@ cmake --build build
 | :--- | :--- |
 | `--can-interface <name>` | CAN interface to open. Default `can0`. |
 | `--simulate` | Force the simulator even where SocketCAN exists. |
+| `--kiosk` | Borderless fullscreen for the in-car display. `Esc` quits, wired only in this mode. Independent of the other two flags. |
 
 With no flags on Linux the app tries real CAN and falls back to the simulator if
 the interface cannot be opened. On Windows it prints
@@ -68,8 +77,8 @@ ctest --test-dir build
 Two suites, both runnable on Windows:
 - `test_decoder` — frame decoding for every supported message, plus malformed
   input and NaN/infinity handling.
-- `test_vehicledata` — gear source ownership, BMS validity gating, CAN health
-  watchdog, derived power.
+- `test_vehicledata` — gear and hazard source ownership, BMS validity gating,
+  CAN health watchdog, derived power.
 
 `WaveSculptorDecoder` deliberately has no Qt and no socket dependencies, which
 is what makes decoding testable without hardware or a CAN bus.
@@ -144,6 +153,14 @@ displays it. Keyboard gear input is development-only fake data, so it is
 accepted from the simulator and ignored on a live bus. The rule lives in C++
 rather than QML so there is a single place it can be enforced.
 
+### Hazard ownership
+
+`setHazardActive()` applies the same rule for the same reason: the hazard tell-tale
+is a regulatory verification that the car's indicators really are flashing, so a
+keypress must not be able to assert it on a live bus. `H` is development-only input.
+While hazard is engaged the simulator drives **both** blinkers in sync, overriding
+the turn-signal cycle.
+
 A real gear message is **not yet decoded** — the protocol is still being agreed
 with the driver-controls and ECU owners. Until then a live bus reports no gear,
 and the UI dims all three letters.
@@ -155,7 +172,7 @@ and the UI dims all three letters.
 - Owns `dashboardMode` ("race"/"debug") and `colorMode` ("night"/"day")
 - Mode controller: loads `RaceDashboard.qml` or `DebugDashboard.qml` via Loader,
   injecting `backend` and binding `colorMode`
-- Handles all development key input: `D`, `M`, `L`, `W`, `C`, arrow keys
+- Handles all development key input: `D`, `M`, `L`, `W`, `C`, `H`, arrow keys
 - Displays a brief mode indicator on switch (not theme-aware; hardcoded dark)
 
 ### `qml/RaceDashboard.qml`
@@ -164,7 +181,8 @@ and the UI dims all three letters.
 - Owns the theme palette as `readonly property color` values derived from
   `colorMode`, and passes those colours down to every child component
 - Layout: three rounded cards (InfoBar / SpeedGauge / TempBar) over a 32 px
-  footer. **No top bar** — blinkers are overlaid on the centre card
+  footer. **No top bar** — blinkers and the hazard triangle are overlaid on the
+  centre card
 - Computes alert states and manages overlays (CriticalOverlay, WarningBanner)
 
 ### `qml/DebugDashboard.qml`
@@ -195,6 +213,12 @@ and the UI dims all three letters.
 ### `qml/TempReadout.qml`
 - Reusable single temperature row: label, status dot, value
 - `valid: false` renders `--` with a grey dot
+
+### `qml/HazardIndicator.qml`
+- Red hazard triangle, shown centred between the two blinker arrows
+- Single SVG with no day/night variants: red is shared by both palettes, so unlike
+  `ArrowIndicator` it needs no `colorMode`
+- Steady while active; the flashing verification comes from both arrows at once
 
 ### `qml/ArrowIndicator.qml`
 - Blinker arrow. Picks a day or night SVG based on `colorMode`; colour is baked
