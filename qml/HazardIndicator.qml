@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 
 Item {
     id: root
@@ -32,5 +33,16 @@ Item {
         source: "../assets/images/hazard.svg"
         fillMode: Image.PreserveAspectFit
         smooth: true
+
+        // Rasterise at the size actually drawn, at the display's pixel density.
+        //
+        // Without this Qt renders the SVG at its *intrinsic* size and scales
+        // that bitmap to fit. This file declares only viewBox="0 0 24 24" and
+        // no width/height, so the intrinsic size is 24x24 -- a 24-pixel bitmap
+        // stretched up to fill the box, which looks visibly soft. The blinker
+        // SVGs declare width="400" height="430", so they are always scaled
+        // *down* and stay sharp without needing this.
+        sourceSize.width: Math.ceil(root.width * Screen.devicePixelRatio)
+        sourceSize.height: Math.ceil(root.height * Screen.devicePixelRatio)
     }
 }
