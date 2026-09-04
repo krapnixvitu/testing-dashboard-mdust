@@ -62,7 +62,8 @@ cmake --build build
 | :--- | :--- |
 | `--can-interface <name>` | CAN interface to open. Default `can0`. |
 | `--simulate` | Force the simulator even where SocketCAN exists. |
-| `--kiosk` | Borderless fullscreen for the in-car display, mouse cursor hidden. `Esc` quits, wired only in this mode. Independent of the other two flags. |
+| `--kiosk` | Borderless fullscreen for the in-car display, mouse cursor hidden. `Esc` quits, wired only in this mode. Independent of the other flags. |
+| `--panel <5in\|7in>` | Size the window to 800x480 or 1024x600 and lock it there. `--kiosk` overrides it, since fullscreen takes the panel's own size. |
 
 With no flags on Linux the app tries real CAN and falls back to the simulator if
 the interface cannot be opened. On Windows it prints
@@ -145,6 +146,27 @@ Computed in `VehicleData::recomputeDerived()`, not in QML, so there is one
 authoritative definition:
 - `netPower` = bus voltage × bus current
 - `efficiency` = Wh per km, from amp-hours, voltage and distance
+
+### Resolution independence
+
+Every size in the Race Mode tree is written against an **800x480 reference design** and
+multiplied by `RaceDashboard._uiScale`:
+
+```qml
+readonly property real _uiScale: Math.min(width / 800, height / 480)
+function px(n) { return Math.round(n * uiScale) }
+```
+
+1.0 on the 5in panel, 1.25 on the 7in. Each child component declares
+`property real uiScale` and its own `px()`, and RaceDashboard threads the value down the
+same way it threads the theme colours. **A new size must be written `px(n)`**; a bare
+pixel value silently stops scaling.
+
+The side cards divide their height into equal blocks (`col._blockH`) rather than stacking
+fixed heights. That is deliberate: the Pi has no Segoe UI and substitutes a font with
+different metrics, so a layout that exactly fits on Windows could overflow there. Blocks
+sized as a share of the card cannot overflow — the content just centres in whatever it is
+given.
 
 ### Gear ownership
 `setDriveMode()` **rejects writes unless the backend is in simulator mode.**

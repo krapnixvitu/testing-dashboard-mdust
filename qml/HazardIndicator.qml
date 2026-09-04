@@ -6,8 +6,16 @@ Item {
     // Public API
     property bool active: false
 
-    width: 40
-    height: 24
+    // ── Sizing ──
+    // Against the 800x480 reference design; see RaceDashboard._uiScale.
+    property real uiScale: 1.0
+    function px(n) { return Math.round(n * uiScale) }
+
+    width: root.px(56)
+    // Taller than the arrows' box on purpose. The arrow SVGs fill their
+    // viewBox; this triangle sits inside a square one with padding, so an
+    // equal box would draw it about 20% smaller than its neighbours.
+    height: root.px(44)
 
     // Smooth fade animation (matches ArrowIndicator timing)
     opacity: root.active ? 1.0 : 0.0

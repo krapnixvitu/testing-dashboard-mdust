@@ -12,44 +12,62 @@ Item {
     // neutral dot so a missing sensor never reads as a healthy value.
     property bool valid: true
 
-    height: 44
+    // Against the 800x480 reference design; see RaceDashboard._uiScale.
+    property real uiScale: 1.0
+    function px(n) { return Math.round(n * uiScale) }
 
-    // Label text (centered at top)
-    Text {
-        id: labelText
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        text: root.label
-        font.pixelSize: 10
-        font.family: "Segoe UI"
-        font.capitalization: Font.AllUppercase
-        color: root.textColor
-    }
+    // The parent hands this a share of the card height. Content is centred in
+    // whatever it gets, so the row cannot overflow and push its neighbours off
+    // the card the way a fixed height could.
+    implicitHeight: content.implicitHeight
 
-    // Temperature value text (centered)
-    Text {
-        id: tempValue
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: labelText.bottom
-        anchors.topMargin: 1
-        text: root.valid ? Math.round(root.value) + "°C" : "--"
-        font.pixelSize: 20
-        font.weight: Font.Bold
-        font.family: "Segoe UI"
-        color: root.textColor
-    }
+    Column {
+        id: content
+        anchors.centerIn: parent
+        width: parent.width
+        spacing: root.px(1)
 
-    // Color dot (to the left of temperature value)
-    Rectangle {
-        id: dot
-        anchors.right: tempValue.left
-        anchors.rightMargin: 6
-        anchors.verticalCenter: tempValue.verticalCenter
-        width: 8
-        height: 8
-        radius: 4
-        color: root.valid ? root.dotColor : "#6B7280"
+        // Label text
+        Text {
+            id: labelText
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: root.label
+            font.pixelSize: root.px(17)
+            font.family: "Segoe UI"
+            font.capitalization: Font.AllUppercase
+            color: root.textColor
+        }
 
-        Behavior on color { ColorAnimation { duration: 400 } }
+        // Value, with the status dot hanging off to its left so the number
+        // itself stays centred in the card rather than the number-plus-dot pair.
+        Item {
+            width: parent.width
+            height: tempValue.height
+
+            Text {
+                id: tempValue
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: root.valid ? Math.round(root.value) + "°C" : "--"
+                // A step above the other secondary readouts: these are the
+                // safety numbers the driver must catch without hunting.
+                font.pixelSize: root.px(32)
+                font.weight: Font.Bold
+                font.family: "Segoe UI"
+                color: root.textColor
+            }
+
+            Rectangle {
+                id: dot
+                anchors.right: tempValue.left
+                anchors.rightMargin: root.px(9)
+                anchors.verticalCenter: tempValue.verticalCenter
+                width: root.px(14)
+                height: root.px(14)
+                radius: width / 2
+                color: root.valid ? root.dotColor : "#6B7280"
+
+                Behavior on color { ColorAnimation { duration: 400 } }
+            }
+        }
     }
 }

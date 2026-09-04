@@ -4,9 +4,11 @@ Driver information dashboard for the MDU Solar Team's solar car. Qt 6, C++ backe
 a QML frontend. Runs on a Raspberry Pi 4 (Linux/EGLFS); developed on Windows 11.
 Competing in Belgium (iLumen European Solar Challenge, Circuit Zolder).
 
-The UI is designed at **800 × 480** (`qml/Main.qml:7-8`), but the display is **not yet
-chosen** — two Riverdi HDMI panels have been bought, 5″/800×480 and 7″/1024×600. See
-`docs/display-hardware.md` before doing layout work.
+The UI is **designed against an 800 × 480 reference and scaled**, so it fits either
+candidate panel (5″/800×480 and 7″/1024×600). `RaceDashboard._uiScale` is the single
+factor; every component takes `uiScale` and wraps its sizes in `px()`. **Write new sizes
+as `px(n)` against the 800 × 480 reference, never as bare pixels.** See
+`docs/display-hardware.md`.
 
 Race priorities, in order: **efficiency** (watts), **safety** (temperatures),
 **legality** (indicators, BMS visibility).
@@ -44,6 +46,7 @@ relaunches.
 | `--can-interface <name>` | SocketCAN interface to open. Default `can0`. |
 | `--simulate` | Force the built-in drive-cycle simulator. |
 | `--kiosk` | Borderless fullscreen for the in-car display, mouse cursor hidden. `Esc` quits, wired only in this mode. |
+| `--panel <5in\|7in>` | Size the window to a candidate display (800x480 / 1024x600) and lock it there, so a desktop run matches the Pi. |
 
 **Windows has no SocketCAN and always falls back to the simulator**, so a Windows run
 never exercises `SocketCanReader`. Only the Pi can test the real ingest path.

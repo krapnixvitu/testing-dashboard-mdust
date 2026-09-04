@@ -19,6 +19,6 @@
   - `ArrowIndicator.qml` / `HazardIndicator.qml`: blinker arrows and the hazard triangle
 - Build: `cmake -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.x.x/mingw_64"` then `cmake --build build`.
 - Tests: `cmake -B build -DBUILD_TESTING=ON` then `ctest --test-dir build`.
-- Flags: `--can-interface <name>` (default `can0`), `--simulate` to force the simulator, `--kiosk` for borderless fullscreen with the cursor hidden (in-car display; `Esc` quits, only wired up in this mode).
+- Flags: `--can-interface <name>` (default `can0`), `--simulate` to force the simulator, `--kiosk` for borderless fullscreen with the cursor hidden (in-car display; `Esc` quits, only wired up in this mode), `--panel 5in|7in` to lock the window to a candidate display's exact geometry.
 - Windows has no SocketCAN, so it always falls back to the simulator.
 - Pi/CAN hardware bring-up: see `docs/pi-setup.md`.

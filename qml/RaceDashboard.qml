@@ -16,6 +16,15 @@ Item {
     readonly property color _separatorColor: colorMode === "night" ? "#E0E0E0" : "#1A1A1A"
     readonly property color _footerTextColor: "#FFFFFF"  // Always white for contrast on dark footer
 
+    // ── Resolution independence ──
+    // Every size in this file and its children is expressed against an 800x480
+    // reference design and multiplied by this. The two candidate panels are
+    // nearly the same shape (800x480 = 1.667, 1024x600 = 1.707), so a single
+    // uniform factor serves both: 1.0 on the 5in, 1.25 on the 7in. Tune the
+    // layout once at the reference size and it is correct on both.
+    readonly property real _uiScale: Math.min(width / 800, height / 480)
+    function px(n) { return Math.round(n * root._uiScale) }
+
     // ═══════════════════════════════════════════════════════
     // DERIVED ALERT STATE
     // ═══════════════════════════════════════════════════════
@@ -72,7 +81,7 @@ Item {
         anchors.bottom: footer.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: 12
+        anchors.margins: root.px(12)
 
         // ─── LEFT CARD (Energy/Strategy) ───
         Rectangle {
@@ -80,14 +89,17 @@ Item {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: 140
+            // 22% of the reference width. The long labels (CONTROLLER,
+            // PACK DELTA V) will not fit the old 140 px at a legible font size.
+            width: root.px(176)
             color: root._cardColor
-            radius: 10
+            radius: root.px(12)
 
             InfoBar {
                 id: infoBar
                 anchors.fill: parent
-                anchors.margins: 8
+                anchors.margins: root.px(8)
+                uiScale: root._uiScale
 
                 busVoltage: backend.busVoltage
                 busCurrent: backend.busCurrent
@@ -108,18 +120,19 @@ Item {
         Rectangle {
             id: centerCard
             anchors.left: leftCard.right
-            anchors.leftMargin: 12
+            anchors.leftMargin: root.px(12)
             anchors.right: rightCard.left
-            anchors.rightMargin: 12
+            anchors.rightMargin: root.px(12)
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             color: root._cardColor
-            radius: 10
+            radius: root.px(12)
 
             SpeedGauge {
                 id: speedGauge
                 anchors.fill: parent
-                anchors.margins: 8
+                anchors.margins: root.px(8)
+                uiScale: root._uiScale
 
                 speed: backend.vehicleSpeed
                 maxSpeed: 120.0
@@ -137,9 +150,10 @@ Item {
             ArrowIndicator {
                 id: leftBlinker
                 anchors.left: parent.left
-                anchors.leftMargin: 8
+                anchors.leftMargin: root.px(8)
                 anchors.top: parent.top
-                anchors.topMargin: 12
+                anchors.topMargin: root.px(14)
+                uiScale: root._uiScale
                 active: backend.leftBlinker
                 pointsLeft: true
                 activeColor: root._accentGreen
@@ -153,8 +167,10 @@ Item {
             HazardIndicator {
                 id: hazardIndicator
                 anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.top
-                anchors.topMargin: 12
+                // Centred on the arrows rather than top-aligned, so the taller
+                // box grows about the same centreline and the three stay level.
+                anchors.verticalCenter: leftBlinker.verticalCenter
+                uiScale: root._uiScale
                 active: backend.hazardActive
                 z: 100
             }
@@ -163,9 +179,10 @@ Item {
             ArrowIndicator {
                 id: rightBlinker
                 anchors.right: parent.right
-                anchors.rightMargin: 8
+                anchors.rightMargin: root.px(8)
                 anchors.top: parent.top
-                anchors.topMargin: 12
+                anchors.topMargin: root.px(14)
+                uiScale: root._uiScale
                 active: backend.rightBlinker
                 pointsLeft: false
                 activeColor: root._accentGreen
@@ -180,14 +197,15 @@ Item {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: 140
+            width: root.px(176)
             color: root._cardColor
-            radius: 10
+            radius: root.px(12)
 
             TempBar {
                 id: tempBar
                 anchors.fill: parent
-                anchors.margins: 8
+                anchors.margins: root.px(8)
+                uiScale: root._uiScale
 
                 motorTemp: backend.motorTemp
                 heatsinkTemp: backend.heatsinkTemp
@@ -213,7 +231,7 @@ Item {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 32
+        height: root.px(48)
         color: root._footerColor
         z: 10
 
@@ -228,24 +246,24 @@ Item {
         // Three health dots
         Row {
             anchors.left: parent.left
-            anchors.leftMargin: 16
+            anchors.leftMargin: root.px(20)
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 12
+            spacing: root.px(18)
 
             // CAN health
             Row {
-                spacing: 6
+                spacing: root.px(9)
                 Rectangle {
-                    width: 8
-                    height: 8
-                    radius: 4
+                    width: root.px(14)
+                    height: root.px(14)
+                    radius: width / 2
                     anchors.verticalCenter: parent.verticalCenter
                     color: backend.canHealthy ? root._accentGreen : "#FF1744"
                     Behavior on color { ColorAnimation { duration: 300 } }
                 }
                 Text {
                     text: "CAN"
-                    font.pixelSize: 11
+                    font.pixelSize: root.px(19)
                     font.family: "Segoe UI"
                     color: root._footerTextColor
                     anchors.verticalCenter: parent.verticalCenter
@@ -254,11 +272,11 @@ Item {
 
             // BMS health
             Row {
-                spacing: 6
+                spacing: root.px(9)
                 Rectangle {
-                    width: 8
-                    height: 8
-                    radius: 4
+                    width: root.px(14)
+                    height: root.px(14)
+                    radius: width / 2
                     anchors.verticalCenter: parent.verticalCenter
                     // Grey when no BMS is connected: a green dot would read as
                     // "pack healthy" when nothing is actually being measured.
@@ -270,7 +288,7 @@ Item {
                 }
                 Text {
                     text: "BMS"
-                    font.pixelSize: 11
+                    font.pixelSize: root.px(19)
                     font.family: "Segoe UI"
                     color: root._footerTextColor
                     anchors.verticalCenter: parent.verticalCenter
@@ -279,18 +297,18 @@ Item {
 
             // Motor health (yellow when limiting)
             Row {
-                spacing: 6
+                spacing: root.px(9)
                 Rectangle {
-                    width: 8
-                    height: 8
-                    radius: 4
+                    width: root.px(14)
+                    height: root.px(14)
+                    radius: width / 2
                     anchors.verticalCenter: parent.verticalCenter
                     color: (backend.limitFlags !== 0) ? root._accentAmber : root._accentGreen
                     Behavior on color { ColorAnimation { duration: 300 } }
                 }
                 Text {
                     text: "Motor"
-                    font.pixelSize: 11
+                    font.pixelSize: root.px(19)
                     font.family: "Segoe UI"
                     color: root._footerTextColor
                     anchors.verticalCenter: parent.verticalCenter
@@ -321,7 +339,7 @@ Item {
                 if (count === 1) return flagName;
                 return "MULTIPLE LIMITS (" + count + ")";
             }
-            font.pixelSize: 11
+            font.pixelSize: root.px(19)
             font.weight: Font.Bold
             font.family: "Segoe UI"
             color: root._accentAmber
@@ -332,10 +350,10 @@ Item {
         // Odometer (right side)
         Text {
             anchors.right: parent.right
-            anchors.rightMargin: 16
+            anchors.rightMargin: root.px(20)
             anchors.verticalCenter: parent.verticalCenter
             text: "ODO  " + backend.odometer.toFixed(1) + " km"
-            font.pixelSize: 12
+            font.pixelSize: root.px(19)
             font.family: "Segoe UI"
             color: root._footerTextColor
             horizontalAlignment: Text.AlignRight
@@ -349,6 +367,7 @@ Item {
         id: warningBanner
         anchors.left: parent.left
         anchors.right: parent.right
+        uiScale: root._uiScale
 
         active: (root._hasWarning && !root._hasCritical) || backend.debugWarningActive
         message: backend.debugWarningActive ? "TEST WARNING" : root._warningMessage
@@ -360,6 +379,7 @@ Item {
     CriticalOverlay {
         id: criticalOverlay
         anchors.fill: parent
+        uiScale: root._uiScale
 
         active: root._hasCritical || backend.debugCriticalActive
         message: backend.debugCriticalActive ? "TEST CRITICAL FAULT" : root._criticalMessage

@@ -4,8 +4,15 @@ import QtQuick.Window
 Window {
     id: window
 
-    width: 800
-    height: 480
+    // Design reference is 800x480. `--panel 5in|7in` overrides this and locks
+    // the window there so a desktop run is pixel-identical to the Pi; without
+    // it the window stays freely resizable for development.
+    width: panelWidth
+    height: panelHeight
+    minimumWidth: panelLocked ? panelWidth : 0
+    maximumWidth: panelLocked ? panelWidth : 16777215
+    minimumHeight: panelLocked ? panelHeight : 0
+    maximumHeight: panelLocked ? panelHeight : 16777215
     visible: true
     title: "MDU Solar Dashboard"
     color: colorMode === "night" ? "#000000" : "#D1D5DB"

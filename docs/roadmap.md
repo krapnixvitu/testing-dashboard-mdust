@@ -44,15 +44,15 @@ definitely wiring and not software.
 ### Open decision — which display
 
 Two Riverdi HDMI panels have been bought and neither has been committed to: a **5″ at
-800×480**, which matches the current design exactly and needs no layout work, and a
-**7″ at 1024×600**, which needs the fixed pixel constants replaced with proportional
-ones before it looks designed rather than merely functional. The 7″ also has internal
-backlight PWM and a metal mounting frame, both of which matter later.
+800×480** and a **7″ at 1024×600**. The 7″ has internal backlight PWM and a metal
+mounting frame, both of which matter later; the 5″ has a wider input range and USB-C for
+bench work.
 
-Comparison, layout impact and the recommended approach are in
-`docs/display-hardware.md`. Nothing is blocked on this yet — Stages 1–3 work on either
-panel — but Race Mode UI refinement should not start until it is settled, or the work
-risks being redone.
+Comparison and layout impact are in `docs/display-hardware.md`.
+
+✅ **No longer blocks anything.** The layout is resolution-independent as of 2026-09-04 —
+an 800×480 reference design scaled by `RaceDashboard._uiScale`, so both panels render the
+same design at their own size. Race Mode UI work can proceed before the panel is picked.
 
 ### Regulatory compliance
 

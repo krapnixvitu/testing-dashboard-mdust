@@ -13,6 +13,11 @@ Item {
     property bool lapModeActive: false
     property real targetDeltaTime: 0.0  // seconds (driver time - ghost time)
     
+    // ── Sizing ──
+    // Against the 800x480 reference design; see RaceDashboard._uiScale.
+    property real uiScale: 1.0
+    function px(n) { return Math.round(n * uiScale) }
+
     // ── Theme colors ──
     property color textColor: "#000000"
     property color accentGreen: "#00E676"
@@ -145,13 +150,13 @@ Item {
     Text {
         id: deltaTimeText
         anchors.horizontalCenter: parent.horizontalCenter
-        y: speedText.y - 18
+        y: speedText.y - root.px(18)
         text: {
             if (!root.lapModeActive) return "";
             var sign = root.targetDeltaTime >= 0 ? "+" : "";
             return sign + root.targetDeltaTime.toFixed(3);
         }
-        font.pixelSize: 20
+        font.pixelSize: root.px(26)
         font.weight: Font.Bold
         font.family: "Segoe UI"
         color: {
@@ -172,9 +177,11 @@ Item {
         id: speedText
         anchors.centerIn: undefined
         x: root._centerX - width / 2
-        y: root._centerY - height / 2 - 10
+        y: root._centerY - height / 2 - root.px(10)
         text: Math.round(root._animatedSpeed).toString()
-        font.pixelSize: 110
+        // Deliberately unchanged: at 110 this already reads ~15 mm on the 5in
+        // and ~20 mm on the 7in. It is the one element that was never too small.
+        font.pixelSize: root.px(110)
         font.weight: Font.Bold
         font.family: "Segoe UI"
         color: root.textColor
@@ -190,9 +197,9 @@ Item {
         id: kmhLabel
         anchors.horizontalCenter: speedText.horizontalCenter
         anchors.top: speedText.bottom
-        anchors.topMargin: -6
+        anchors.topMargin: root.px(-6)
         text: "km/h"
-        font.pixelSize: 20
+        font.pixelSize: root.px(26)
         font.weight: Font.Normal
         font.family: "Segoe UI"
         color: root.textColor
@@ -208,8 +215,8 @@ Item {
         id: teamLogo
         anchors.centerIn: parent
         anchors.verticalCenterOffset: -20
-        width: 120
-        height: 120
+        width: root.px(150)
+        height: root.px(150)
         fillMode: Image.PreserveAspectFit
         source: "../assets/images/mdu-solar-team-logo.png"
         opacity: 0.0
@@ -230,12 +237,12 @@ Item {
         Row {
             id: gearIndicators
             anchors.centerIn: parent
-            spacing: 16
+            spacing: root.px(26)
 
             // Drive
             Text {
                 text: "D"
-                font.pixelSize: root.driveMode === "D" ? 24 : 18
+                font.pixelSize: root.driveMode === "D" ? root.px(38) : root.px(28)
                 font.weight: root.driveMode === "D" ? Font.Bold : Font.Normal
                 font.family: "Segoe UI"
                 color: root.textColor
@@ -251,7 +258,7 @@ Item {
             // Neutral
             Text {
                 text: "N"
-                font.pixelSize: root.driveMode === "N" ? 24 : 18
+                font.pixelSize: root.driveMode === "N" ? root.px(38) : root.px(28)
                 font.weight: root.driveMode === "N" ? Font.Bold : Font.Normal
                 font.family: "Segoe UI"
                 color: root.textColor
@@ -267,7 +274,7 @@ Item {
             // Reverse
             Text {
                 text: "R"
-                font.pixelSize: root.driveMode === "R" ? 24 : 18
+                font.pixelSize: root.driveMode === "R" ? root.px(38) : root.px(28)
                 font.weight: root.driveMode === "R" ? Font.Bold : Font.Normal
                 font.family: "Segoe UI"
                 color: root.textColor
@@ -286,9 +293,9 @@ Item {
             id: lapModeIndicator
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 8
+            anchors.bottomMargin: root.px(8)
             text: "LAP MODE"
-            font.pixelSize: 11
+            font.pixelSize: root.px(17)
             font.weight: Font.Medium
             font.family: "Segoe UI"
             font.capitalization: Font.AllUppercase

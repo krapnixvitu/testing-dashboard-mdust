@@ -69,16 +69,12 @@ next section.
 
 ## What this means for the dashboard
 
-The UI is designed at **800 × 480** — `qml/Main.qml:7-8` is the only place in the code
-where that appears:
-
-```qml
-width: 800
-height: 480
-```
-
-So the 5″ panel is an exact match and needs **no layout work at all**. The 7″ panel does
-need work, but not for the reason people usually assume.
+> **Resolved as of 2026-09-04.** The layout is now resolution-independent: every size
+> is written against an 800×480 reference and multiplied by `RaceDashboard._uiScale`.
+> Both panels render the same design at their own size, and the base proportions were
+> enlarged at the same time because the original ones were too small to read in a moving
+> car. **The panel choice no longer blocks UI work.** The analysis below is kept because
+> it explains *why* the fix is a uniform scale rather than a per-panel layout.
 
 ### The 7″ panel will not look "too small" — it will look sparse
 
@@ -141,9 +137,9 @@ project already has one live example of what that costs — the duplicated alert
 thresholds between `RaceDashboard.qml` and `DebugDashboard.qml`, which are a standing
 known issue precisely because a change to one silently fails to reach the other.
 
-**Until the panel is chosen, option 1 is the safe direction** because it makes the
-choice reversible. Doing nothing is also defensible for now: the 5″ needs no work, and
-if it wins, none of this is required.
+**Option 1 was implemented on 2026-09-04**, together with a re-proportioning of the base
+design — the original sizes were legible on a monitor but far too small to read in a
+moving car. See `docs/implementation.md` §4 for how `_uiScale` and `px()` work.
 
 ---
 

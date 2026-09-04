@@ -7,7 +7,12 @@ Rectangle {
     property bool active: false
     property string message: "WARNING"
 
-    height: 52
+    // ── Sizing ──
+    // Against the 800x480 reference design; see RaceDashboard._uiScale.
+    property real uiScale: 1.0
+    function px(n) { return Math.round(n * uiScale) }
+
+    height: root.px(68)
     color: Qt.rgba(1.0, 0.702, 0.0, 0.85)  // semi-transparent amber
 
     visible: active
@@ -32,18 +37,18 @@ Rectangle {
     // ═══════════════════════════════════════════
     Row {
         anchors.centerIn: parent
-        spacing: 12
+        spacing: root.px(16)
 
         Text {
             text: "\u26A0"  // ⚠
-            font.pixelSize: 22
+            font.pixelSize: root.px(30)
             color: "#000000"
             anchors.verticalCenter: parent.verticalCenter
         }
 
         Text {
             text: root.message
-            font.pixelSize: 18
+            font.pixelSize: root.px(28)
             font.weight: Font.Bold
             font.family: "Segoe UI"
             font.capitalization: Font.AllUppercase

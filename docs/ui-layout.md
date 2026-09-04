@@ -3,9 +3,12 @@
 Audience: team members who need to understand the on-screen layout and meaning,
 not the implementation details.
 
-Design resolution: 800 x 480. The physical display is **not yet chosen** — the two
-panels bought are a 5″ at 800×480 (exact match) and a 7″ at 1024×600 (needs proportional
-layout work). Every pixel figure below is at the 800×480 design size; see
+**Reference design: 800 × 480, scaled to fit the panel.** Every pixel figure below is
+at that reference size and is multiplied by `RaceDashboard._uiScale` at runtime — 1.0 on
+the 5″ (800×480), 1.25 on the 7″ (1024×600). The two panels are nearly the same shape
+(1.667 vs 1.707), so it is the same design at two sizes, not two layouts.
+
+Run `--panel 5in` or `--panel 7in` on a desktop to see either exactly. See
 `docs/display-hardware.md`.
 Theme: two palettes, night (default) and day, switchable at runtime. Both are
 high-contrast for outdoor readability.
@@ -59,8 +62,9 @@ gear writes, so the arrow keys do nothing once real data is flowing.
 
 ## Layout Map — Race Mode
 
-There is **no top bar**. Three rounded cards fill the screen above a slim footer,
-and the blinkers are overlaid on the top corners of the centre card.
+There is **no top bar**. Three rounded cards fill the screen above a slim footer, with
+the blinkers overlaid on the top corners of the centre card and the hazard triangle
+between them.
 
 ```
 ┌────────────────────────────────────────────────────────────┐
@@ -78,8 +82,13 @@ and the blinkers are overlaid on the top corners of the centre card.
 └────────────────────────────────────────────────────────────┘
 ```
 
-Side cards are a fixed 140 px wide; the centre card takes the remaining width.
-The footer is 32 px tall.
+Side cards are 176 px wide (22% of the reference width, sized so `CONTROLLER` and
+`PACK DELTA V` fit at a legible font); the centre card takes the remaining 400 px. The
+footer is 48 px tall. All at the reference size — multiply by the scale for the panel.
+
+Each side card divides its height into **equal blocks** rather than stacking fixed
+heights, so the content always fills the card and can never overflow. This matters
+because the Pi has no Segoe UI and falls back to different font metrics.
 
 ## Blinkers and hazard
 Location: overlaid across the top of the centre card — arrows in the two corners,
@@ -99,7 +108,7 @@ Purpose: legal indicators, visible without moving the eyes far from the speed.
 Both are mandatory under iESC Reg. 2.26.1 — see `docs/regulatory-compliance.md`.
 
 ## Left Card (Energy / Strategy)
-Location: left column, 140 px wide.
+Location: left column, 176 px wide at the reference size.
 
 Top to bottom:
 
@@ -144,7 +153,7 @@ Purpose: primary driving focus.
 > The odometer moved to the footer.
 
 ## Right Card (Thermal / Battery Health)
-Location: right column, 140 px wide.
+Location: right column, 176 px wide at the reference size.
 
 Each temperature row is a label, a coloured status dot and a value in °C:
 

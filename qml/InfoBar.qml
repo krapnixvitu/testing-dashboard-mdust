@@ -15,7 +15,13 @@ Item {
     // current stays positive. Inert until a BMS is decoded.
     property real netCurrent: 0.0     // A
     property bool netCurrentValid: false
-    
+
+    // ── Sizing ──
+    // All numbers below are against the 800x480 reference design; px() maps
+    // them onto the live panel. See RaceDashboard._uiScale.
+    property real uiScale: 1.0
+    function px(n) { return Math.round(n * uiScale) }
+
     // ── Theme colors ──
     property color textColor: "#000000"
     property color accentGreen: "#00E676"
@@ -38,206 +44,204 @@ Item {
     }
 
     Column {
+        id: col
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 10
+        anchors.margins: root.px(12)
+        spacing: 0
+
+        // Four equal blocks split by three hairlines. Sizing them as a share of
+        // the card, rather than stacking fixed heights, means the content always
+        // fills exactly and can never overflow -- which matters because the Pi
+        // has no Segoe UI and falls back to different font metrics.
+        readonly property real _blockH: (height - 3) / 4
 
         // ═══════════════════════════════════════
         // BATTERY GAUGE (horizontal bar)
         // ═══════════════════════════════════════
         Item {
             width: parent.width
-            height: 60
+            height: col._blockH
 
-            // Label
-            Text {
-                id: batLabel
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.top
-                text: "BATTERY"
-                font.pixelSize: 11
-                font.weight: Font.Medium
-                font.family: "Segoe UI"
-                font.capitalization: Font.AllUppercase
-                color: root.textColor
-                horizontalAlignment: Text.AlignHCenter
-            }
+            Column {
+                anchors.centerIn: parent
+                width: parent.width
+                spacing: root.px(3)
 
-            // Horizontal bar background
-            Rectangle {
-                id: barBg
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: batLabel.bottom
-                anchors.topMargin: 4
-                height: 20
-                radius: 4
-                color: "#1A1A1A"
-                border.color: "#333333"
-                border.width: 1
+                Text {
+                    id: batLabel
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "BATTERY"
+                    font.pixelSize: root.px(17)
+                    font.weight: Font.Medium
+                    font.family: "Segoe UI"
+                    font.capitalization: Font.AllUppercase
+                    color: root.textColor
+                    horizontalAlignment: Text.AlignHCenter
+                }
 
-                // Bar fill (left-to-right)
                 Rectangle {
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.margins: 2
-                    width: Math.max(2, (parent.width - 4) * root._batteryPercent)
-                    height: parent.height - 4
-                    radius: 3
-                    color: root._batteryColor(root._batteryPercent)
+                    id: barBg
+                    width: parent.width
+                    height: root.px(22)
+                    radius: root.px(4)
+                    color: "#1A1A1A"
+                    border.color: "#333333"
+                    border.width: 1
 
-                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutQuad } }
-                    Behavior on color { ColorAnimation { duration: 500 } }
+                    // Bar fill (left-to-right)
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.leftMargin: root.px(2)
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.max(root.px(2), (parent.width - root.px(4)) * root._batteryPercent)
+                        height: parent.height - root.px(4)
+                        radius: root.px(3)
+                        color: root._batteryColor(root._batteryPercent)
+
+                        Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutQuad } }
+                        Behavior on color { ColorAnimation { duration: 500 } }
+                    }
+                }
+
+                Text {
+                    id: voltageText
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: root.busVoltage.toFixed(1) + " V"
+                    font.pixelSize: root.px(28)
+                    font.weight: Font.Bold
+                    font.family: "Segoe UI"
+                    color: root.textColor
+                    horizontalAlignment: Text.AlignHCenter
                 }
             }
-
-            // Voltage value
-            Text {
-                id: voltageText
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: barBg.bottom
-                anchors.topMargin: 4
-                text: root.busVoltage.toFixed(1) + " V"
-                font.pixelSize: 15
-                font.weight: Font.Bold
-                font.family: "Segoe UI"
-                color: root.textColor
-                horizontalAlignment: Text.AlignHCenter
-            }
         }
 
-        // ═══════════════════════════════════════
-        // SEPARATOR
-        // ═══════════════════════════════════════
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: root.separatorColor
-        }
+        Rectangle { width: parent.width; height: 1; color: root.separatorColor }
 
         // ═══════════════════════════════════════
         // NET POWER
         // ═══════════════════════════════════════
-        Column {
+        Item {
             width: parent.width
-            spacing: 2
+            height: col._blockH
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "POWER"
-                font.pixelSize: 11
-                font.weight: Font.Medium
-                font.family: "Segoe UI"
-                font.capitalization: Font.AllUppercase
-                color: root.textColor
-                horizontalAlignment: Text.AlignHCenter
-            }
+            Column {
+                anchors.centerIn: parent
+                width: parent.width
+                spacing: root.px(3)
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: {
-                    var p = Math.round(root.netPower);
-                    return (p >= 0 ? p : p) + " W";
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "POWER"
+                    font.pixelSize: root.px(17)
+                    font.weight: Font.Medium
+                    font.family: "Segoe UI"
+                    font.capitalization: Font.AllUppercase
+                    color: root.textColor
+                    horizontalAlignment: Text.AlignHCenter
                 }
-                font.pixelSize: 22
-                font.weight: Font.Bold
-                font.family: "Segoe UI"
-                color: root.netPower >= 0 ? root.textColor : "#40C4FF"  // theme text for power, blue for regen
-                horizontalAlignment: Text.AlignHCenter
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: Math.round(root.netPower) + " W"
+                    font.pixelSize: root.px(28)
+                    font.weight: Font.Bold
+                    font.family: "Segoe UI"
+                    color: root.netPower >= 0 ? root.textColor : "#40C4FF"  // blue for regen
+                    horizontalAlignment: Text.AlignHCenter
+                }
             }
         }
 
-        // ═══════════════════════════════════════
-        // SEPARATOR
-        // ═══════════════════════════════════════
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: root.separatorColor
-        }
+        Rectangle { width: parent.width; height: 1; color: root.separatorColor }
 
         // ═══════════════════════════════════════
         // NET CURRENT
         // ═══════════════════════════════════════
-        Column {
+        Item {
             width: parent.width
-            spacing: 2
+            height: col._blockH
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "CURRENT"
-                font.pixelSize: 11
-                font.weight: Font.Medium
-                font.family: "Segoe UI"
-                font.capitalization: Font.AllUppercase
-                color: root.textColor
-                horizontalAlignment: Text.AlignHCenter
-            }
+            Column {
+                anchors.centerIn: parent
+                width: parent.width
+                spacing: root.px(3)
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: root.netCurrentValid ? root.netCurrent.toFixed(1) + " A" : "--"
-                font.pixelSize: 22
-                font.weight: Font.Bold
-                font.family: "Segoe UI"
-                color: {
-                    if (!root.netCurrentValid) return root.textColor;
-                    // theme text for discharge, blue for charge
-                    return root.netCurrent >= 0 ? root.textColor : "#40C4FF";
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "CURRENT"
+                    font.pixelSize: root.px(17)
+                    font.weight: Font.Medium
+                    font.family: "Segoe UI"
+                    font.capitalization: Font.AllUppercase
+                    color: root.textColor
+                    horizontalAlignment: Text.AlignHCenter
                 }
-                horizontalAlignment: Text.AlignHCenter
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: root.netCurrentValid ? root.netCurrent.toFixed(1) + " A" : "--"
+                    font.pixelSize: root.px(28)
+                    font.weight: Font.Bold
+                    font.family: "Segoe UI"
+                    color: {
+                        if (!root.netCurrentValid) return root.textColor;
+                        // theme text for discharge, blue for charge
+                        return root.netCurrent >= 0 ? root.textColor : "#40C4FF";
+                    }
+                    horizontalAlignment: Text.AlignHCenter
+                }
             }
         }
 
-        // ═══════════════════════════════════════
-        // SEPARATOR
-        // ═══════════════════════════════════════
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: root.separatorColor
-        }
+        Rectangle { width: parent.width; height: 1; color: root.separatorColor }
 
         // ═══════════════════════════════════════
         // EFFICIENCY (Wh/km)
         // ═══════════════════════════════════════
-        Column {
+        Item {
             width: parent.width
-            spacing: 2
+            height: col._blockH
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "EFFICIENCY"
-                font.pixelSize: 11
-                font.weight: Font.Medium
-                font.family: "Segoe UI"
-                font.capitalization: Font.AllUppercase
-                color: root.textColor
-                horizontalAlignment: Text.AlignHCenter
-            }
+            Column {
+                anchors.centerIn: parent
+                width: parent.width
+                spacing: root.px(2)
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: root.efficiency > 0 ? root.efficiency.toFixed(0) : "--"
-                font.pixelSize: 22
-                font.weight: Font.Bold
-                font.family: "Segoe UI"
-                color: {
-                    if (root.efficiency <= 0) return root.textColor;
-                    if (root.efficiency < 100) return root.accentGreen;
-                    if (root.efficiency < 150) return root.accentAmber;
-                    return "#FF1744";
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "EFFICIENCY"
+                    font.pixelSize: root.px(17)
+                    font.weight: Font.Medium
+                    font.family: "Segoe UI"
+                    font.capitalization: Font.AllUppercase
+                    color: root.textColor
+                    horizontalAlignment: Text.AlignHCenter
                 }
-                horizontalAlignment: Text.AlignHCenter
-            }
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "(Wh/km)"
-                font.pixelSize: 11
-                font.family: "Segoe UI"
-                color: root.textColor
-                horizontalAlignment: Text.AlignHCenter
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: root.efficiency > 0 ? root.efficiency.toFixed(0) : "--"
+                    font.pixelSize: root.px(28)
+                    font.weight: Font.Bold
+                    font.family: "Segoe UI"
+                    color: {
+                        if (root.efficiency <= 0) return root.textColor;
+                        if (root.efficiency < 100) return root.accentGreen;
+                        if (root.efficiency < 150) return root.accentAmber;
+                        return "#FF1744";
+                    }
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "(Wh/km)"
+                    font.pixelSize: root.px(14)
+                    font.family: "Segoe UI"
+                    color: root.textColor
+                    horizontalAlignment: Text.AlignHCenter
+                }
             }
         }
     }

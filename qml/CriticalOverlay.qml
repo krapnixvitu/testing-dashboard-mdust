@@ -7,6 +7,11 @@ Rectangle {
     property bool active: false
     property string message: "CRITICAL FAULT"
 
+    // ── Sizing ──
+    // Against the 800x480 reference design; see RaceDashboard._uiScale.
+    property real uiScale: 1.0
+    function px(n) { return Math.round(n * uiScale) }
+
     visible: active
     color: "#000000"
     z: 1000   // Always on top
@@ -36,9 +41,9 @@ Rectangle {
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: messageText.top
-        anchors.bottomMargin: 8
+        anchors.bottomMargin: root.px(8)
         text: "\u26A0"  // ⚠ warning sign
-        font.pixelSize: 72
+        font.pixelSize: root.px(96)
         color: "#FFFFFF"
         horizontalAlignment: Text.AlignHCenter
     }
@@ -50,7 +55,7 @@ Rectangle {
         id: messageText
         anchors.centerIn: parent
         text: root.message
-        font.pixelSize: 48
+        font.pixelSize: root.px(60)
         font.weight: Font.ExtraBold
         font.family: "Segoe UI"
         font.capitalization: Font.AllUppercase
@@ -66,9 +71,9 @@ Rectangle {
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: messageText.bottom
-        anchors.topMargin: 16
+        anchors.topMargin: root.px(16)
         text: "STOP VEHICLE IMMEDIATELY"
-        font.pixelSize: 18
+        font.pixelSize: root.px(30)
         font.weight: Font.Medium
         font.family: "Segoe UI"
         color: "#CCCCCC"

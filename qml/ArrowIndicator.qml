@@ -8,9 +8,14 @@ Item {
     property bool pointsLeft: true
     property color activeColor: "#00E676"  // Not used (color embedded in SVG)
     property string colorMode: "night"  // Injected by parent
-    
-    width: 40
-    height: 24
+
+    // ── Sizing ──
+    // Against the 800x480 reference design; see RaceDashboard._uiScale.
+    property real uiScale: 1.0
+    function px(n) { return Math.round(n * uiScale) }
+
+    width: root.px(56)
+    height: root.px(34)
     
     // Smooth fade animation (matches D/N/R timing)
     opacity: root.active ? 1.0 : 0.0
