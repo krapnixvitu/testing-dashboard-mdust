@@ -3,6 +3,8 @@
 - App entry: `main.cpp` loads `qrc:/SolarDashboard/qml/Main.qml`.
 - QML files are packaged via `qt_add_qml_module` in `CMakeLists.txt`.
 - `VehicleData` (C++, `src/`) is the data source, exposed to QML as the context property `backend`.
+- Two decoders: `WaveSculptorDecoder` (standard 11-bit IDs, little endian) and `BmsDecoder` (extended 29-bit IDs, big endian). `SocketCanReader` routes on `CAN_EFF_FLAG`.
+- ESS thresholds live in `src/BmsLimits.h` and are unset (NaN) until the cell datasheet exists, so no ESS alert can fire yet.
 - It is fed by `SocketCanReader` (Linux, real CAN) or `VehicleSimulator` (mock); QML cannot tell which.
 - `MockBackend.qml` was deleted in Phase 2; its drive-cycle logic moved into `VehicleSimulator`.
 - `Main.qml` is a mode controller that loads `RaceDashboard.qml` or `DebugDashboard.qml` via Loader.

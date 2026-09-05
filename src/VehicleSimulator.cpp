@@ -103,8 +103,16 @@ void VehicleSimulator::tick()
         m_ampHours += m_busCurrent * (kSimDt / 3600.0);
     m_data->setSimulatedEnergy(m_odometer, m_ampHours);
 
+    // Fabricated cell figures, roughly a healthy pack mid-discharge. The cell
+    // spread drives packDeltaV; on a real bus that is derived from the decoded
+    // max and min instead. No ESS alert can fire from these -- the limits in
+    // BmsLimits.h are unset until the datasheet exists.
     const qreal packDeltaV = 0.020 + QRandomGenerator::global()->generateDouble() * 0.030;
+    const qreal cellVoltageMin = 3.60 + QRandomGenerator::global()->generateDouble() * 0.05;
+    const qreal cellVoltageMax = cellVoltageMin + packDeltaV;
     m_data->setSimulatedBms(m_busCurrent, packDeltaV, false);
+    m_data->setSimulatedCells(cellVoltageMin, cellVoltageMax,
+                              packTemp - 4.0, packTemp);
 
     if (m_data->lapModeActive()) {
         const qreal speedFactor = (m_vehicleSpeed - 40.0) / 40.0;

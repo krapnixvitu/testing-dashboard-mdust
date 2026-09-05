@@ -14,6 +14,9 @@ qt_add_executable(SolarDashboard
     main.cpp
     src/WaveSculptorDecoder.h
     src/WaveSculptorDecoder.cpp
+    src/BmsDecoder.h
+    src/BmsDecoder.cpp
+    src/BmsLimits.h
     src/VehicleData.h
     src/VehicleData.cpp
     src/VehicleSimulator.h
@@ -81,8 +84,19 @@ if(BUILD_TESTING)
         tests/test_vehicledata.cpp
         src/VehicleData.cpp
         src/WaveSculptorDecoder.cpp
+        src/BmsDecoder.cpp
     )
     target_link_libraries(test_vehicledata PRIVATE Qt6::Core)
 
     add_test(NAME vehicledata COMMAND test_vehicledata)
+
+    # Lithium Balance BMS frames. Like the WaveSculptor decoder this is pure
+    # C++, so the big-endian decoding is testable with no BMS and no CAN bus.
+    add_executable(test_bms_decoder
+        tests/test_bms_decoder.cpp
+        src/BmsDecoder.cpp
+    )
+    set_target_properties(test_bms_decoder PROPERTIES AUTOMOC OFF)
+
+    add_test(NAME bmsdecoder COMMAND test_bms_decoder)
 endif()

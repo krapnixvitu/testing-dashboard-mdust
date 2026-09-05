@@ -30,3 +30,10 @@ raspberrypi_login_info.txt
 *credentials*
 *.pem
 *.key
+
+# Vendor documentation -- deliberately untracked.
+# Third-party manuals we did not author, and large binaries git would keep
+# forever. The facts we depend on are transcribed into docs/ with page
+# citations; see docs/LithiumBalance_BMS_CAN_Reference.md for the exact
+# version to obtain and where to put it.
+docs/vendor/

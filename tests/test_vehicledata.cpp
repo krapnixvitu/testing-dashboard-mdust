@@ -4,6 +4,8 @@
 // it is already wrong: which source is allowed to write which value, and what
 // the dashboard reports when nothing is reporting at all.
 
+#include "../src/BmsDecoder.h"
+#include "../src/BmsLimits.h"
 #include "../src/VehicleData.h"
 #include "../src/WaveSculptorDecoder.h"
 
@@ -114,6 +116,83 @@ void testBmsValidityFollowsSource()
     check(sim.bmsValid(), "BMS values animate in simulator mode");
 }
 
+void testBmsValidityFollowsBmsFrames()
+{
+    std::printf("BMS validity follows BMS frames, not motor controller frames\n");
+
+    VehicleData data;
+    check(!data.bmsValid(), "invalid before any BMS frame");
+
+    // A motor controller frame proves the bus is alive but says nothing about
+    // the BMS, so it must not validate the pack readouts.
+    ws22::DecodedFrame bus;
+    bus.kind = ws22::FrameKind::BusMeasurement;
+    bus.busVoltage = 120.0f;
+    bus.busCurrent = 10.0f;
+    data.applyDecodedFrame(bus);
+    check(!data.bmsValid(), "a WaveSculptor frame does not validate the BMS");
+
+    bms::DecodedFrame temps;
+    temps.kind = bms::FrameKind::CellTemps;
+    temps.cellTempMax = 42.0f;
+    temps.cellTempMin = 18.0f;
+    data.applyDecodedBmsFrame(temps);
+
+    check(data.bmsValid(), "valid once a BMS frame arrives");
+    check(std::fabs(data.packTemp() - 42.0) < 1e-6, "packTemp is the hottest cell");
+    check(std::fabs(data.packTempMin() - 18.0) < 1e-6, "packTempMin is the coldest cell");
+}
+
+void testPackDeltaVIsDerived()
+{
+    std::printf("Pack delta V is derived from the decoded cell extremes\n");
+
+    VehicleData data;
+
+    bms::DecodedFrame cells;
+    cells.kind = bms::FrameKind::CellVoltages;
+    cells.cellVoltageMax = 3.700f;
+    cells.cellVoltageMin = 3.650f;
+    data.applyDecodedBmsFrame(cells);
+
+    check(std::fabs(data.cellVoltageMax() - 3.700) < 1e-6, "highest cell stored");
+    check(std::fabs(data.cellVoltageMin() - 3.650) < 1e-6, "lowest cell stored");
+    check(std::fabs(data.packDeltaV() - 0.050) < 1e-6, "delta V = max - min");
+}
+
+void testEssFlagsStayClearWhileLimitsUnset()
+{
+    std::printf("No ESS alert can fire while the limits are unset\n");
+
+    // The limits are NaN until someone enters the cell datasheet figures, and
+    // every comparison against NaN is false. Absurd readings must therefore
+    // still raise nothing: the dashboard cannot judge limits it was never told.
+    check(!bms::limitsConfigured(), "limits start unconfigured");
+
+    VehicleData data;
+
+    bms::DecodedFrame cells;
+    cells.kind = bms::FrameKind::CellVoltages;
+    cells.cellVoltageMax = 9.9f;    // far above any real cell
+    cells.cellVoltageMin = 0.1f;    // far below any real cell
+    data.applyDecodedBmsFrame(cells);
+
+    bms::DecodedFrame temps;
+    temps.kind = bms::FrameKind::CellTemps;
+    temps.cellTempMax = 200.0f;
+    temps.cellTempMin = -80.0f;
+    data.applyDecodedBmsFrame(temps);
+
+    bms::DecodedFrame amps;
+    amps.kind = bms::FrameKind::PackCurrent;
+    amps.packCurrent = 5000.0f;
+    data.applyDecodedBmsFrame(amps);
+
+    check(data.bmsValid(), "the readings are live");
+    check(data.essFlags() == 0, "essFlags stays clear with unset limits");
+    check(!data.essLimitsConfigured(), "and the UI can see why");
+}
+
 void testCanHealthStartsUnhealthy()
 {
     std::printf("CAN health reflects real traffic\n");
@@ -164,6 +243,9 @@ int main(int argc, char *argv[])
     testHazardWritesRejectedOnLiveBus();
     testHazardWritesAcceptedInSimulator();
     testBmsValidityFollowsSource();
+    testBmsValidityFollowsBmsFrames();
+    testPackDeltaVIsDerived();
+    testEssFlagsStayClearWhileLimitsUnset();
     testCanHealthStartsUnhealthy();
     testDerivedPowerFromBusFrame();
 

@@ -4,6 +4,7 @@
 #include <QString>
 #include <QTimer>
 
+#include "BmsDecoder.h"
 #include "WaveSculptorDecoder.h"
 
 // Single backend exposed to QML as `backend`.
@@ -43,15 +44,27 @@ class VehicleData : public QObject
     // ── Bus health watchdog ──
     Q_PROPERTY(bool canHealthy READ canHealthy NOTIFY canHealthyChanged)
 
-    // ── BMS-sourced: inert until a BMS is identified and wired ──
-    // `*Valid` gates the UI so a missing BMS reads as "unknown" rather than
-    // as a healthy zero.
+    // ── BMS-sourced (Lithium Balance, extended IDs 0x100-0x102) ──
+    // `*Valid` gates the UI so a silent BMS reads as "unknown" rather than as a
+    // healthy zero. bmsValid follows a 3 s staleness timer of its own: the BMS
+    // broadcasts every 900-1100 ms, far slower than the motor controller, so it
+    // cannot share the 500 ms canHealthy watchdog.
     Q_PROPERTY(qreal netCurrent READ netCurrent NOTIFY netCurrentChanged)
     Q_PROPERTY(bool netCurrentValid READ netCurrentValid NOTIFY bmsValidChanged)
     Q_PROPERTY(qreal packTemp READ packTemp NOTIFY packTempChanged)
+    Q_PROPERTY(qreal packTempMin READ packTempMin NOTIFY packTempMinChanged)
+    Q_PROPERTY(qreal cellVoltageMax READ cellVoltageMax NOTIFY cellVoltageMaxChanged)
+    Q_PROPERTY(qreal cellVoltageMin READ cellVoltageMin NOTIFY cellVoltageMinChanged)
     Q_PROPERTY(qreal packDeltaV READ packDeltaV NOTIFY packDeltaVChanged)
     Q_PROPERTY(bool bmsFault READ bmsFault NOTIFY bmsFaultChanged)
     Q_PROPERTY(bool bmsValid READ bmsValid NOTIFY bmsValidChanged)
+
+    // ── ESS warnings (iESC Reg. 2.5 & 3.5) ──
+    // Bitfield of bms::EssFlag, masked in QML the way errorFlags already is.
+    // Stays zero while the limits in BmsLimits.h are unset, which is what
+    // essLimitsConfigured reports.
+    Q_PROPERTY(int essFlags READ essFlags NOTIFY essFlagsChanged)
+    Q_PROPERTY(bool essLimitsConfigured READ essLimitsConfigured CONSTANT)
 
     // ── Driver inputs: keyboard for now, GPIO or CAN device later ──
     Q_PROPERTY(bool leftBlinker READ leftBlinker WRITE setLeftBlinker NOTIFY leftBlinkerChanged)
@@ -92,7 +105,12 @@ public:
     qreal netCurrent() const { return m_netCurrent; }
     bool netCurrentValid() const { return m_bmsValid; }
     qreal packTemp() const { return m_packTemp; }
+    qreal packTempMin() const { return m_packTempMin; }
+    qreal cellVoltageMax() const { return m_cellVoltageMax; }
+    qreal cellVoltageMin() const { return m_cellVoltageMin; }
     qreal packDeltaV() const { return m_packDeltaV; }
+    int essFlags() const { return m_essFlags; }
+    bool essLimitsConfigured() const;
     bool bmsFault() const { return m_bmsFault; }
     bool bmsValid() const { return m_bmsValid; }
 
@@ -117,8 +135,12 @@ public:
 
     // ── Ingest ──
 
-    // Applies one decoded CAN frame and pets the bus watchdog.
+    // Applies one decoded motor controller frame and pets the bus watchdog.
     void applyDecodedFrame(const ws22::DecodedFrame &frame);
+
+    // Applies one decoded BMS frame, pets the bus watchdog and refreshes the
+    // separate BMS staleness timer.
+    void applyDecodedBmsFrame(const bms::DecodedFrame &frame);
 
     // Marks this instance as simulator-fed. Enables the BMS placeholder values
     // so UI work is not blocked, and disables the CAN watchdog.
@@ -130,6 +152,8 @@ public:
     void setSimulatedEnergy(qreal odometerKm, qreal ampHours);
     void setSimulatedFlags(int errorFlags, int limitFlags);
     void setSimulatedBms(qreal netCurrent, qreal packDeltaV, bool fault);
+    void setSimulatedCells(qreal cellVoltageMin, qreal cellVoltageMax,
+                           qreal cellTempMin, qreal cellTempMax);
 
 signals:
     void vehicleSpeedChanged();
@@ -148,7 +172,11 @@ signals:
     void canHealthyChanged();
     void netCurrentChanged();
     void packTempChanged();
+    void packTempMinChanged();
+    void cellVoltageMaxChanged();
+    void cellVoltageMinChanged();
     void packDeltaVChanged();
+    void essFlagsChanged();
     void bmsFaultChanged();
     void bmsValidChanged();
     void leftBlinkerChanged();
@@ -163,6 +191,10 @@ signals:
 
 private:
     void recomputeDerived();
+    void recomputeEssFlags();
+    void petBmsWatchdog();
+    void onBmsWatchdogTimeout();
+    void setBmsValid(bool v);
     void petWatchdog();
     void onWatchdogTimeout();
     void setCanHealthy(bool v);
@@ -184,7 +216,11 @@ private:
 
     qreal m_netCurrent = 0.0;
     qreal m_packTemp = 0.0;
+    qreal m_packTempMin = 0.0;
+    qreal m_cellVoltageMax = 0.0;
+    qreal m_cellVoltageMin = 0.0;
     qreal m_packDeltaV = 0.0;
+    int m_essFlags = 0;
     bool m_bmsFault = false;
     bool m_bmsValid = false;
 
@@ -201,4 +237,7 @@ private:
     bool m_simulated = false;
 
     QTimer m_watchdog;
+    // Separate from m_watchdog: BMS frames are an order of magnitude slower
+    // than the motor controller's, so they need their own staleness window.
+    QTimer m_bmsWatchdog;
 };

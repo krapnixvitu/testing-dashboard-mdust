@@ -75,14 +75,16 @@ cmake -B build -DBUILD_TESTING=ON
 ctest --test-dir build
 ```
 
-Two suites, both runnable on Windows:
+Three suites, all runnable on Windows:
 - `test_decoder` — frame decoding for every supported message, plus malformed
   input and NaN/infinity handling.
-- `test_vehicledata` — gear and hazard source ownership, BMS validity gating,
-  CAN health watchdog, derived power.
+- `test_vehicledata` — gear and hazard source ownership, BMS validity gating, CAN
+  health watchdog, derived power, and that no ESS alert fires while the limits are unset.
+- `test_bms_decoder` — big-endian byte placement for every BMS frame, signed current
+  and sub-zero temperatures, and identifiers that must not decode.
 
-`WaveSculptorDecoder` deliberately has no Qt and no socket dependencies, which
-is what makes decoding testable without hardware or a CAN bus.
+Both decoders deliberately have no Qt and no socket dependencies, which is what
+makes decoding testable without hardware or a CAN bus.
 
 ## 3) Runtime Architecture
 
@@ -101,6 +103,8 @@ File: `main.cpp`
 | :--- | :--- |
 | `VehicleData.h/.cpp` | The `QObject` QML binds to. Holds all telemetry as `Q_PROPERTY`, computes derived values, runs the bus watchdog. |
 | `WaveSculptorDecoder.h/.cpp` | Pure function: CAN ID + 8 bytes → `DecodedFrame`. No Qt, no sockets. |
+| `BmsDecoder.h/.cpp` | The same for the Lithium Balance BMS. Extended 29-bit IDs, big-endian payloads. |
+| `BmsLimits.h` | ESS thresholds and alert bits, all unset until the cell datasheet exists. |
 | `SocketCanReader.h/.cpp` | Opens a raw CAN socket, installs a kernel filter, reads frames via `QSocketNotifier`. Linux only. |
 | `VehicleSimulator.h/.cpp` | Timer-driven synthetic drive cycle. Replaced the old `MockBackend.qml`. |
 
@@ -116,9 +120,11 @@ File: `CMakeLists.txt`
      |                                              |
   SocketCanReader  --\                              |
   (Linux, filtered)   \                             |
-                       >--  VehicleData  <-----  VehicleSimulator
-  WaveSculptorDecoder /         |
-  (pure C++)                    |  context property `backend`
+    routes on          >--  VehicleData  <-----  VehicleSimulator
+    CAN_EFF_FLAG      /           |
+                     /            |  context property `backend`
+  WaveSculptorDecoder  (standard, little endian)
+  BmsDecoder           (extended, big endian)
                                 v
                           qml/Main.qml
                                 |  Loader + colorMode
@@ -130,16 +136,21 @@ File: `CMakeLists.txt`
 
 ### Ingest path (real CAN)
 1. `SocketCanReader` is woken by `QSocketNotifier` when a frame arrives.
-2. The kernel has already dropped anything outside the accepted ID ranges.
-3. `ws22::decode()` turns the raw frame into a `DecodedFrame`.
-4. `VehicleData::applyDecodedFrame()` stores the values, recomputes derived
-   figures, emits change signals, and pets the watchdog.
+2. The kernel has already dropped anything outside the accepted ID ranges **and frame
+   formats** — standard `0x400`-`0x41F` / `0x500`-`0x51F`, extended `0x100`-`0x107`.
+3. The reader branches on `CAN_EFF_FLAG`: extended frames go to `bms::decode()`,
+   standard ones to `ws22::decode()`. Routing on the flag rather than the identifier
+   matters because the two decoders read bytes in opposite directions, so a
+   misrouted frame decodes to plausible nonsense instead of failing.
+4. `VehicleData::applyDecodedFrame()` or `applyDecodedBmsFrame()` stores the values,
+   recomputes derived figures, emits change signals, and pets the watchdog.
 5. QML bindings update automatically.
 
-### Watchdog
-`VehicleData` runs a timer that marks `canHealthy` false when frames stop
-arriving, which drives the red CAN dot in the footer. The watchdog is disabled
-in simulator mode, since there is no bus to lose.
+### Two watchdogs
+`canHealthy` uses a **500 ms** window, paced by the motor controller's 200 ms
+broadcasts, and drives the CAN dot. `bmsValid` uses a separate **3 s** window because
+the BMS broadcasts every 900-1100 ms; sharing the faster watchdog would blank the pack
+readouts constantly. Both are disabled in simulator mode.
 
 ### Derived values
 Computed in `VehicleData::recomputeDerived()`, not in QML, so there is one
@@ -167,6 +178,18 @@ fixed heights. That is deliberate: the Pi has no Segoe UI and substitutes a font
 different metrics, so a layout that exactly fits on Windows could overflow there. Blocks
 sized as a share of the card cannot overflow — the content just centres in whatever it is
 given.
+
+### ESS warnings
+Thresholds live in `src/BmsLimits.h`, **all unset (NaN)** until the cell datasheet
+exists. Every comparison against NaN is false, so no ESS alert can fire — an
+unconfigured dashboard raises nothing rather than something wrong, and
+`essLimitsConfigured` exposes that state instead of letting it look safe.
+
+`VehicleData::recomputeEssFlags()` builds the `essFlags` bitfield (values in
+`bms::EssFlag`), which `RaceDashboard.qml` masks the same way it masks `errorFlags`.
+Over-voltage and over-temperature escalate warning to critical; under-voltage and
+over-current warn first because the driver can recover them by lifting off;
+under-temperature is warning-only.
 
 ### Gear ownership
 `setDriveMode()` **rejects writes unless the backend is in simulator mode.**

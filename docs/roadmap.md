@@ -85,9 +85,13 @@ Audited against the iESC display requirements on 2026-09-03; full per-item statu
   driver-controls (Arduino) owners. Agreed so far: the ECU should own gear state
   and broadcast it periodically rather than the dashboard trusting a button
   press. Byte layout not yet fixed, so nothing is decoded.
-- **BMS.** Device not yet chosen. `packTemp`, `packDeltaV`, `netCurrent` and
-  `bmsFault` are wired through the backend and gated behind `bmsValid`, so they
-  will light up as soon as a source exists.
+- **BMS thresholds and fault source.** The Lithium Balance n-BMS is now decoded
+  (extended IDs `0x100`-`0x102`), so `packTemp`, `packTempMin`, `cellVoltageMin`,
+  `cellVoltageMax`, `packDeltaV` and `netCurrent` all have real sources. Two gaps
+  remain: the ESS thresholds in `src/BmsLimits.h` are **unset pending the cell
+  datasheet**, and **`bmsFault` has no source** — the configuration broadcasts no
+  status signal at all. Enabling **Data ID 34 (`STATUS`)** during the pack rebuild is
+  the fix; see `docs/LithiumBalance_BMS_CAN_Reference.md` §5.
 
 ## Dashboard Priorities
 - Efficiency: net power (watts) and energy usage context.
@@ -122,5 +126,6 @@ Audited against the iESC display requirements on 2026-09-03; full per-item statu
 - `pi-setup.md` — staged Raspberry Pi and CAN bring-up guide
 - `display-hardware.md` — the two candidate Riverdi panels and their layout impact
 - `regulatory-compliance.md` — iESC display requirements and where we stand
+- `LithiumBalance_BMS_CAN_Reference.md` — BMS protocol, spec-of-record
 - `WaveSculptor22_CAN_Protocol_Reference.md` — motor controller protocol
   spec-of-record

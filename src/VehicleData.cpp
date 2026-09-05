@@ -1,11 +1,18 @@
 #include "VehicleData.h"
 
+#include "BmsLimits.h"
+
 #include <cmath>
 
 namespace {
 
 // No frame for this long and the bus is considered dead.
 constexpr int kWatchdogTimeoutMs = 500;
+
+// The BMS broadcasts far more slowly than the motor controller -- 900 to
+// 1100 ms for the frames we decode -- so it gets its own, much longer window.
+// 3 s tolerates two consecutive missed frames before the readouts blank.
+constexpr int kBmsWatchdogTimeoutMs = 3000;
 
 // Below this speed the efficiency figure is meaningless (divide by ~zero).
 constexpr qreal kEfficiencyMinSpeedKmh = 5.0;
@@ -26,6 +33,15 @@ VehicleData::VehicleData(QObject *parent)
     m_watchdog.setSingleShot(true);
     m_watchdog.setInterval(kWatchdogTimeoutMs);
     connect(&m_watchdog, &QTimer::timeout, this, &VehicleData::onWatchdogTimeout);
+
+    m_bmsWatchdog.setSingleShot(true);
+    m_bmsWatchdog.setInterval(kBmsWatchdogTimeoutMs);
+    connect(&m_bmsWatchdog, &QTimer::timeout, this, &VehicleData::onBmsWatchdogTimeout);
+}
+
+bool VehicleData::essLimitsConfigured() const
+{
+    return bms::limitsConfigured();
 }
 
 // ── Derived values ───────────────────────────────────────────────────────
@@ -72,6 +88,124 @@ void VehicleData::setCanHealthy(bool v)
         return;
     m_canHealthy = v;
     emit canHealthyChanged();
+}
+
+// ── BMS staleness ────────────────────────────────────────────────────────
+
+void VehicleData::petBmsWatchdog()
+{
+    if (m_simulated)
+        return;
+
+    setBmsValid(true);
+    m_bmsWatchdog.start();
+}
+
+void VehicleData::onBmsWatchdogTimeout()
+{
+    // The BMS went quiet. Blank the readouts rather than leaving the last
+    // reading on screen, where it would look like a live measurement.
+    setBmsValid(false);
+}
+
+void VehicleData::setBmsValid(bool v)
+{
+    if (m_bmsValid == v)
+        return;
+    m_bmsValid = v;
+    emit bmsValidChanged();
+    recomputeEssFlags();
+}
+
+// ── ESS warnings ─────────────────────────────────────────────────────────
+
+void VehicleData::recomputeEssFlags()
+{
+    int flags = 0;
+
+    // No BMS data means nothing to judge. Every comparison below is also false
+    // while the limits are unset, since they are NaN -- so an unconfigured
+    // dashboard raises no alert rather than a wrong one.
+    if (m_bmsValid) {
+        const double vMax = m_cellVoltageMax;
+        const double vMin = m_cellVoltageMin;
+        const double tMax = m_packTemp;
+        const double tMin = m_packTempMin;
+        const double amps = std::fabs(static_cast<double>(m_netCurrent));
+
+        if (vMax > bms::kCellVoltageMaxCritical)  flags |= bms::EssCellOverVoltageCritical;
+        else if (vMax > bms::kCellVoltageMaxWarning) flags |= bms::EssCellOverVoltageWarning;
+
+        if (vMin < bms::kCellVoltageMinCritical)  flags |= bms::EssCellUnderVoltageCritical;
+        else if (vMin < bms::kCellVoltageMinWarning) flags |= bms::EssCellUnderVoltageWarning;
+
+        if (tMax > bms::kCellTempMaxCritical)  flags |= bms::EssCellOverTempCritical;
+        else if (tMax > bms::kCellTempMaxWarning) flags |= bms::EssCellOverTempWarning;
+
+        if (tMin < bms::kCellTempMinWarning)
+            flags |= bms::EssCellUnderTempWarning;
+
+        if (amps > bms::kPackCurrentCritical)  flags |= bms::EssOverCurrentCritical;
+        else if (amps > bms::kPackCurrentWarning) flags |= bms::EssOverCurrentWarning;
+    }
+
+    if (m_essFlags != flags) {
+        m_essFlags = flags;
+        emit essFlagsChanged();
+    }
+}
+
+// ── BMS ingest ───────────────────────────────────────────────────────────
+
+void VehicleData::applyDecodedBmsFrame(const bms::DecodedFrame &frame)
+{
+    switch (frame.kind) {
+    case bms::FrameKind::CellVoltages: {
+        if (differs(m_cellVoltageMax, frame.cellVoltageMax)) {
+            m_cellVoltageMax = frame.cellVoltageMax;
+            emit cellVoltageMaxChanged();
+        }
+        if (differs(m_cellVoltageMin, frame.cellVoltageMin)) {
+            m_cellVoltageMin = frame.cellVoltageMin;
+            emit cellVoltageMinChanged();
+        }
+        // Cell spread is derived here rather than in QML so there is one
+        // definition, as with netPower and efficiency.
+        const qreal delta = m_cellVoltageMax - m_cellVoltageMin;
+        if (differs(m_packDeltaV, delta)) {
+            m_packDeltaV = delta;
+            emit packDeltaVChanged();
+        }
+        break;
+    }
+
+    case bms::FrameKind::PackCurrent:
+        if (differs(m_netCurrent, frame.packCurrent)) {
+            m_netCurrent = frame.packCurrent;
+            emit netCurrentChanged();
+        }
+        break;
+
+    case bms::FrameKind::CellTemps:
+        // packTemp is the hottest cell: the safety-relevant one.
+        if (differs(m_packTemp, frame.cellTempMax)) {
+            m_packTemp = frame.cellTempMax;
+            emit packTempChanged();
+        }
+        if (differs(m_packTempMin, frame.cellTempMin)) {
+            m_packTempMin = frame.cellTempMin;
+            emit packTempMinChanged();
+        }
+        break;
+
+    case bms::FrameKind::Unknown:
+        // Nothing to store, but the frame still proves the bus is alive.
+        break;
+    }
+
+    petWatchdog();
+    petBmsWatchdog();
+    recomputeEssFlags();
 }
 
 // ── CAN ingest ───────────────────────────────────────────────────────────
@@ -254,6 +388,28 @@ void VehicleData::setSimulatedBms(qreal netCurrent, qreal packDeltaV, bool fault
         m_bmsFault = fault;
         emit bmsFaultChanged();
     }
+}
+
+void VehicleData::setSimulatedCells(qreal cellVoltageMin, qreal cellVoltageMax,
+                                    qreal cellTempMin, qreal cellTempMax)
+{
+    if (differs(m_cellVoltageMin, cellVoltageMin)) {
+        m_cellVoltageMin = cellVoltageMin;
+        emit cellVoltageMinChanged();
+    }
+    if (differs(m_cellVoltageMax, cellVoltageMax)) {
+        m_cellVoltageMax = cellVoltageMax;
+        emit cellVoltageMaxChanged();
+    }
+    if (differs(m_packTempMin, cellTempMin)) {
+        m_packTempMin = cellTempMin;
+        emit packTempMinChanged();
+    }
+    if (differs(m_packTemp, cellTempMax)) {
+        m_packTemp = cellTempMax;
+        emit packTempChanged();
+    }
+    recomputeEssFlags();
 }
 
 // ── Writable from QML ────────────────────────────────────────────────────

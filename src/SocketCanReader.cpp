@@ -1,5 +1,6 @@
 #include "SocketCanReader.h"
 
+#include "BmsDecoder.h"
 #include "VehicleData.h"
 #include "WaveSculptorDecoder.h"
 
@@ -61,18 +62,29 @@ bool SocketCanReader::open(const QString &interfaceName)
         return false;
     }
 
-    // Kernel-level filter: only motor controller broadcasts (0x400-0x41F) and
-    // driver controls frames (0x500-0x51F) wake this process. Everything else
-    // is dropped by the kernel before it reaches us.
+    // Kernel-level filter: only motor controller broadcasts (standard 11-bit
+    // 0x400-0x41F), driver controls frames (standard 0x500-0x51F) and the BMS
+    // (EXTENDED 29-bit 0x100-0x107) wake this process. Everything else is
+    // dropped by the kernel before it reaches us.
     //
-    // When adding a new message, check its ID falls inside one of these ranges.
-    // Outside them the frame never arrives here even though candump still shows
-    // it, because candump opens its own unfiltered socket.
-    struct can_filter filters[2];
+    // When adding a new message, check its ID falls inside one of these ranges
+    // AND that its frame format matches. Outside them the frame never arrives
+    // here even though candump still shows it, because candump opens its own
+    // unfiltered socket.
+    //
+    // can_id here is not just the identifier: bit 31 (CAN_EFF_FLAG) says whether
+    // the frame is extended. Including that bit in the mask is what makes an
+    // entry format-specific -- without it a 29-bit frame sharing the low bits
+    // would match a standard entry and be handed to the wrong decoder.
+    struct can_filter filters[3];
     filters[0].can_id = ws22::kMotorControllerBase;
-    filters[0].can_mask = CAN_SFF_MASK & ~0x1Fu;
+    filters[0].can_mask = CAN_EFF_FLAG | (CAN_SFF_MASK & ~0x1Fu);
     filters[1].can_id = ws22::kDriverControlsBase;
-    filters[1].can_mask = CAN_SFF_MASK & ~0x1Fu;
+    filters[1].can_mask = CAN_EFF_FLAG | (CAN_SFF_MASK & ~0x1Fu);
+    // The BMS identifiers are sequential rather than a device/message split, so
+    // masking the low 3 bits is the tightest window covering 0x100-0x107.
+    filters[2].can_id = bms::kIdRangeFirst | CAN_EFF_FLAG;
+    filters[2].can_mask = CAN_EFF_FLAG | (CAN_EFF_MASK & ~0x7u);
     if (::setsockopt(m_fd, SOL_CAN_RAW, CAN_RAW_FILTER, filters, sizeof(filters)) < 0) {
         m_lastError = QStringLiteral("setsockopt(CAN_RAW_FILTER) failed: %1")
                           .arg(QString::fromLocal8Bit(strerror(errno)));
@@ -122,13 +134,23 @@ void SocketCanReader::onReadyRead()
         if (frame.can_id & CAN_ERR_FLAG)
             continue;
 
-        const uint32_t id = frame.can_id & CAN_SFF_MASK;
         if (frame.can_dlc < 8)
             continue;
 
-        const ws22::DecodedFrame decoded = ws22::decode(id, frame.data);
-        if (m_data)
-            m_data->applyDecodedFrame(decoded);
+        if (!m_data)
+            continue;
+
+        // Route on frame format, not just on the identifier. The BMS uses
+        // extended IDs and big-endian payloads; the motor controller uses
+        // standard IDs and little-endian ones, so handing a frame to the wrong
+        // decoder produces plausible nonsense rather than an error.
+        if (frame.can_id & CAN_EFF_FLAG) {
+            const uint32_t id = frame.can_id & CAN_EFF_MASK;
+            m_data->applyDecodedBmsFrame(bms::decode(id, frame.data));
+        } else {
+            const uint32_t id = frame.can_id & CAN_SFF_MASK;
+            m_data->applyDecodedFrame(ws22::decode(id, frame.data));
+        }
     }
 }
 

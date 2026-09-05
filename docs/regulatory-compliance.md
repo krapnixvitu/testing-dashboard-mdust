@@ -10,7 +10,7 @@ is a **secondary summary of the 2024 regulations**, not the regulation text. iES
 biennial, so the **official current-year regulations are the authority** and this file is
 an index into them. Re-check every row against the current rulebook before scrutineering.
 
-Last reviewed: 2026-09-03.
+Last reviewed: 2026-09-05.
 
 ---
 
@@ -23,7 +23,7 @@ Must be provided to the driver **at all times while driving**.
 | 1 | Vehicle speed | **Done** |
 | 2 | Direction indicator verification | **UI done, no live source** |
 | 3 | Hazard lights verification | **UI done, no live source** |
-| 4 | ESS warnings | **Deferred — see §3** |
+| 4 | ESS warnings | **Sources decoded; thresholds pending datasheet — see §3** |
 | 5 | Electronic rear-vision feed | **Out of scope — decision recorded below** |
 
 ### 1. Vehicle speed — done
@@ -100,45 +100,74 @@ record if that decision reverses:
 
 ---
 
-## §3 ESS warnings (Reg. 2.5 & 3.5) — deferred deliberately
+## §3 ESS warnings (Reg. 2.5 & 3.5) — sources decoded, thresholds pending
 
-**Status: mechanism exists, inert, and under-modelled.** Deferred until a BMS is chosen,
-because there is nothing to bind to until then. This is a scheduling decision, not an
-oversight — the intent is to implement the BMS side and the dashboard side together once
-its message codes are known.
+**Status: every trigger quantity now has a real source. The limits do not.**
 
-**What exists.** `RaceDashboard.qml` maps `backend.bmsFault` to a full-screen
-`CriticalOverlay` reading `BMS FAULT`. The overlay mechanism itself works and is exercised
-by the `C` key.
+Updated 2026-09-05, when the Lithium Balance n-BMS was decoded. Protocol detail lives in
+`docs/LithiumBalance_BMS_CAN_Reference.md`.
 
-**What is missing.** The regulation lists **four** trigger conditions. The backend models
-**one opaque boolean**:
+| Regulation trigger | Source | Threshold |
+| :--- | :--- | :--- |
+| Cell voltage below minimum | `CELL_V_MIN_VAL` (`0x100`) | **unset** |
+| Cell voltage above maximum | `CELL_V_MAX_VAL` (`0x100`) | **unset** |
+| Charge/discharge current above maximum | `PACK_I_MASTER` (`0x101`) | **unset** |
+| Cell temperature above maximum | `CELL_T_MAX_VAL` (`0x102`) | **unset** |
+| Cell temperature below minimum | `CELL_T_MIN_VAL` (`0x102`) | **unset** |
 
-| Regulation trigger | Modelled? |
-| :--- | :--- |
-| Cell voltage below minimum | **No** |
-| Cell voltage above maximum | **No** |
-| Charge/discharge current above maximum | **No** |
-| Cell temperature above maximum | Partly — `packTemp`, amber 45 °C / red 60 °C |
-| Cell temperature below minimum | **No** |
+The gap flagged in the previous review — that every temperature threshold in the codebase
+was one-sided, so cell under-temperature had nowhere to go — is closed at the backend:
+`packTempMin` is decoded, signed, and has its own warning bit.
 
-Two things worth carrying forward:
+### The thresholds are deliberately unset
 
-- **Every temperature threshold in this codebase is one-sided (high only).** There is no
-  low-temperature warning anywhere. Cell under-temperature is an explicit regulation
-  trigger, so this is a real gap and not merely a missing constant.
-- `packDeltaV` measures cell *spread*, which is useful but is **not** an absolute
-  per-cell limit breach. It does not satisfy any of the four triggers.
+`src/BmsLimits.h` holds all nine limits and every one is `NaN`. Comparisons against NaN
+are false, so **no ESS alert can fire yet**. That is the intended state, not an oversight:
+the safe window depends on cell chemistry (LiFePO4 tops out near 3.65 V, NMC near 4.2 V),
+the pack is being rebuilt, and a plausible-looking wrong limit is worse than none. The
+`essLimitsConfigured` property exposes the state so an unconfigured dashboard cannot be
+mistaken for one that is watching.
 
-> **Action when selecting the BMS:** require that it reports these conditions
-> **individually**. A device exposing only a summary fault bit permanently caps what the
-> dashboard can ever warn about, and that limitation would be inherited for the life of
-> the car.
+**To finish this item:** enter the figures from the cell datasheet into `BmsLimits.h`.
+Nothing else needs to change.
 
-**Also tighten when a source lands:** `_criticalBmsFault` in `RaceDashboard.qml` is *not*
-gated on `bmsValid`, unlike every other BMS-derived value. It is inert today only because
-`m_bmsFault` defaults to false, so it is not currently wrong — but it is inconsistent with
-the surrounding pattern.
+### Severity mapping
+
+Split on whether the driver can recover the condition by acting immediately.
+
+| Trigger | Layer | Reasoning |
+| :--- | :--- | :--- |
+| Cell over-temperature | warning → critical | Thermal mass is slow, so the warning tier is what actually buys time to reduce current; by the critical limit the heating is committed and the driver must stop. |
+| Cell over-voltage | warning → critical | Plating and internal shorting, driven by regen or solar charging. The warning says ease regen; critical means power flow must stop. |
+| Cell under-voltage | warning → critical | Sag under acceleration is recoverable — the banner says lift off, before the BMS trips contactors. |
+| Over-current | warning → critical | Spikes on overtakes and climbs. Feedback to reduce draw before the BMS I²t timer expires. |
+| Cell under-temperature | warning only | Cold cells mean higher resistance and worse performance, not an immediate hazard. |
+
+Computed in `VehicleData::recomputeEssFlags()` as the `essFlags` bitfield and masked in
+`RaceDashboard.qml`, so the thresholds have one home in C++ rather than being duplicated
+across the two dashboards.
+
+### `bmsFault` still has no source
+
+**The BMS configuration broadcasts no fault, status, alarm or error signal at all** —
+every enabled and disabled frame carries measurements only. So `bmsFault`, which drives
+the full-screen `BMS FAULT` overlay, is permanently false.
+
+> **Action for the pack rebuild:** enable a TX frame carrying **Data ID 34 (`STATUS`)**,
+> the n-BMS state machine (INIT / READY / ACTIVE / ERROR / SLEEP). `ERROR` means the BMS
+> has already forced the contactors open — its own verdict, which beats the dashboard
+> inferring a fault from thresholds. It also gives the footer BMS dot a real meaning.
+>
+> Blocked twice over: it is not enabled in the current configuration, and Lithium Balance
+> omit the numeric enumeration from the manual, so which uint8 value means `ERROR` is
+> unknown. See `docs/LithiumBalance_BMS_CAN_Reference.md` §5.
+
+The alternative is the error-frame range at `0x200`–`0x2C7`, which already reaches our
+bus but whose payload layout is undocumented.
+
+**Resolved:** `_criticalBmsFault` in `RaceDashboard.qml` is now gated on `bmsValid`, which
+matters since `bmsValid` reflects a real 3 s staleness timer rather than just simulator
+mode.
 
 ### Not the dashboard's job
 

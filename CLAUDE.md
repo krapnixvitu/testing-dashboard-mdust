@@ -76,6 +76,8 @@ Development keyboard controls are tabulated in `docs/ui-layout.md`.
 | :--- | :--- |
 | `src/VehicleData.h/.cpp` | The `QObject` QML binds to. All telemetry as `Q_PROPERTY`, derived values, bus watchdog. |
 | `src/WaveSculptorDecoder.h/.cpp` | Pure function: CAN ID + 8 bytes → `DecodedFrame`. No Qt, no sockets, which is what makes it testable on Windows. |
+| `src/BmsDecoder.h/.cpp` | Same shape for the Lithium Balance BMS: extended IDs `0x100`–`0x102`, big-endian payloads. |
+| `src/BmsLimits.h` | ESS thresholds and alert bits. **All limits are unset (NaN) until the cell datasheet exists**, so no ESS alert can fire; `essLimitsConfigured` reports that. |
 | `src/SocketCanReader.h/.cpp` | Raw CAN socket, kernel filter, `QSocketNotifier`. Linux only. |
 | `src/VehicleSimulator.h/.cpp` | Timer-driven synthetic drive cycle. All platforms. |
 
@@ -95,11 +97,16 @@ they are written down.
   (`src/VehicleData.cpp:277`) returns early unless the backend is simulator-fed.
   Keyboard gear input is development-only fake data. The rule lives in C++ so there is
   one authoritative place to enforce it — do not add a QML-side bypass.
-- **A new CAN ID must land inside the kernel filter ranges**, `0x400`–`0x41F` and
-  `0x500`–`0x51F` (`src/SocketCanReader.cpp:71-75`). Outside them the kernel drops the
-  frame before the process wakes: no error, no log line, and `candump` still shows it
-  because it opens its own unfiltered socket. Widen the filter or the frame is
-  invisible forever. Explained from scratch in `docs/concepts.md` §1.
+- **A new CAN ID must land inside the kernel filter ranges, and match the frame
+  format.** Currently standard 11-bit `0x400`–`0x41F` and `0x500`–`0x51F`, plus
+  **extended 29-bit** `0x100`–`0x107` for the BMS (`src/SocketCanReader.cpp`). Outside
+  them the kernel drops the frame before the process wakes: no error, no log line, and
+  `candump` still shows it because it opens its own unfiltered socket. Widen the filter
+  or the frame is invisible forever. Explained from scratch in `docs/concepts.md` §1.
+- **The two decoders read bytes in opposite directions.** The WaveSculptor is little
+  endian, the BMS is big endian, so handing a frame to the wrong one yields plausible
+  nonsense rather than an error. `SocketCanReader` routes on `CAN_EFF_FLAG`, not on the
+  identifier alone — an extended and a standard frame can share the same low bits.
 - **The protocol spec-of-record is `docs/WaveSculptor22_CAN_Protocol_Reference.md`,
   never `reference/esp32-simulator/protocol.hpp`.** That file declares struct fields in
   the opposite order to the wire, systematically, so a whole-struct `memcpy` silently
@@ -117,6 +124,21 @@ they are written down.
 - **Alert thresholds are currently duplicated** in `RaceDashboard.qml:35-56` and
   `DebugDashboard.qml:25-46`. Changing one without the other makes the two modes
   disagree. Consolidating these is on the roadmap.
+
+## `docs/Notes.md` — a standing rule
+
+`docs/Notes.md` is Juan's quick-reference list: things to remember, and things to raise
+with the team. It exists so those can be re-read in a minute instead of by digging
+through reference documents that keep growing.
+
+- **Only add to it when explicitly asked.** Never as a by-product of explaining
+  something, never after finishing a piece of work, never because a finding "seems worth
+  noting". If Juan has not asked for it, it does not go in.
+- **Group every note under a topical subheading** (`## BMS`, `## Display`, and so on) so
+  notes about one subject stay findable together. Add a new subheading when a note does
+  not fit an existing one.
+- Offering is fine — "want that in Notes?" — but the answer has to come back before
+  anything is written.
 
 ## `docs/concepts.md` — a standing rule
 
@@ -155,8 +177,11 @@ light up as soon as a source exists:
 
 - **Gear message** — byte layout not yet agreed with the ECU (ESP32) and
   driver-controls (Arduino) owners.
-- **BMS** — device not yet chosen. `packTemp`, `packDeltaV`, `netCurrent` and
-  `bmsFault` are gated behind `bmsValid`.
+- **BMS** — the Lithium Balance n-BMS is decoded (`0x100`–`0x102`). Two things remain:
+  the **ESS thresholds in `src/BmsLimits.h` are unset** pending the cell datasheet, and
+  **`bmsFault` has no source** because the BMS configuration broadcasts no status signal.
+  Enabling Data ID 34 (`STATUS`) during the pack rebuild is the fix — see
+  `docs/LithiumBalance_BMS_CAN_Reference.md` §5.
 
 Known issues live in `docs/roadmap.md`. Do not restate them here; they will drift.
 
@@ -168,8 +193,10 @@ Known issues live in `docs/roadmap.md`. Do not restate them here; they will drif
 | `docs/ui-layout.md` | What is on screen and what it means |
 | `docs/implementation.md` | Architecture, data flow, extension points |
 | `docs/implementation-tldr.md` | One-screen quick reference |
+| `docs/Notes.md` | Quick-reference notes and things to raise with the team |
 | `docs/concepts.md` | CAN filters/masks and byte order, from scratch |
 | `docs/pi-setup.md` | Staged Raspberry Pi and CAN bring-up |
 | `docs/display-hardware.md` | The two candidate Riverdi panels, and what each costs in layout work |
 | `docs/regulatory-compliance.md` | iESC display requirements, per-item status, deferred work |
+| `docs/LithiumBalance_BMS_CAN_Reference.md` | BMS protocol, spec-of-record |
 | `docs/WaveSculptor22_CAN_Protocol_Reference.md` | Motor controller protocol, spec-of-record |

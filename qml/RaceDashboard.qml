@@ -35,14 +35,29 @@ Item {
     readonly property bool _criticalBusOverVoltage:  (backend.errorFlags & 0x04) !== 0
     readonly property bool _criticalDesatFault:      (backend.errorFlags & 0x80) !== 0
     readonly property bool _criticalMotorOverheat:   backend.motorTemp > 100.0
-    readonly property bool _criticalBmsFault:        backend.bmsFault
+    // Gated on bmsValid like every other BMS-derived value: a fault flag from a
+    // BMS that is not reporting is not a fault, it is an absent measurement.
+    readonly property bool _criticalBmsFault:        backend.bmsValid && backend.bmsFault
+
+    // ESS criticals (iESC Reg. 2.5 & 3.5). Bit values are bms::EssFlag in
+    // src/BmsLimits.h. All stay clear until the cell datasheet limits are set.
+    readonly property bool _criticalCellOverVoltage:  (backend.essFlags & 0x002) !== 0
+    readonly property bool _criticalCellUnderVoltage: (backend.essFlags & 0x008) !== 0
+    readonly property bool _criticalCellOverTemp:     (backend.essFlags & 0x020) !== 0
+    readonly property bool _criticalEssOverCurrent:   (backend.essFlags & 0x100) !== 0
 
     readonly property bool _hasCritical: _criticalHwOverCurrent || _criticalSwOverCurrent
                                          || _criticalBusOverVoltage || _criticalDesatFault
                                          || _criticalMotorOverheat || _criticalBmsFault
+                                         || _criticalCellOverVoltage || _criticalCellUnderVoltage
+                                         || _criticalCellOverTemp || _criticalEssOverCurrent
 
     readonly property string _criticalMessage: {
         if (_criticalBmsFault)         return "BMS FAULT";
+        if (_criticalCellOverTemp)     return "ESS CELL OVER TEMPERATURE";
+        if (_criticalCellOverVoltage)  return "ESS CELL OVER VOLTAGE";
+        if (_criticalCellUnderVoltage) return "ESS CELL UNDER VOLTAGE";
+        if (_criticalEssOverCurrent)   return "ESS OVER CURRENT";
         if (_criticalMotorOverheat)    return "MOTOR OVERHEAT";
         if (_criticalHwOverCurrent)    return "HARDWARE OVER CURRENT";
         if (_criticalSwOverCurrent)    return "SOFTWARE OVER CURRENT";
@@ -59,10 +74,28 @@ Item {
     readonly property bool _warnBadHall:        (backend.errorFlags & 0x08) !== 0
     readonly property bool _warnLowVoltage:     (backend.limitFlags & 0x20) !== 0
 
+    // ESS warnings. These are the recoverable ones: the driver can lift off or
+    // ease the throttle and bring the reading back before it escalates.
+    readonly property bool _warnCellOverVoltage:  (backend.essFlags & 0x001) !== 0
+    readonly property bool _warnCellUnderVoltage: (backend.essFlags & 0x004) !== 0
+    readonly property bool _warnCellOverTemp:     (backend.essFlags & 0x010) !== 0
+    readonly property bool _warnCellUnderTemp:    (backend.essFlags & 0x040) !== 0
+    readonly property bool _warnEssOverCurrent:   (backend.essFlags & 0x080) !== 0
+
     readonly property bool _hasWarning: _warnMotorTemp || _warnHeatsinkTemp || _warnMotorOverSpeed
                                         || _warn15vUvlo || _warnBadHall || _warnLowVoltage
+                                        || _warnCellOverVoltage || _warnCellUnderVoltage
+                                        || _warnCellOverTemp || _warnCellUnderTemp
+                                        || _warnEssOverCurrent
 
     readonly property string _warningMessage: {
+        // ESS first: the pack is the thing the driver can least afford to lose,
+        // and each of these names the action that recovers it.
+        if (_warnCellUnderVoltage) return "ESS WARNING: LOW CELL VOLTAGE — LIFT THROTTLE";
+        if (_warnEssOverCurrent)   return "ESS WARNING: HIGH CURRENT — REDUCE POWER";
+        if (_warnCellOverVoltage)  return "ESS WARNING: HIGH CELL VOLTAGE — EASE REGEN";
+        if (_warnCellOverTemp)     return "ESS WARNING: PACK HOT — REDUCE POWER";
+        if (_warnCellUnderTemp)    return "ESS WARNING: PACK COLD — REDUCED PERFORMANCE";
         if (_warnMotorTemp)      return "MOTOR TEMP WARNING  " + Math.round(backend.motorTemp) + "°C";
         if (_warnHeatsinkTemp)   return "HEATSINK TEMP WARNING";
         if (_warnLowVoltage)     return "LOW BUS VOLTAGE";
