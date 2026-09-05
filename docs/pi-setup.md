@@ -317,6 +317,22 @@ Reading that frame: `402` is the ID, `#` separates, then 8 bytes of hex. The
 numbers are IEEE-754 floats stored least-significant-byte-first, which is why
 120.0 appears as `0000F042` rather than anything human-readable.
 
+The BMS can be injected the same way, and this is the **only** check of the extended-ID
+filter and the big-endian decoder short of a real pack:
+
+```bash
+# Eight hex digits before '#' make it an EXTENDED frame. With fewer, cansend
+# emits a standard frame and the dashboard correctly ignores it.
+# CELL_V_MAX = 37000 counts (0x9088) -> 3.700 V
+# CELL_V_MIN = 36500 counts (0x8E94) -> 3.650 V
+cansend vcan0 00000100#90888E9400000000
+```
+
+**Success looks like:** `PACK DELTA V` reads `0.050 V` and the BMS dot leaves grey. If the
+readouts stay `--`, the kernel filter is wrong. If the numbers are wrong, the byte mapping
+is. Stop sending and the pack readouts blank after about 3 s — the BMS has its own,
+slower staleness timer than the CAN dot.
+
 > `vcan0` vanishes on reboot. Re-run the three commands when you need it again.
 
 ---
@@ -619,8 +635,10 @@ Stage 1's install command above).
 
 **`candump` shows frames but the dashboard ignores them.**
 The message ID is probably outside the ranges we listen to. For efficiency, the
-app asks the kernel to discard everything except `0x400`–`0x41F` (motor
-controller) and `0x500`–`0x51F` (driver controls). `candump` opens its own
+app asks the kernel to discard everything except standard `0x400`–`0x41F` (motor
+controller), standard `0x500`–`0x51F` (driver controls) and **extended**
+`0x100`–`0x107` (BMS). Frame format is part of the filter, so a standard frame at
+`0x100` is rejected just as an extended one at `0x400` is. `candump` opens its own
 unfiltered connection, so it sees *everything* regardless — which is exactly why
 this symptom is so confusing. The frame really is arriving; we're deliberately
 dropping it.

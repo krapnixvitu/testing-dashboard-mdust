@@ -63,13 +63,20 @@ Audited against the iESC display requirements on 2026-09-03; full per-item statu
   both arrows flash together while engaged. UI complete, awaiting a live source.
 - ✅ **Rear-vision feed: out of scope.** Decision recorded — not this dashboard's
   focus. Only applies at all if the car uses a camera instead of mirrors.
-- ⏸ **ESS warnings: deferred until a BMS is chosen.** The regulations list four
-  trigger conditions (cell under/over voltage, over-current, cell under/over
-  temperature); the backend models one opaque `bmsFault` boolean, and no
-  low-temperature threshold exists anywhere in the codebase. To be implemented
-  alongside the BMS itself once its message codes are known. **When selecting the
-  BMS, require that it reports those conditions individually** — a summary-only
-  fault bit caps what the dashboard can ever warn about.
+- ✅ **ESS warning sources decoded (2026-09-05).** All five regulation triggers now
+  have real sources from the Lithium Balance BMS: cell under/over voltage, pack
+  current, and cell under/over temperature. The severity mapping is wired — over
+  temperature and over-voltage escalate warning to critical, under-voltage and
+  over-current warn first because the driver can recover them, under-temperature is
+  warning-only.
+- ⏸ **ESS thresholds still unset.** `src/BmsLimits.h` holds all nine limits as NaN, so
+  no ESS alert can fire yet. The figures are already in our BMS configuration, in the
+  **Operational Limits** view that is not part of the export we have — see
+  `docs/Notes.md`. Exporting that view finishes this item.
+- ⏸ **`bmsFault` has no source.** No frame in the BMS configuration carries a fault or
+  status signal. The error-frame block at `0x200` is the likely route and Data ID 34
+  would suit the footer dot; both are recorded in
+  `docs/LithiumBalance_BMS_CAN_Reference.md` §5.
 - ⚠ **Open question for the electrical team.** The dashboard must run off the main
   pack (Reg. 2.26.2) while hazards run off the auxiliary battery (Reg. 2.30) — so
   the screen dies during a main-battery cut-off while the hazards keep flashing,

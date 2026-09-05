@@ -117,8 +117,8 @@ Top to bottom:
   amber below 40 %, otherwise green.
 - **POWER** — net power in watts. Rendered blue (`#40C4FF`) when negative,
   meaning regeneration.
-- **CURRENT** — pack current in amps from the BMS. Shows `--` until a BMS is
-  decoded. Blue when negative, meaning the pack is charging.
+- **CURRENT** — pack current in amps from the BMS (`PACK_I_MASTER`). Shows `--` while
+  the BMS is silent. Blue when negative, meaning the pack is charging.
 - **EFFICIENCY** — watt-hours per kilometre, with a `(Wh/km)` caption. Green
   below 100, amber below 150, red above. Shows `--` before the car has moved
   far enough for the figure to mean anything.
@@ -168,9 +168,13 @@ Below a separator:
 - **PACK DELTA V** — the spread between the highest and lowest cell, to three
   decimals. Green below 50 mV, amber below 100 mV, red above.
 
-Rows with no live source show `--` with a grey dot instead of a colour, so a
-missing sensor can never be mistaken for a healthy reading. Both PACK rows are
-in that state until a BMS is chosen and decoded.
+Rows with no live source show `--` with a grey dot instead of a colour, so a missing
+sensor can never be mistaken for a healthy reading. The PACK rows enter that state
+whenever the BMS goes quiet for 3 s.
+
+PACK temperature is the **hottest** cell (`CELL_T_MAX_VAL`), the safety-relevant one. The
+coldest cell is also decoded as `packTempMin` and feeds the ESS under-temperature warning,
+but is not currently displayed.
 
 Purpose: thermal safety and battery health.
 
@@ -188,11 +192,13 @@ it stays legible against the dark footer in both themes.
 | Dot | Green | Amber | Red | Grey |
 | :--- | :--- | :--- | :--- | :--- |
 | **CAN** | Frames arriving | — | Bus silent | — |
-| **BMS** | Pack healthy | — | BMS fault | No BMS connected |
+| **BMS** | Pack healthy | — | BMS fault | BMS silent |
 | **Motor** | No limits active | Controller is limiting | — | — |
 
-The grey BMS state matters: a green dot would claim the pack is healthy when
-nothing is being measured at all.
+The grey BMS state matters: a green dot would claim the pack is healthy when nothing is
+being measured at all. Grey means no BMS frame has arrived for 3 s — either none is
+connected, or one has gone quiet. The BMS broadcasts every 900–1100 ms, so the window is
+deliberately far longer than the CAN dot's 500 ms.
 
 **Centre — active limit summary.** Blank when the controller is not limiting.
 With one limit active it names it (e.g. `BUS CURRENT LIMIT`); with several it
@@ -221,6 +227,10 @@ Triggers, in the order the message is chosen:
 | Condition | Message |
 | :--- | :--- |
 | BMS fault | `BMS FAULT` |
+| Cell temperature above the ESS limit | `ESS CELL OVER TEMPERATURE` |
+| Cell voltage above the ESS limit | `ESS CELL OVER VOLTAGE` |
+| Cell voltage below the ESS limit | `ESS CELL UNDER VOLTAGE` |
+| Pack current above the ESS limit | `ESS OVER CURRENT` |
 | Motor temperature above 100 °C | `MOTOR OVERHEAT` |
 | Hardware over-current | `HARDWARE OVER CURRENT` |
 | Software over-current | `SOFTWARE OVER CURRENT` |
@@ -234,6 +244,11 @@ warning symbol and text. It does not block the view.
 
 | Condition | Message |
 | :--- | :--- |
+| Cell voltage low | `ESS WARNING: LOW CELL VOLTAGE — LIFT THROTTLE` |
+| Pack current high | `ESS WARNING: HIGH CURRENT — REDUCE POWER` |
+| Cell voltage high | `ESS WARNING: HIGH CELL VOLTAGE — EASE REGEN` |
+| Cell temperature high | `ESS WARNING: PACK HOT — REDUCE POWER` |
+| Cell temperature low | `ESS WARNING: PACK COLD — REDUCED PERFORMANCE` |
 | Motor temperature 80–100 °C | `MOTOR TEMP WARNING  n°C` |
 | Heatsink above 80 °C | `HEATSINK TEMP WARNING` |
 | Bus voltage lower limit active | `LOW BUS VOLTAGE` |
@@ -241,8 +256,17 @@ warning symbol and text. It does not block the view.
 | 15 V rail under-voltage | `15V RAIL UNDER VOLTAGE` |
 | Bad motor position hall sequence | `BAD HALL SEQUENCE` |
 
-All error and limit conditions come from the motor controller's status message.
-See `WaveSculptor22_CAN_Protocol_Reference.md` for the bit definitions.
+Motor and bus conditions come from the motor controller's status message — see
+`WaveSculptor22_CAN_Protocol_Reference.md` for the bit definitions. The ESS rows come
+from the BMS, via `backend.essFlags`.
+
+> **The ESS rows cannot fire yet.** Their thresholds live in `src/BmsLimits.h` and are
+> unset until the cell datasheet figures are entered, so every ESS comparison is false.
+> The five ESS warnings are listed above because the mapping is decided and wired, not
+> because they are live. See `docs/regulatory-compliance.md` §3.
+
+ESS warnings are ordered ahead of the motor ones in the banner: the pack is what the
+driver can least afford to lose, and each ESS message names the action that recovers it.
 
 ## Debug Mode Layout
 

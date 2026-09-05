@@ -9,6 +9,7 @@ Contents:
 
 1. [CAN identifier filters and masks](#1-can-identifier-filters-and-masks)
 2. [Byte order on the WaveSculptor bus](#2-byte-order-on-the-wavesculptor-bus)
+3. [Extended identifiers, and the flag hiding in `can_id`](#3-extended-identifiers-and-the-flag-hiding-in-can_id)
 
 ---
 
@@ -147,8 +148,10 @@ This is the part that is easy to trip over:
 - **Across multiple filter entries** — logical OR. A frame is accepted if it
   matches *any* entry.
 
-We install two entries, one for the motor controller at `0x400` and one for the
-driver-controls/ECU range at `0x500`. That is why `0x500` gets through:
+We install three entries: the motor controller at `0x400`, the driver-controls/ECU
+range at `0x500`, and the BMS at `0x100`. The first two are shown here; the third
+works differently because the BMS uses a longer kind of identifier, which is what
+§3 is about. That is why `0x500` gets through:
 
 ```
 0x500  = 0101 0000 0000
@@ -167,14 +170,17 @@ symptom worth remembering:
 
 > `candump` shows the frame, but the dashboard does not react to it.
 
-That almost always means the identifier falls outside `0x400`–`0x41F` and
-`0x500`–`0x51F`, so the kernel dropped it before the dashboard could see it.
-There is no error and no log line, because from the process's point of view the
-frame never happened.
+That almost always means the identifier falls outside every accepted range — today
+`0x400`–`0x41F` and `0x500`–`0x51F` as **standard** identifiers, and `0x100`–`0x107`
+as **extended** ones. The kernel dropped it before the dashboard could see it. There
+is no error and no log line, because from the process's point of view the frame never
+happened.
 
-**So when adding a new message, check its identifier lands inside one of the
-accepted ranges.** If it does not, the filter must be widened or the frame will
-be silently invisible forever.
+**So when adding a new message, check two things: that its identifier lands inside an
+accepted range, and that its frame format matches that range.** A standard frame at
+`0x100` is rejected exactly as firmly as an extended one at `0x400`, and for the same
+reason — see §3. If either is wrong, the filter must be widened or the frame will be
+silently invisible forever.
 
 ---
 
@@ -337,3 +343,171 @@ In descending order of authority:
 3. **`reference/esp32-simulator/protocol.hpp`** — a copy of the ESP32 project's
    definitions, kept for reference only. Not compiled here, and liable to drift
    out of sync with the ESP32 project. Treat as a hint, verify against 1.
+
+---
+
+# 3. Extended identifiers, and the flag hiding in `can_id`
+
+## The thing that forced this
+
+§1 quietly assumed every identifier is 11 bits. That held while the motor controller
+was the only talker. The BMS broke it: its frames use **29-bit** identifiers, and the
+filter written for 11-bit ones could not see them at all.
+
+Worse, the failure was the silent kind. The frames were on the wire, `candump` would
+have shown them, and the dashboard sat there with `--` in every pack readout.
+
+## CAN has two frame formats, and they share the bus
+
+- **Standard** (CAN 2.0A) — an 11-bit identifier, `0x000` to `0x7FF`.
+- **Extended** (CAN 2.0B) — a 29-bit identifier, `0x00000000` to `0x1FFFFFFF`.
+
+Both formats coexist on the same two wires. A bit in the frame header says which one
+a frame is, and every controller reads it.
+
+The consequence that matters: **the two identifier spaces are separate.** A standard
+`0x100` and an extended `0x100` are different messages, potentially from different
+devices, and both can exist on one bus without conflict. "Identifier `0x100`" is not
+a complete description of a message — you also have to say which format.
+
+## Where SocketCAN puts the format
+
+Here is the part that is easy to miss, because nothing about the name warns you.
+
+A `struct can_frame` has a 32-bit `can_id` field. The identifier needs at most 29 of
+those bits, so the top three carry flags:
+
+```
+bit  31      CAN_EFF_FLAG   set = this is a 29-bit extended frame
+bit  30      CAN_RTR_FLAG   set = remote transmission request
+bit  29      CAN_ERR_FLAG   set = this is an error frame, not data
+bits 28..0   the identifier itself
+```
+
+So `can_id` is **not** the identifier. It is the identifier *plus* three bits saying
+what kind of frame carried it. An extended `0x100` does not arrive as `0x100`:
+
+```
+extended 0x100  ->  can_id = 0x80000100     (bit 31 set)
+standard 0x100  ->  can_id = 0x00000100     (bit 31 clear)
+```
+
+Two constants pull the identifier back out, and they are the 11-bit and 29-bit
+equivalents of each other:
+
+```
+CAN_SFF_MASK = 0x000007FF     11 bits
+CAN_EFF_MASK = 0x1FFFFFFF     29 bits
+```
+
+## The two ways the old code was wrong
+
+Both were invisible. Neither would have produced an error.
+
+**The reader flattened the two formats together.** It did this:
+
+```cpp
+const uint32_t id = frame.can_id & CAN_SFF_MASK;   // keeps 11 bits
+```
+
+`0x80000100 & 0x7FF` is `0x100`. So is `0x00000100 & 0x7FF`. The flag was thrown away
+before anything looked at it, and an extended frame would have been handed to the
+WaveSculptor decoder — which reads its bytes in the opposite order, so the result
+would have been plausible-looking nonsense rather than an obvious failure.
+
+**The filter treated the flag as "don't care".** Recall the rule from §1:
+
+```
+(received_id & mask) == (filter_id & mask)   ->  accept
+```
+
+The old mask was `0x7E0`. Bit 31 is `0` there, so — exactly as §1 explains — it was
+erased on *both* sides and could not influence the comparison. An extended frame whose
+low 11 bits happened to land in `0x400`–`0x41F` would have been accepted as if it were
+a motor controller frame.
+
+## Making the flag part of the comparison
+
+The fix is the same stencil idea from §1, applied one bit higher. Put `CAN_EFF_FLAG`
+into the mask and it stops being ignored — it becomes a bit that must match.
+
+```cpp
+filters[0].can_id   = 0x400;                                // bit 31 clear
+filters[0].can_mask = CAN_EFF_FLAG | (CAN_SFF_MASK & ~0x1Fu);
+                    // 0x80000000 | 0x7E0  =  0x800007E0
+```
+
+The reference value is `0x400 & 0x800007E0` = `0x00000400`, with bit 31 clear. So the
+entry now says *"standard format, and identifier `0x400`–`0x41F`"*:
+
+```
+standard 0x402:  0x00000402 & 0x800007E0 = 0x00000400  = reference  -> ACCEPT
+extended 0x402:  0x80000402 & 0x800007E0 = 0x80000400  ≠ reference  -> REJECT
+```
+
+That second line is the aliasing being closed. The frame's identifier bits are
+identical; only bit 31 differs, and now that bit survives the AND.
+
+## The BMS entry
+
+```cpp
+filters[2].can_id   = 0x100 | CAN_EFF_FLAG;                 // 0x80000100
+filters[2].can_mask = CAN_EFF_FLAG | (CAN_EFF_MASK & ~0x7u);
+                    // 0x80000000 | 0x1FFFFFF8  =  0x9FFFFFF8
+```
+
+Reading the mask: bit 31 must match, bits 28..3 must match, bits 2..0 are don't-care.
+The reference is `0x80000100 & 0x9FFFFFF8` = `0x80000100`. So the entry says
+*"extended format, and identifier `0x100`–`0x107`"*:
+
+```
+extended 0x102:  0x80000102 & 0x9FFFFFF8 = 0x80000100  = reference  -> ACCEPT
+standard 0x102:  0x00000102 & 0x9FFFFFF8 = 0x00000100  ≠ reference  -> REJECT
+extended 0x108:  0x80000108 & 0x9FFFFFF8 = 0x80000108  ≠ reference  -> REJECT
+```
+
+The middle line is the one worth pausing on: a *standard* `0x102` from some other
+device on the bus is rejected, even though the identifier number is one we want. That
+is the point. Without the flag in the mask it would have been accepted and decoded as
+a BMS temperature frame.
+
+## Why mask 3 bits here but 5 for the WaveSculptor
+
+§1 explained that `~0x1F` for the motor controller is not arbitrary: the WaveSculptor
+splits its 11 bits into a 6-bit device and a 5-bit message index, so masking the low
+5 bits means *"any message from this device"*. The mask matches the protocol's own
+structure.
+
+The BMS has no such structure. Its identifiers are simply sequential from `0x100`,
+assigned by whoever wrote the configuration. We need `0x100`, `0x101` and `0x102`, so
+we mask the low 3 bits and accept `0x100`–`0x107` — the tightest power-of-two window
+that covers them. Masking 5 bits would work too, but would accept `0x100`–`0x11F`:
+twenty-four identifiers we have no use for, any of which could later be assigned to
+something else and quietly start arriving.
+
+## Routing afterwards
+
+Once the frames are through the filter, the reader must still send each to the right
+decoder. It branches on the same flag, not on the identifier:
+
+```cpp
+if (frame.can_id & CAN_EFF_FLAG) {
+    bms::decode(frame.can_id & CAN_EFF_MASK, frame.data);    // big endian
+} else {
+    ws22::decode(frame.can_id & CAN_SFF_MASK, frame.data);   // little endian
+}
+```
+
+The two decoders read bytes in opposite directions (§2 for the WaveSculptor;
+big-endian for the BMS). So misrouting a frame does not fail loudly — it produces a
+number. Branching on the format rather than the identifier is what makes that
+impossible.
+
+## Where the truth lives
+
+1. **`linux/can.h`** — the definitions of `CAN_EFF_FLAG`, `CAN_SFF_MASK` and
+   `CAN_EFF_MASK`. Authoritative, and on the Pi already.
+2. **`src/SocketCanReader.cpp`** — the filters we actually install and the routing
+   branch. The comments there mirror this section.
+3. **`docs/LithiumBalance_BMS_CAN_Reference.md`** — which BMS identifiers exist, and
+   why they are extended.

@@ -279,14 +279,22 @@ and the UI dims all three letters.
 
 ## 6) Alert Logic
 
-Duplicated in `qml/RaceDashboard.qml` and `qml/DebugDashboard.qml`. Both derive
-booleans from `backend.errorFlags` and `backend.limitFlags` by masking
-individual bits, per the WaveSculptor status message.
+Motor and bus conditions are derived in QML from `backend.errorFlags` and
+`backend.limitFlags` by masking individual bits, per the WaveSculptor status
+message. **ESS conditions are different**: they are computed in C++ by
+`VehicleData::recomputeEssFlags()` and exposed as the `essFlags` bitfield, which
+QML masks the same way. That keeps the thresholds in one place rather than
+copied into each dashboard.
 
 - **Critical overlay** — hardware/software over-current, DC bus over-voltage,
-  IGBT desaturation, motor above 100 °C, or a BMS fault.
+  IGBT desaturation, motor above 100 °C, a BMS fault, or an ESS critical (cell
+  over/under voltage, cell over-temperature, over-current).
 - **Warning banner** — motor 80–100 °C, heatsink above 80 °C, bus voltage lower
-  limit, motor over-speed, 15 V rail under-voltage, bad hall sequence.
+  limit, motor over-speed, 15 V rail under-voltage, bad hall sequence, or an ESS
+  warning (the same four, plus cell under-temperature).
+
+ESS warnings are tested first when composing the banner message, so a pack
+problem is named ahead of a motor one.
 
 Critical suppresses the warning banner, so only one message shows at a time.
 Exact thresholds and message strings are tabulated in `docs/ui-layout.md`.
@@ -294,8 +302,10 @@ Exact thresholds and message strings are tabulated in `docs/ui-layout.md`.
 `backend.debugWarningActive` and `backend.debugCriticalActive` force each layer
 for testing, via `W` and `C`.
 
-> The two dashboards hold **copies** of this logic. A threshold change must be
-> made in both files or the modes will disagree.
+> The two dashboards hold **copies** of the motor and bus logic. A threshold change
+> must be made in both files or the modes will disagree. **`DebugDashboard.qml` knows
+> nothing about `essFlags`** and will not show ESS alerts at all — deliberate, since it
+> is frozen and unmaintained, but worth knowing before debugging a pack fault in it.
 
 ## 7) Dashboard Mode Switching
 
@@ -326,9 +336,15 @@ for testing, via `W` and `C`.
    Check the layout against `docs/WaveSculptor22_CAN_Protocol_Reference.md`, not
    against `reference/esp32-simulator/protocol.hpp`, whose struct field order is
    misleading.
-3. **Confirm the ID falls inside the kernel filter ranges** — currently
-   `0x400`–`0x41F` and `0x500`–`0x51F`. Outside them the frame is dropped by the
-   kernel and never arrives, with no error. See `docs/concepts.md`.
+3. **Confirm the ID falls inside the kernel filter ranges, and that the frame format
+   matches** — currently standard 11-bit `0x400`–`0x41F` and `0x500`–`0x51F`, plus
+   extended 29-bit `0x100`–`0x107` for the BMS. Outside them the frame is dropped by
+   the kernel and never arrives, with no error. The masks include `CAN_EFF_FLAG`, so a
+   standard entry will not match an extended frame sharing its low bits, or vice versa.
+   See `docs/concepts.md` and `src/SocketCanReader.cpp`.
+
+   A BMS message goes in `src/BmsDecoder.cpp` instead, and is **big endian** — see
+   `docs/LithiumBalance_BMS_CAN_Reference.md` §1 for the bit-to-byte mapping.
 4. Store it in `VehicleData::applyDecodedFrame()` and add a `Q_PROPERTY`.
 5. Add a decoder unit test.
 
