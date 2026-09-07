@@ -39,9 +39,39 @@ Item {
     // ── Smoothed speed for animation ──
     property real _animatedSpeed: 0.0
     Behavior on _animatedSpeed { NumberAnimation { duration: 180; easing.type: Easing.OutQuad } }
-    onSpeedChanged: _animatedSpeed = speed
+    onSpeedChanged: {
+        _animatedSpeed = speed;
+        _updateLogoVisibility();
+    }
 
     readonly property real _animatedFraction: Math.max(0, Math.min(_animatedSpeed / maxSpeed, 1.0))
+
+    // ── Team logo visibility ──
+    // Neutral AND slow. Never in Drive or Reverse at any speed.
+    //
+    // Two thresholds rather than one, because a single one flickers: the speed
+    // reading jitters, and a value sitting on the boundary would cross it
+    // repeatedly, cross-fading the logo against the speed number several times
+    // a second. Showing below 5 and hiding above 6 leaves a 1 km/h dead zone
+    // that noise cannot cross, so the state only changes when the car really
+    // does. The cost is that the switch point differs by direction -- appearing
+    // at 5 when slowing, vanishing at 6 when pulling away -- which nobody will
+    // ever notice.
+    property bool _logoVisible: false
+    onDriveModeChanged: _updateLogoVisibility()
+    Component.onCompleted: _updateLogoVisibility()
+
+    function _updateLogoVisibility() {
+        if (root.driveMode !== "N") {
+            root._logoVisible = false;
+            return;
+        }
+        if (root.speed < 5.0)
+            root._logoVisible = true;
+        else if (root.speed > 6.0)
+            root._logoVisible = false;
+        // Between 5 and 6, hold whatever state we already have.
+    }
 
     // ── Helper: degrees to radians ──
     function _deg2rad(deg) { return deg * Math.PI / 180.0; }
@@ -330,14 +360,14 @@ Item {
     states: [
         State {
             name: "neutral"
-            when: root.driveMode === "N"
+            when: root._logoVisible
             PropertyChanges { target: speedText; opacity: 0.0 }
             PropertyChanges { target: kmhLabel; opacity: 0.0 }
             PropertyChanges { target: teamLogo; opacity: 1.0 }
         },
         State {
             name: "driving"
-            when: root.driveMode !== "N"
+            when: !root._logoVisible
             PropertyChanges { target: speedText; opacity: 1.0 }
             PropertyChanges { target: kmhLabel; opacity: 1.0 }
             PropertyChanges { target: teamLogo; opacity: 0.0 }

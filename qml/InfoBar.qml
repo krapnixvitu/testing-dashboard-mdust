@@ -10,9 +10,11 @@ Item {
     property real dcBusAmpHours: 0.0  // Ah
     property real efficiency: 0.0     // Wh/km
 
-    // Pack current from the BMS. Not the same quantity as bus current: on a
-    // solar car the array feeds the pack, so this goes negative while bus
-    // current stays positive. Inert until a BMS is decoded.
+    // Pack current from the BMS. No longer displayed -- it duplicated POWER
+    // above it, and the pack-versus-bus distinction is strategy rather than
+    // something the driver acts on. Kept as a property because RaceDashboard
+    // still passes it, and the ESS over-current warning uses the same value
+    // from the C++ side.
     property real netCurrent: 0.0     // A
     property bool netCurrentValid: false
 
@@ -49,14 +51,14 @@ Item {
         anchors.margins: root.px(12)
         spacing: 0
 
-        // Four equal blocks split by three hairlines. Sizing them as a share of
+        // Three equal blocks split by two hairlines. Sizing them as a share of
         // the card, rather than stacking fixed heights, means the content always
         // fills exactly and can never overflow -- which matters because the Pi
         // has no Segoe UI and falls back to different font metrics.
-        readonly property real _blockH: (height - 3) / 4
+        readonly property real _blockH: (height - 2) / 3
 
         // ═══════════════════════════════════════
-        // BATTERY GAUGE (horizontal bar)
+        // BATTERY -- percentage over voltage
         // ═══════════════════════════════════════
         Item {
             width: parent.width
@@ -79,16 +81,22 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                 }
 
+                // Charge bar with the percentage reading inside it.
+                //
+                // Derived from bus voltage against the 80-150 V range, NOT the
+                // BMS's own state of charge -- that output is faulty and under
+                // investigation. `backend.stateOfCharge` is already decoded and
+                // waiting; when the BMS is fixed, rebind _batteryPercent here.
                 Rectangle {
                     id: barBg
                     width: parent.width
-                    height: root.px(22)
+                    height: root.px(36)
                     radius: root.px(4)
                     color: "#1A1A1A"
                     border.color: "#333333"
                     border.width: 1
 
-                    // Bar fill (left-to-right)
+                    // Fill, left to right
                     Rectangle {
                         anchors.left: parent.left
                         anchors.leftMargin: root.px(2)
@@ -101,13 +109,28 @@ Item {
                         Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutQuad } }
                         Behavior on color { ColorAnimation { duration: 500 } }
                     }
+
+                    // The number sits over the bar rather than beside it. Always
+                    // white: it has to stay legible over both the coloured fill
+                    // and the dark unfilled remainder as the level drops past it.
+                    // No % sign -- the bar already says this is a proportion.
+                    Text {
+                        id: chargeText
+                        anchors.centerIn: parent
+                        text: Math.round(root._batteryPercent * 100)
+                        font.pixelSize: root.px(24)
+                        font.weight: Font.Bold
+                        font.family: "Segoe UI"
+                        color: "#FFFFFF"
+                        horizontalAlignment: Text.AlignHCenter
+                    }
                 }
 
                 Text {
                     id: voltageText
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: root.busVoltage.toFixed(1) + " V"
-                    font.pixelSize: root.px(28)
+                    font.pixelSize: root.px(26)
                     font.weight: Font.Bold
                     font.family: "Segoe UI"
                     color: root.textColor
@@ -149,47 +172,9 @@ Item {
                     font.family: "Segoe UI"
                     color: root.netPower >= 0 ? root.textColor : "#40C4FF"  // blue for regen
                     horizontalAlignment: Text.AlignHCenter
-                }
-            }
-        }
 
-        Rectangle { width: parent.width; height: 1; color: root.separatorColor }
-
-        // ═══════════════════════════════════════
-        // NET CURRENT
-        // ═══════════════════════════════════════
-        Item {
-            width: parent.width
-            height: col._blockH
-
-            Column {
-                anchors.centerIn: parent
-                width: parent.width
-                spacing: root.px(3)
-
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "CURRENT"
-                    font.pixelSize: root.px(17)
-                    font.weight: Font.Medium
-                    font.family: "Segoe UI"
-                    font.capitalization: Font.AllUppercase
-                    color: root.textColor
-                    horizontalAlignment: Text.AlignHCenter
-                }
-
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: root.netCurrentValid ? root.netCurrent.toFixed(1) + " A" : "--"
-                    font.pixelSize: root.px(28)
-                    font.weight: Font.Bold
-                    font.family: "Segoe UI"
-                    color: {
-                        if (!root.netCurrentValid) return root.textColor;
-                        // theme text for discharge, blue for charge
-                        return root.netCurrent >= 0 ? root.textColor : "#40C4FF";
-                    }
-                    horizontalAlignment: Text.AlignHCenter
+                    // No Behavior on the text: this is already a 10 s mean from
+                    // the backend, so it steps once per window by design.
                 }
             }
         }

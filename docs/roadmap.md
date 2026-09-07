@@ -111,7 +111,13 @@ Audited against the iESC display requirements on 2026-09-03; full per-item statu
   before touching hardware so software faults are ruled out first.
 - Settle the gear protocol with the ECU and driver-controls owners, then decode
   it and add the cross-check against measured motor direction.
-- Refine Race Mode UI for driving (primary focus).
+- ✅ **Driver-focus pass (2026-09-07).** Stripped engineer data off the screen: controller
+  temperature, pack ΔV, pack current and the controller limit summary are gone, their
+  warnings kept. Battery shows a percentage instead of a bar, POWER is a 10 s average, the
+  logo is gated on Neutral below 5 km/h, and the footer carries six liveness dots
+  (CAN/BMS/Motor/VCU/GPS/TELEM) in place of the limit text. VCU, GPS and telemetry have no
+  source yet and sit grey.
+- Continue refining Race Mode UI for driving (primary focus).
 - Replace the `D` key mode toggle with a physical input once the enclosure is
   decided.
 

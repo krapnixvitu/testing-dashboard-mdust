@@ -70,25 +70,35 @@ between them.
 ┌────────────────────────────────────────────────────────────┐
 │ ┌────────────┐ ┌────────────────────┐ ┌────────────┐       │
 │ │ BATTERY    │ │ ◀       ⚠      ▶   │ │ MOTOR      │       │
-│ │  120.0 V   │ │                    │ │ CONTROLLER │       │
-│ │ POWER      │ │        62          │ │ PACK       │       │
-│ │  1200 W    │ │       km/h         │ │ ────────── │       │
-│ │ CURRENT    │ │                    │ │ PACK ΔV    │       │
-│ │  --        │ │     D   N   R      │ │  --        │       │
-│ │ EFFICIENCY │ │                    │ │            │       │
+│ │ [▓▓▓ 60 ]  │ │                    │ │  ● 57°C    │       │
+│ │  120.0 V   │ │        62          │ │ PACK       │       │
+│ │ POWER      │ │       km/h         │ │  ● 31°C    │       │
+│ │  1200 W    │ │                    │ │            │       │
+│ │ EFFICIENCY │ │     D   N   R      │ │ (reserved) │       │
+│ │  15        │ │                    │ │            │       │
 │ └────────────┘ └────────────────────┘ └────────────┘       │
 ├────────────────────────────────────────────────────────────┤
-│ ●CAN ●BMS ●Motor        BUS V LOW           ODO  12.3 km   │
+│ ●CAN ●BMS ●MOTOR ●VCU ●GPS ●TELEM        ODO  12.3 km      │
 └────────────────────────────────────────────────────────────┘
 ```
 
-Side cards are 176 px wide (22% of the reference width, sized so `CONTROLLER` and
-`PACK DELTA V` fit at a legible font); the centre card takes the remaining 400 px. The
-footer is 48 px tall. All at the reference size — multiply by the scale for the panel.
+Side cards are 176 px wide (22% of the reference width); the centre card takes the
+remaining 400 px. The footer is 48 px tall. All at the reference size — multiply by the
+scale for the panel. The width was originally set so `CONTROLLER` and `PACK DELTA V` fit
+at a legible font; both labels are gone now, but the width is kept for symmetry with the
+left card.
 
 Each side card divides its height into **equal blocks** rather than stacking fixed
 heights, so the content always fills the card and can never overflow. This matters
 because the Pi has no Segoe UI and falls back to different font metrics.
+
+> **What is deliberately absent.** Controller temperature, pack cell-spread (ΔV), pack
+> current and the motor controller's active-limit summary were all removed on 2026-09-07.
+> None are mandatory under Reg. 2.26.1, and none change a decision the driver can make at
+> speed — they are race-engineer data and reach the pits over telemetry. The driver's job
+> is completing laps, not interpreting values. Their **warnings** were kept: the heatsink
+> banner and the ESS over-current alert both still fire. See
+> `docs/regulatory-compliance.md`.
 
 ## Blinkers and hazard
 Location: overlaid across the top of the centre card — arrows in the two corners,
@@ -112,21 +122,34 @@ Location: left column, 176 px wide at the reference size.
 
 Top to bottom:
 
-- **BATTERY** — a *horizontal* bar plus the bus voltage in volts underneath.
-  The bar maps 80 V (empty) to 150 V (full). Fill colour: red below 20 %,
-  amber below 40 %, otherwise green.
-- **POWER** — net power in watts. Rendered blue (`#40C4FF`) when negative,
-  meaning regeneration.
-- **CURRENT** — pack current in amps from the BMS (`PACK_I_MASTER`). Shows `--` while
-  the BMS is silent. Blue when negative, meaning the pack is charging.
+- **BATTERY** — a horizontal **charge bar with the percentage printed inside it**, and
+  the bus voltage underneath. The bar maps 80 V (empty) to 150 V (full); its fill is red
+  below 20 %, amber below 40 %, otherwise green.
+
+  The number is **always white** and carries no `%` sign — the bar already says it is a
+  proportion. White because as the level drops the number ends up over the coloured fill,
+  over the dark unfilled remainder, or straddling the boundary between them, and it has
+  to stay legible in all three.
+
+  > The percentage is derived from bus voltage against an 80–150 V range — it is **not**
+  > the BMS's state of charge, whose output is currently faulty and under investigation.
+  > A voltage-derived figure sags under acceleration and recovers when coasting on an
+  > unchanged pack, so treat it as indicative. `backend.stateOfCharge` is already decoded
+  > and waiting; when the BMS is fixed, one binding in `InfoBar.qml` switches over.
+
+- **POWER** — net power in watts, as a **10-second average republished every 10 s**.
+  Instantaneous power is too twitchy to act on, and an average rather than a snapshot
+  avoids freezing a transient spike on screen for ten seconds. Blue (`#40C4FF`) when
+  negative, meaning regeneration.
 - **EFFICIENCY** — watt-hours per kilometre, with a `(Wh/km)` caption. Green
   below 100, amber below 150, red above. Shows `--` before the car has moved
   far enough for the figure to mean anything.
 
 Purpose: energy management and race strategy.
 
-> Bus current and amp-hours are passed into this card by the backend but are not
-> currently displayed anywhere in it.
+> Bus current, amp-hours and pack current are passed into this card by the backend but
+> are not displayed. Pack current still feeds the ESS over-current warning from the C++
+> side, and all three still reach the pits over telemetry.
 
 ## Centre Card (Speed + Gear)
 Location: middle of the screen, largest element.
@@ -136,8 +159,13 @@ Elements:
 - **Speed** — a very large numeric value (110 px), animated so it eases toward
   new readings rather than jumping.
 - **"km/h"** caption directly beneath it.
-- **Team logo** — replaces the speed number entirely while in Neutral. Leaving
-  Neutral cross-fades back to the speed.
+- **Team logo** — replaces the speed number while in **Neutral and nearly stopped**.
+  Never in Drive or Reverse, at any speed. It appears below 5 km/h and disappears above
+  6 km/h; the 1 km/h gap is deliberate, so a speed reading sitting on the boundary cannot
+  flicker the logo against the speed number.
+
+  > Gear has no live source yet, so **on a real bus the logo will not appear at all**
+  > until the ECU gear protocol lands. That is intended, not a fault.
 - **Gear indicator** — `D  N  R` in a row. The active letter is larger and fully
   opaque; the other two are dimmed to 20 %. **When no gear is reported at all,
   all three are dimmed**, which is how "unknown" is shown rather than guessing.
@@ -160,13 +188,12 @@ Each temperature row is a label, a coloured status dot and a value in °C:
 | Row | Source | Amber above | Red above |
 | :--- | :--- | :--- | :--- |
 | **MOTOR** | Motor controller | 80 °C | 100 °C |
-| **CONTROLLER** | Motor controller heatsink | 80 °C | 100 °C |
-| **PACK** | BMS | 45 °C | 60 °C |
+| **PACK** | BMS, hottest cell | 45 °C | 60 °C |
 
-Below a separator:
-
-- **PACK DELTA V** — the spread between the highest and lowest cell, to three
-  decimals. Green below 50 mV, amber below 100 mV, red above.
+The two rows sit in the **top half** of the card at their original size. The bottom half
+is **held open deliberately** for a planned addition — `TempBar.qml` keeps its block
+height at a quarter of the card rather than dividing by the row count, so the rows do not
+grow into space that is being reserved.
 
 Rows with no live source show `--` with a grey dot instead of a colour, so a missing
 sensor can never be mistaken for a healthy reading. The PACK rows enter that state
@@ -187,29 +214,35 @@ Purpose: thermal safety and battery health.
 Location: bottom of the screen, full width, 32 px tall. Text is always white, so
 it stays legible against the dark footer in both themes.
 
-**Left — three health dots:**
+**Left — six health dots.** Every one answers the same question: **is this device alive
+and healthy?** So any non-green dot means one thing to the driver — tell the pits. No
+interpretation is asked for at speed.
 
-| Dot | Green | Amber | Red | Grey |
-| :--- | :--- | :--- | :--- | :--- |
-| **CAN** | Frames arriving | — | Bus silent | — |
-| **BMS** | Pack healthy | — | BMS fault | BMS silent |
-| **Motor** | No limits active | Controller is limiting | — | — |
+| Dot | Device | Source today |
+| :--- | :--- | :--- |
+| **CAN** | The bus itself | Frame watchdog, 500 ms |
+| **BMS** | Lithium Balance pack | BMS frames, 3 s staleness window |
+| **MOTOR** | WaveSculptor controller | Bus liveness |
+| **VCU** | Vehicle control unit | **none yet — grey** |
+| **GPS** | Position | **none yet — grey** |
+| **TELEM** | Telemetry link to the pits | **none yet — grey** |
 
-The grey BMS state matters: a green dot would claim the pack is healthy when nothing is
-being measured at all. Grey means no BMS frame has arrived for 3 s — either none is
-connected, or one has gone quiet. The BMS broadcasts every 900–1100 ms, so the window is
-deliberately far longer than the CAN dot's 500 ms.
+Grey means *no source, or nothing heard*. It is the honest state, and it is why the BMS
+dot is not green when nothing is being measured. VCU, GPS and telemetry sit grey until
+those devices report — the same gap as gear and the blinkers.
 
-**Centre — active limit summary.** Blank when the controller is not limiting.
-With one limit active it names it (e.g. `BUS CURRENT LIMIT`); with several it
-shows `MULTIPLE LIMITS (n)` rather than an unreadable list.
+Colour rules beyond green and grey are **still being decided**; the backend models status
+as a four-state enum (`Unknown / Healthy / Warning / Fault`) so a per-device amber can be
+added without reshaping anything.
 
 **Right — odometer**, as `ODO  12.3 km`.
 
 Purpose: background diagnostics that never compete with the speed for attention.
 
-> **Moved:** the bus current readout that used to sit here was replaced by the
-> odometer.
+> **Removed:** the motor controller's active-limit summary used to sit in the centre.
+> Controller limits are race-strategy information and go to the pits, not to the driver.
+> The Motor dot stopped going amber for limiting at the same time — it is now a liveness
+> indicator like the others.
 
 ## Alert Overlays
 

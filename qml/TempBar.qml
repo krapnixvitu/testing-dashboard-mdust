@@ -38,11 +38,15 @@ Item {
         anchors.margins: root.px(12)
         spacing: 0
 
-        // Four equal blocks split by one hairline. Sizing them as a share of
-        // the card, rather than stacking fixed heights, means the content
-        // always fills exactly and can never overflow -- which matters because
-        // the Pi has no Segoe UI and falls back to different font metrics.
-        readonly property real _blockH: (height - 1) / 4
+        // Deliberately height/4, NOT height divided by the number of rows.
+        //
+        // Only two readouts remain -- CONTROLLER and PACK DELTA V were removed
+        // as engineer data rather than driver data. Keeping the block at a
+        // quarter of the card leaves them at their original size occupying the
+        // TOP HALF, and holds the bottom half open: that space is reserved for
+        // something planned, not left empty by accident. Dividing by the child
+        // count would silently swallow it.
+        readonly property real _blockH: height / 4
 
         // ═══════════════════════════════════════
         // MOTOR TEMP
@@ -54,19 +58,6 @@ Item {
             label: "MOTOR"
             value: root.motorTemp
             dotColor: root._tempColor(root.motorTemp, 80, 100)
-            textColor: root.textColor
-        }
-
-        // ═══════════════════════════════════════
-        // CONTROLLER TEMP
-        // ═══════════════════════════════════════
-        TempReadout {
-            width: parent.width
-            height: col._blockH
-            uiScale: root.uiScale
-            label: "CONTROLLER"
-            value: root.heatsinkTemp
-            dotColor: root._tempColor(root.heatsinkTemp, 80, 100)
             textColor: root.textColor
         }
 
@@ -84,52 +75,7 @@ Item {
             textColor: root.textColor
         }
 
-        // ═══════════════════════════════════════
-        // SEPARATOR
-        // ═══════════════════════════════════════
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: root.separatorColor
-        }
-
-        // ═══════════════════════════════════════
-        // PACK DELTA V
-        // ═══════════════════════════════════════
-        Item {
-            width: parent.width
-            height: col._blockH
-
-            Column {
-                anchors.centerIn: parent
-                width: parent.width
-                spacing: root.px(3)
-
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "PACK DELTA V"
-                    font.pixelSize: root.px(17)
-                    font.family: "Segoe UI"
-                    font.capitalization: Font.AllUppercase
-                    color: root.textColor
-                    horizontalAlignment: Text.AlignHCenter
-                }
-
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: root.bmsValid ? root.packDeltaV.toFixed(3) + " V" : "--"
-                    font.pixelSize: root.px(28)
-                    font.weight: Font.Bold
-                    font.family: "Segoe UI"
-                    color: {
-                        if (!root.bmsValid) return root.textColor;
-                        if (root.packDeltaV < 0.050) return root.accentGreen;  // Good: < 50mV
-                        if (root.packDeltaV < 0.100) return root.accentAmber;  // Warning: 50-100mV
-                        return "#FF1744";  // Critical: > 100mV
-                    }
-                    horizontalAlignment: Text.AlignHCenter
-                }
-            }
-        }
+        // The bottom half of the card is intentionally left empty -- reserved
+        // for a planned addition. See col._blockH above.
     }
 }

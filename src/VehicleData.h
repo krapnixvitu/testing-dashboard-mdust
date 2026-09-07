@@ -16,6 +16,22 @@ class VehicleData : public QObject
 {
     Q_OBJECT
 
+public:
+    // Liveness of a device on the bus, as shown by the footer dots.
+    //
+    // An enum rather than a bool because the colour semantics are still being
+    // decided: some devices will likely want an amber state of their own, and
+    // that should not require reshaping the data model to add.
+    enum class DeviceStatus {
+        Unknown = 0,   // no source, or nothing heard from it -- renders grey
+        Healthy,
+        Warning,
+        Fault,
+    };
+    Q_ENUM(DeviceStatus)
+
+private:
+
     // ── From CAN: velocity (0x403) ──
     Q_PROPERTY(qreal vehicleSpeed READ vehicleSpeed NOTIFY vehicleSpeedChanged)
     Q_PROPERTY(qreal motorRpm READ motorRpm NOTIFY motorRpmChanged)
@@ -26,6 +42,10 @@ class VehicleData : public QObject
 
     // ── Derived from bus data ──
     Q_PROPERTY(qreal netPower READ netPower NOTIFY netPowerChanged)
+    // Rolling mean of netPower over the last 10 s, republished every 10 s. What
+    // the driver reads: instantaneous power is too twitchy to act on, and a
+    // snapshot could freeze a transient spike on screen for ten seconds.
+    Q_PROPERTY(qreal netPowerAveraged READ netPowerAveraged NOTIFY netPowerAveragedChanged)
     Q_PROPERTY(qreal efficiency READ efficiency NOTIFY efficiencyChanged)
 
     // ── From CAN: temperatures (0x40B, 0x40C) ──
@@ -58,6 +78,15 @@ class VehicleData : public QObject
     Q_PROPERTY(qreal packDeltaV READ packDeltaV NOTIFY packDeltaVChanged)
     Q_PROPERTY(bool bmsFault READ bmsFault NOTIFY bmsFaultChanged)
     Q_PROPERTY(bool bmsValid READ bmsValid NOTIFY bmsValidChanged)
+    // Decoded but not displayed: the BMS's SoC output is faulty and under
+    // investigation, so the battery readout still derives a percentage from
+    // voltage. When the BMS is fixed, rebind InfoBar to this.
+    Q_PROPERTY(qreal stateOfCharge READ stateOfCharge NOTIFY stateOfChargeChanged)
+
+    // ── Other devices on the bus: no source for any of these yet ──
+    Q_PROPERTY(DeviceStatus vcuStatus READ vcuStatus NOTIFY vcuStatusChanged)
+    Q_PROPERTY(DeviceStatus gpsStatus READ gpsStatus NOTIFY gpsStatusChanged)
+    Q_PROPERTY(DeviceStatus telemetryStatus READ telemetryStatus NOTIFY telemetryStatusChanged)
 
     // ── ESS warnings (iESC Reg. 2.5 & 3.5) ──
     // Bitfield of bms::EssFlag, masked in QML the way errorFlags already is.
@@ -92,6 +121,7 @@ public:
     qreal busVoltage() const { return m_busVoltage; }
     qreal busCurrent() const { return m_busCurrent; }
     qreal netPower() const { return m_netPower; }
+    qreal netPowerAveraged() const { return m_netPowerAveraged; }
     qreal efficiency() const { return m_efficiency; }
     qreal motorTemp() const { return m_motorTemp; }
     qreal heatsinkTemp() const { return m_heatsinkTemp; }
@@ -113,6 +143,10 @@ public:
     bool essLimitsConfigured() const;
     bool bmsFault() const { return m_bmsFault; }
     bool bmsValid() const { return m_bmsValid; }
+    qreal stateOfCharge() const { return m_stateOfCharge; }
+    DeviceStatus vcuStatus() const { return m_vcuStatus; }
+    DeviceStatus gpsStatus() const { return m_gpsStatus; }
+    DeviceStatus telemetryStatus() const { return m_telemetryStatus; }
 
     bool leftBlinker() const { return m_leftBlinker; }
     bool rightBlinker() const { return m_rightBlinker; }
@@ -161,6 +195,7 @@ signals:
     void busVoltageChanged();
     void busCurrentChanged();
     void netPowerChanged();
+    void netPowerAveragedChanged();
     void efficiencyChanged();
     void motorTempChanged();
     void heatsinkTempChanged();
@@ -179,6 +214,10 @@ signals:
     void essFlagsChanged();
     void bmsFaultChanged();
     void bmsValidChanged();
+    void stateOfChargeChanged();
+    void vcuStatusChanged();
+    void gpsStatusChanged();
+    void telemetryStatusChanged();
     void leftBlinkerChanged();
     void rightBlinkerChanged();
     void hazardActiveChanged();
@@ -192,6 +231,7 @@ signals:
 private:
     void recomputeDerived();
     void recomputeEssFlags();
+    void publishAveragedPower();
     void petBmsWatchdog();
     void onBmsWatchdogTimeout();
     void setBmsValid(bool v);
@@ -204,6 +244,9 @@ private:
     qreal m_busVoltage = 0.0;
     qreal m_busCurrent = 0.0;
     qreal m_netPower = 0.0;
+    qreal m_netPowerAveraged = 0.0;
+    qreal m_powerSum = 0.0;      // accumulator for the 10 s mean
+    int   m_powerSamples = 0;
     qreal m_efficiency = 0.0;
     qreal m_motorTemp = 0.0;
     qreal m_heatsinkTemp = 0.0;
@@ -221,8 +264,15 @@ private:
     qreal m_cellVoltageMin = 0.0;
     qreal m_packDeltaV = 0.0;
     int m_essFlags = 0;
+    qreal m_stateOfCharge = 0.0;
     bool m_bmsFault = false;
     bool m_bmsValid = false;
+
+    // No source exists for any of these, so they stay Unknown and render grey --
+    // the same honest gap as gear and the blinkers.
+    DeviceStatus m_vcuStatus = DeviceStatus::Unknown;
+    DeviceStatus m_gpsStatus = DeviceStatus::Unknown;
+    DeviceStatus m_telemetryStatus = DeviceStatus::Unknown;
 
     bool m_leftBlinker = false;
     bool m_rightBlinker = false;
@@ -240,4 +290,5 @@ private:
     // Separate from m_watchdog: BMS frames are an order of magnitude slower
     // than the motor controller's, so they need their own staleness window.
     QTimer m_bmsWatchdog;
+    QTimer m_powerAverageTimer;
 };

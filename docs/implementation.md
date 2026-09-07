@@ -155,8 +155,23 @@ readouts constantly. Both are disabled in simulator mode.
 ### Derived values
 Computed in `VehicleData::recomputeDerived()`, not in QML, so there is one
 authoritative definition:
-- `netPower` = bus voltage × bus current
+- `netPower` = bus voltage × bus current, instantaneous
+- `netPowerAveraged` = a rolling mean of `netPower`, republished every **10 s** by
+  `publishAveragedPower()`. This is what the driver reads: instantaneous power is too
+  twitchy to act on. An average rather than a snapshot, so a transient spike cannot be
+  frozen on screen for a whole window. `netPower` itself stays instantaneous, because
+  efficiency and telemetry both want the real thing.
 - `efficiency` = Wh per km, from amp-hours, voltage and distance
+
+### Device status
+`VehicleData::DeviceStatus` is a four-state enum — `Unknown`, `Healthy`, `Warning`,
+`Fault` — backing the footer dots for VCU, GPS and telemetry. An enum rather than a
+bool because the per-device colour rules are still being decided, and adding an amber
+state should not mean reshaping the data model. None of the three has a source yet, so
+all three report `Unknown` and render grey.
+
+`canHealthy`, `bmsValid`/`bmsFault` and the motor dot predate it and are left alone;
+migrating them is a tidy-up for when the colour semantics are actually settled.
 
 ### Resolution independence
 
@@ -243,17 +258,27 @@ and the UI dims all three letters.
 ### `qml/SpeedGauge.qml`
 - Large animated speed number + "km/h", D/N/R gear triplet, lap delta and
   "LAP MODE" caption
-- Swaps the speed for the team logo via a QML state machine while in Neutral
+- Swaps the speed for the team logo via a QML state machine while in **Neutral and
+  below 5 km/h**, hiding it again above 6 km/h. The 1 km/h gap is hysteresis: a single
+  threshold would let a jittering speed reading flicker the logo against the speed
+  number. Gear has no live source, so this never triggers on a real bus yet.
 - Contains the retired speed arc, tick marks and RPM readout, all
   `visible: false`
 
 ### `qml/InfoBar.qml`
-- Battery bar + bus voltage, net power, pack current, efficiency
-- Gates the current readout behind `netCurrentValid`
+- Three blocks: battery charge bar with the percentage inside it over bus voltage,
+  net power, efficiency
+- The percentage is derived from bus voltage, **not** the BMS state of charge, whose
+  output is faulty and under investigation. `backend.stateOfCharge` is decoded and
+  waiting for one binding change
+- Power binds to `netPowerAveraged`, the 10 s mean, not the instantaneous value
+- Pack current is still passed in but no longer displayed
 
 ### `qml/TempBar.qml`
-- MOTOR / CONTROLLER / PACK temperature rows plus PACK DELTA V
-- Gates the two BMS rows behind `bmsValid`
+- MOTOR and PACK temperature rows only, in the **top half** of the card
+- Keeps `_blockH` at a quarter of the card rather than dividing by the row count, so the
+  rows stay their original size and the bottom half is held open for a planned addition
+- Gates the PACK row behind `bmsValid`
 
 ### `qml/TempReadout.qml`
 - Reusable single temperature row: label, status dot, value

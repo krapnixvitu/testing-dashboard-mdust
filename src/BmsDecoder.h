@@ -46,6 +46,10 @@ struct DecodedFrame {
     // CellTemps (0x102)
     float cellTempMax = 0.0f;     // degC, hottest cell
     float cellTempMin = 0.0f;     // degC, coldest cell
+    // Decoded from the same frame but not yet displayed: the BMS's own state of
+    // charge output is faulty and under investigation. Decoding it now means
+    // switching the battery readout over later is a one-line binding change.
+    float stateOfCharge = 0.0f;   // %, 0-100
 };
 
 // Decodes one Lithium Balance broadcast frame.

@@ -201,6 +201,26 @@ currently open, so it is recorded here and in `docs/display-hardware.md`.
 
 ---
 
+## Elements removed on purpose
+
+Recorded so nobody re-adds them believing a requirement was missed. **None of these is
+mandatory** under Reg. 2.26.1, which requires only speed, direction-indicator
+verification, hazard verification, ESS warnings and (conditionally) rear-vision.
+
+| Removed 2026-09-07 | Why |
+| :--- | :--- |
+| Controller temperature readout | The driver's response to a hot controller is identical to a hot motor — back off — and the `HEATSINK TEMP WARNING` banner already says so. The controller also self-limits before damage. **The banner was kept.** |
+| Pack ΔV (cell spread) | Satisfies none of the four ESS triggers. Drifts over hours and no driving input changes it. Still decoded and telemetered. |
+| Pack current readout | Duplicated the POWER figure above it, which already shows regeneration in blue. **The ESS over-current warning was kept** — it uses the same value from the C++ side. |
+| Motor controller limit summary | Controller limits are race-strategy information for the pits. The driver cannot act on them and should be watching the road. |
+
+The principle: race engineers own car health, the driver owns the laps. Anything the
+engineers need travels over telemetry rather than competing for the driver's attention.
+**Warnings survived their readouts** in every case — what was removed is the number to
+watch, not the alert that demands action.
+
+---
+
 ## §5 Control and state indicators (Reg. 2.27)
 
 **Not applicable today.** The dashboard integrates no cruise control and no autonomous

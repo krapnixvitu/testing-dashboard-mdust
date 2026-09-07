@@ -16,6 +16,20 @@ Item {
     readonly property color _separatorColor: colorMode === "night" ? "#E0E0E0" : "#1A1A1A"
     readonly property color _footerTextColor: "#FFFFFF"  // Always white for contrast on dark footer
 
+    // VehicleData::DeviceStatus -> footer dot colour. Grey is the honest state
+    // for a device with no source: VCU, GPS and telemetry have none yet, so all
+    // three sit grey, the same as the BMS dot before its decoder existed.
+    // Warning/Fault are wired now because the per-device colour rules are still
+    // being decided and this is where they will land.
+    function _deviceColor(status) {
+        switch (status) {
+        case 1:  return root._accentGreen;   // Healthy
+        case 2:  return root._accentAmber;   // Warning
+        case 3:  return "#FF1744";           // Fault
+        default: return "#6B7280";           // Unknown -- no source
+        }
+    }
+
     // ── Resolution independence ──
     // Every size in this file and its children is expressed against an 800x480
     // reference design and multiplied by this. The two candidate panels are
@@ -328,7 +342,7 @@ Item {
                 }
             }
 
-            // Motor health (yellow when limiting)
+            // Motor controller health
             Row {
                 spacing: root.px(9)
                 Rectangle {
@@ -336,11 +350,74 @@ Item {
                     height: root.px(14)
                     radius: width / 2
                     anchors.verticalCenter: parent.verticalCenter
-                    color: (backend.limitFlags !== 0) ? root._accentAmber : root._accentGreen
+                    // Liveness, not limiting. Every dot in this row answers the
+                    // same question -- is this device alive and healthy -- so any
+                    // non-green means one thing to the driver: tell the pits.
+                    color: backend.canHealthy ? root._accentGreen : "#FF1744"
                     Behavior on color { ColorAnimation { duration: 300 } }
                 }
                 Text {
-                    text: "Motor"
+                    text: "MOTOR"
+                    font.pixelSize: root.px(19)
+                    font.family: "Segoe UI"
+                    color: root._footerTextColor
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            // VCU health
+            Row {
+                spacing: root.px(9)
+                Rectangle {
+                    width: root.px(14)
+                    height: root.px(14)
+                    radius: width / 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: root._deviceColor(backend.vcuStatus)
+                    Behavior on color { ColorAnimation { duration: 300 } }
+                }
+                Text {
+                    text: "VCU"
+                    font.pixelSize: root.px(19)
+                    font.family: "Segoe UI"
+                    color: root._footerTextColor
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            // GPS health
+            Row {
+                spacing: root.px(9)
+                Rectangle {
+                    width: root.px(14)
+                    height: root.px(14)
+                    radius: width / 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: root._deviceColor(backend.gpsStatus)
+                    Behavior on color { ColorAnimation { duration: 300 } }
+                }
+                Text {
+                    text: "GPS"
+                    font.pixelSize: root.px(19)
+                    font.family: "Segoe UI"
+                    color: root._footerTextColor
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            // TELEM health
+            Row {
+                spacing: root.px(9)
+                Rectangle {
+                    width: root.px(14)
+                    height: root.px(14)
+                    radius: width / 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: root._deviceColor(backend.telemetryStatus)
+                    Behavior on color { ColorAnimation { duration: 300 } }
+                }
+                Text {
+                    text: "TELEM"
                     font.pixelSize: root.px(19)
                     font.family: "Segoe UI"
                     color: root._footerTextColor
@@ -349,36 +426,10 @@ Item {
             }
         }
 
-        // Limit flag display (center)
-        Text {
-            anchors.centerIn: parent
-            text: {
-                if (backend.limitFlags === 0) return "";
-                
-                // Count number of flags set
-                var count = 0;
-                var flagName = "";
-                
-                // Bit meanings per the WaveSculptor22 protocol reference.
-                if (backend.limitFlags & 0x0001) { count++; flagName = "PWM LIMIT"; }
-                if (backend.limitFlags & 0x0002) { count++; flagName = "MOTOR CURRENT LIMIT"; }
-                if (backend.limitFlags & 0x0004) { count++; flagName = "VELOCITY LIMIT"; }
-                if (backend.limitFlags & 0x0008) { count++; flagName = "BUS CURRENT LIMIT"; }
-                if (backend.limitFlags & 0x0010) { count++; flagName = "BUS V HIGH"; }
-                if (backend.limitFlags & 0x0020) { count++; flagName = "BUS V LOW"; }
-                if (backend.limitFlags & 0x0040) { count++; flagName = "TEMP LIMIT"; }
-                
-                if (count === 0) return "";
-                if (count === 1) return flagName;
-                return "MULTIPLE LIMITS (" + count + ")";
-            }
-            font.pixelSize: root.px(19)
-            font.weight: Font.Bold
-            font.family: "Segoe UI"
-            color: root._accentAmber
-            horizontalAlignment: Text.AlignHCenter
-            visible: backend.limitFlags !== 0
-        }
+        // The motor controller's active-limit summary used to sit here. Removed
+        // deliberately: controller limits are race-strategy information and go to
+        // the pits over telemetry, not to the driver, who cannot act on them and
+        // should be watching the road.
 
         // Odometer (right side)
         Text {

@@ -14,6 +14,10 @@ constexpr int kWatchdogTimeoutMs = 500;
 // 3 s tolerates two consecutive missed frames before the readouts blank.
 constexpr int kBmsWatchdogTimeoutMs = 3000;
 
+// The driver reads a 10 s mean rather than instantaneous power. Long enough to
+// stop the number twitching, short enough that easing off still shows up.
+constexpr int kPowerAverageWindowMs = 10000;
+
 // Below this speed the efficiency figure is meaningless (divide by ~zero).
 constexpr qreal kEfficiencyMinSpeedKmh = 5.0;
 
@@ -37,6 +41,32 @@ VehicleData::VehicleData(QObject *parent)
     m_bmsWatchdog.setSingleShot(true);
     m_bmsWatchdog.setInterval(kBmsWatchdogTimeoutMs);
     connect(&m_bmsWatchdog, &QTimer::timeout, this, &VehicleData::onBmsWatchdogTimeout);
+
+    // Repeating, not single-shot: the averaged figure republishes every window
+    // whether or not anything else has happened.
+    m_powerAverageTimer.setInterval(kPowerAverageWindowMs);
+    connect(&m_powerAverageTimer, &QTimer::timeout, this, &VehicleData::publishAveragedPower);
+    m_powerAverageTimer.start();
+}
+
+// ── Averaged power ───────────────────────────────────────────────────────
+
+void VehicleData::publishAveragedPower()
+{
+    // A mean of the window, not a sample of its final instant. A snapshot could
+    // catch a transient spike and hold it on screen for ten seconds, showing a
+    // figure that never represented the drive.
+    if (m_powerSamples <= 0)
+        return;
+
+    const qreal mean = m_powerSum / m_powerSamples;
+    m_powerSum = 0.0;
+    m_powerSamples = 0;
+
+    if (differs(m_netPowerAveraged, mean)) {
+        m_netPowerAveraged = mean;
+        emit netPowerAveragedChanged();
+    }
 }
 
 bool VehicleData::essLimitsConfigured() const
@@ -53,6 +83,12 @@ void VehicleData::recomputeDerived()
         m_netPower = power;
         emit netPowerChanged();
     }
+
+    // Feed the 10 s mean. Every recompute counts, so the average is over
+    // samples rather than over time -- close enough while frames arrive at a
+    // steady 200 ms, and it needs no timestamps.
+    m_powerSum += power;
+    ++m_powerSamples;
 
     // Rolling average of Wh/km. Bus-side, not pack-side: this is what the
     // controller draws, and excludes aux loads and solar input.
@@ -195,6 +231,11 @@ void VehicleData::applyDecodedBmsFrame(const bms::DecodedFrame &frame)
         if (differs(m_packTempMin, frame.cellTempMin)) {
             m_packTempMin = frame.cellTempMin;
             emit packTempMinChanged();
+        }
+        // Stored but not shown -- see the property comment.
+        if (differs(m_stateOfCharge, frame.stateOfCharge)) {
+            m_stateOfCharge = frame.stateOfCharge;
+            emit stateOfChargeChanged();
         }
         break;
 

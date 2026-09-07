@@ -79,16 +79,19 @@ void testCellTemperatures()
 {
     std::printf("Cell temperatures decode from bytes 7 and 5\n");
 
-    // CELL_T_MAX_VAL bits  7..0  -> byte 7
-    // CELL_T_MIN_VAL bits 23..16 -> byte 5
-    // Byte 6 is CELL_T_AVG and must be ignored; putting a distinct value there
-    // catches an off-by-one in the byte mapping.
-    const uint8_t bytes[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 18, 99, 42 };
+    // CELL_T_MAX_VAL     bits  7..0  -> byte 7
+    // CELL_T_MIN_VAL     bits 23..16 -> byte 5
+    // PACK_Q_SOC_TRIMMED bits 63..48 -> bytes 0-1, 0.01 % per count
+    //   8550 counts = 85.50 %, and 8550 = 0x2166
+    // Byte 6 is CELL_T_AVG and bytes 2-3 the signed internal SoC; both must be
+    // ignored. Distinct values there catch an off-by-one in the byte mapping.
+    const uint8_t bytes[8] = { 0x21, 0x66, 0xFF, 0xFF, 0x00, 18, 99, 42 };
     const bms::DecodedFrame f = bms::decode(bms::kIdCellTemps, bytes);
 
     check(f.kind == bms::FrameKind::CellTemps, "kind is CellTemps");
     check(near(f.cellTempMax, 42.0), "hottest cell = 42 degC");
     check(near(f.cellTempMin, 18.0), "coldest cell = 18 degC");
+    check(near(f.stateOfCharge, 85.50, 1e-2), "state of charge = 85.50 %");
 }
 
 void testSubZeroTemperatures()

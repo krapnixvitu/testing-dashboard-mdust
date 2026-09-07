@@ -40,6 +40,7 @@ int8_t readI8(const uint8_t *p)
 //   temperature    1 degC per count, already signed
 constexpr float kCellVoltsPerCount = 1.0e-4f;
 constexpr float kPackAmpsPerCount  = 1.0e-5f;
+constexpr float kSocPercentPerCount = 1.0e-2f;
 
 } // namespace
 
@@ -74,13 +75,15 @@ DecodedFrame decode(uint32_t canId, const uint8_t *data)
         break;
 
     case kIdCellTemps:
-        // CELL_T_MAX_VAL bits  7.. 0 -> byte 7
-        // CELL_T_MIN_VAL bits 23..16 -> byte 5
-        // Byte 6 is CELL_T_AVG, byte 4 CELL_V_MIN_ID_CELL, bytes 0-3 the two
-        // state-of-charge signals. None are consumed here.
+        // CELL_T_MAX_VAL      bits  7.. 0 -> byte 7
+        // CELL_T_MIN_VAL      bits 23..16 -> byte 5
+        // PACK_Q_SOC_TRIMMED  bits 63..48 -> bytes 0-1
+        // Byte 6 is CELL_T_AVG, byte 4 CELL_V_MIN_ID_CELL, bytes 2-3 the signed
+        // internal SoC (which ranges -300..+300 %, so it is not the one to use).
         out.kind = FrameKind::CellTemps;
         out.cellTempMax = readI8(data + 7);
         out.cellTempMin = readI8(data + 5);
+        out.stateOfCharge = readU16Be(data + 0) * kSocPercentPerCount;
         break;
 
     default:
