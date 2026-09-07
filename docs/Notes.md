@@ -165,3 +165,82 @@ to `--` with no error anywhere. Arguably the better failure mode, since it is at
 visible, but worth knowing it is what would happen.
 
 **In short: leave every DLC at 8, or tell the dashboard side before changing one.**
+
+### SoC is not working — what to check, in order
+
+From the n-BMS manual, most likely cause first. The BMS computes SoC by **coulomb
+counting**: it integrates measured pack current into a "remaining capacity" counter and
+divides by expected full capacity (§3.3.2, p. 38). Almost everything below is a way that
+sum can be wrong or never anchored.
+
+**1. Compare Data ID 18 against Data ID 19 — this is the 30-second check.**
+
+`PACK_Q_SOC_TRIMMED` (ID 19, the one we would display) is a *remapped and clamped*
+version of `PACK_Q_SOC_INTERNAL` (ID 18), bounded by **Minimum SoC trim** and **Maximum
+SoC trim** in the System Configuration view. **If Maximum SoC trim is 0, or Min equals
+Max, ID 19 is pinned regardless of the real charge** while ID 18 underneath may be
+perfectly healthy.
+
+If 18 looks sane and 19 is stuck, that is the whole problem and it is one parameter.
+
+**2. `Initial Capacity` (System Configuration, Ah).**
+
+SoC is *remaining ÷ expected full capacity*, and this is the divisor — the manual calls
+it "the reference point for the SoC estimation" (p. 38). There is **no** separate cell
+capacity, cells-in-parallel or nominal capacity field; this single whole-pack figure is
+the only capacity input. Zero or left at a default makes the division meaningless.
+
+Cross-check without opening BMS Creator: read `PACK_Q_DESIGN` (ID 21) and `PACK_Q_FULL`
+(ID 22) on CAN. If those are zero or wrong, this is confirmed.
+
+**3. `Currrent source type` (System Configuration — spelled with three r's in the tool).**
+
+`0` = none, `1` = HALL, `2` = Shunt, `3` = CAN sensor, and only one can be active. **At 0
+no ampere-seconds are ever accumulated, so SoC never moves.** It must match what is
+physically wired.
+
+**4. A floating or mis-scaled current input.**
+
+This is the failure the manual explicitly names. A floating input makes the counter
+integrate noise until it runs to the ±300 % limit and raises
+**`ERROR_SYS_PACK_SOC_CALC`, code 2036 (0x7F4)** — *"the ampere hour summation is much
+too big … caused by having a floating current measurement input for a while"* (§8.2.2,
+p. 98).
+
+Read `PACK_I_MASTER` (16), `PACK_I_SHUNT` (15) and `PACK_I_HALL` (14) with the pack at
+rest. They should sit near zero and be quiet. A standing offset with no current flowing
+makes SoC drift continuously; there is a zero-current offset-trim procedure in §3.1.1,
+p. 31. Shunt resistance accuracy directly affects SoC accuracy (§6.3.1, p. 79).
+
+### The structural problem, and it is specific to solar cars
+
+Coulomb counting drifts, so it has to be **anchored** periodically. The n-BMS has exactly
+two anchors, and **we may have neither**:
+
+- **End-of-charge calibration** (§3.7.5, pp. 53–54) resets the counter to full capacity —
+  but it requires the BMS to be in **Charge mode** with cells reaching the target voltage
+  inside the configured deadbands. **A solar array charging through MPPTs outside the BMS
+  charge contactor may never produce a "charge complete" event**, so the reset never
+  fires.
+- **Power-up OCV calibration** (§3.3.3, p. 39) corrects from a rest-voltage lookup — but
+  only if OCV datasets have been loaded (`Enable data sets` > 0 in the **SOC-OCV
+  settings** view, §8.9 p. 158) *and* the pack has rested, more than 20 minutes (§8.7,
+  p. 141). If nobody entered those datasets, it never runs.
+
+With both unavailable the count free-runs indefinitely, and no amount of dashboard work
+fixes that. **Worth raising with whoever owns the charging architecture**: either give
+the BMS a charge path it can recognise as completing, or load the OCV datasets.
+
+### There is no SoC validity flag
+
+Confirmed absent from the whole Data ID map — no confidence value, no capacity-learning
+state, no per-signal valid flag. The closest proxies:
+
+- **`FLAGS_FULLY_CHARGED` (ID 47)** and **`FLAGS_FULLY_CHARGED_LATCHED` (ID 48)** tell you
+  whether an end-of-charge calibration has *ever* happened. If the latched one has never
+  set, the counter has never been anchored.
+- Comparing ID 18 against ID 19 exposes a trim misconfiguration; comparing IDs 21/22
+  against the true pack Ah exposes a capacity misconfiguration.
+
+None of these are currently broadcast, so seeing any of them means adding them to a TX
+frame during the config rebuild.

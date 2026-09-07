@@ -133,13 +133,15 @@ always-on mechanism that is fully documented, so `bmsFault` is **not** blocked.
 Configured by `CAN ID start error frames = 512` (`0x200`), extended, on S-CAN. Payload is
 **big endian**, same convention as section 1. Call the start identifier `X`.
 
-> **Not yet confirmed to be transmitting.** The export sets an identifier, a channel and
-> the extended flag, and unlike the TX frames there is no `Enable frame` parameter to go
-> with them — which suggests error broadcasting is always on. But "no enable flag was
-> found in the export" is not the same as "it is enabled", and no traffic has been
-> observed. **`candump` on the real bus settles it**: look for extended `0x200` at all.
-> Everything below is the documented format, which is a separate question from whether
-> the frames are actually being sent.
+> **Configured on, but not yet observed.** The manual settles what the export could not:
+> the identifier *is* the enable, and **"A setting of 0 will disable CAN error frames"**
+> (manual 5.9, p. 74), which is also the default. Ours is 512, so error broadcasting is
+> switched on. Worth knowing, because it means these frames should already be reaching
+> the bus with no configuration change — and that a BMS error would otherwise be visible
+> only through BMS Creator, not on CAN.
+>
+> No traffic has actually been observed yet, so **confirm with `candump`**: look for
+> extended `0x200`.
 
 **`X` (`0x200`) - summary of active errors.** This is the one that matters:
 
