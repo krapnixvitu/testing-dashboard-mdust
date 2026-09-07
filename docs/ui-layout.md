@@ -64,18 +64,19 @@ gear writes, so the arrow keys do nothing once real data is flowing.
 
 There is **no top bar**. Three rounded cards fill the screen above a slim footer, with
 the blinkers overlaid on the top corners of the centre card and the hazard triangle
-between them.
+between them. The pedal bar occupies the right-hand column of the centre card, below
+the indicator row.
 
 ```
 ┌────────────────────────────────────────────────────────────┐
 │ ┌────────────┐ ┌────────────────────┐ ┌────────────┐       │
 │ │ BATTERY    │ │ ◀       ⚠      ▶   │ │ MOTOR      │       │
-│ │ [▓▓▓ 60 ]  │ │                    │ │  ● 57°C    │       │
-│ │  120.0 V   │ │        62          │ │ PACK       │       │
-│ │ POWER      │ │       km/h         │ │  ● 31°C    │       │
-│ │  1200 W    │ │                    │ │            │       │
-│ │ EFFICIENCY │ │     D   N   R      │ │ (reserved) │       │
-│ │  15        │ │                    │ │            │       │
+│ │ [▓▓▓ 60 ]  │ │                ▓▓  │ │  ● 57°C    │       │
+│ │  120.0 V   │ │        62      ▓▓  │ │ PACK       │       │
+│ │ POWER      │ │       km/h     ══  │ │  ● 31°C    │       │
+│ │  1200 W    │ │                ░░  │ │            │       │
+│ │ EFFICIENCY │ │     D   N   R  ██  │ │ (reserved) │       │
+│ │  15        │ │               65%  │ │            │       │
 │ └────────────┘ └────────────────────┘ └────────────┘       │
 ├────────────────────────────────────────────────────────────┤
 │ ●CAN ●BMS ●MOTOR ●VCU ●GPS ●TELEM        ODO  12.3 km      │
@@ -172,6 +173,39 @@ Elements:
 - **Lap delta** — appears above the speed in lap mode only, as a signed value to
   three decimals. Red when behind the target, green when ahead.
 - **"LAP MODE"** caption at the bottom of the card while lap mode is active.
+- **Pedal bar** (`PedalBar.qml`) -- a vertical bar in the right-hand column showing
+  accelerator travel against the three one-pedal-drive zones. 56 x 294 px at the
+  reference size, starting 13 px below the indicator row.
+
+  Horizontally it is **centred in the free column to the right of the speed number**,
+  not pushed against the card edge: a three-digit speed at 110 px reaches about x 297
+  of the card's 400, so the column runs 297-400 and the bar sits 24 px in from the
+  right. It therefore does **not** line up with the right blinker's 8 px margin, which
+  is deliberate -- it reads better balanced in its own space than aligned with
+  something 60 px above it.
+
+  The bands are fixed: **regen** 0-20 % (blue `#40C4FF`), **coast** 20-50 %
+  (grey `#3E434A`), **drive** 50-100 % (teal `#007766`). Drive was amber until it was
+  changed on 2026-09-07: amber means "warning" everywhere else on this dashboard, and
+  the pedal being in its normal powered zone is not a warning. The trade is that coast
+  and drive are now both dark, so that boundary is separated by hue rather than
+  brightness -- worth re-checking on the real panel in daylight. A white marker travels the
+  full height and the percentage is printed beneath. The marker is capped with a dark
+  line on its top and bottom edges only, never its ends, so it reads as spanning the
+  track rather than being inset from it. There are no labels on the bar
+  itself -- at speed a colour boundary is faster to read than a word.
+
+  Shown **in Drive only**, revealed with a 280 ms wipe from the bottom edge upward.
+  In Neutral and Reverse the zones do not apply, so showing the scale would be
+  misleading rather than merely useless.
+
+  > The zone percentages have twins in the VCU, which implements the actual
+  > behaviour. If the two drift apart the bar lies to the driver about where lifting
+  > off starts to brake. Confirm them with the VCU owner.
+
+  > **Doubly blocked on a real bus.** The bar needs gear *and* pedal position, and
+  > neither has a CAN source, so on the car it stays hidden until the driver-controls
+  > messages land. The same honest gap as the blinkers and the logo.
 
 Purpose: primary driving focus.
 
@@ -324,7 +358,11 @@ not usable as-is.
 - **Amber** — warning, or the controller actively limiting
 - **Red** — critical
 - **Blue** — regeneration or charging (negative power/current)
-- **Grey** — no data source; value unknown
+- **Teal** — the powered zone of the pedal bar. Deliberately not amber, which would
+  read as a warning when the pedal is doing something entirely normal
+- **Grey** — no data source; value unknown. Note the pedal bar's coast band is a
+  *different* grey (`#3E434A`, not `#6B7280`), because coasting is a real state rather
+  than a missing one
 
 ### Theme palettes
 
@@ -336,8 +374,12 @@ not usable as-is.
 | Accent green | `#00E676` | `#059669` |
 | Footer background | `#121212` | `#374151` |
 
-Amber (`#FFB300`), red (`#FF1744`), blue (`#40C4FF`) and grey (`#6B7280`) are
-shared by both themes, as is the white footer text.
+Amber (`#FFB300`), red (`#FF1744`), blue (`#40C4FF`), teal (`#007766`) and grey
+(`#6B7280`) are shared by both themes, as is the white footer text.
+
+> The pedal bar is **not** theme-aware: its three band colours are fixed in
+> `PedalBar.qml` rather than passed in from `RaceDashboard`. That is fine in the dark
+> palette it was designed against, but the day palette has not been looked at.
 
 ### Units
 - Speed: km/h

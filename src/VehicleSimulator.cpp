@@ -91,6 +91,24 @@ void VehicleSimulator::tick()
 
     m_data->setSimulatedMotorState(m_vehicleSpeed, rpm, m_busVoltage, m_busCurrent);
 
+    // Accelerator travel, fabricated from the drive cycle so the pedal bar can
+    // be judged before a driver-controls message exists.
+    //
+    // Modelled the way one-pedal drive actually behaves: the pedal is a torque
+    // request, and 50 % is the zero-torque point. Above it the car accelerates,
+    // below it regen slows the car, and the amount either way tracks how far the
+    // demanded speed is from the actual one. Adding a term proportional to speed
+    // stands in for holding station against drag, which is why a steady cruise
+    // sits a little above 50 rather than exactly on it.
+    //
+    // The gains are chosen so a full cycle visits all three bands: roughly 80 %
+    // under acceleration, high-50s cruising, and down into regen on the overrun.
+    const qreal pedalDemand = 50.0
+                              + (m_targetSpeed - m_vehicleSpeed) * 3.5
+                              + m_vehicleSpeed * 0.12
+                              + noise(2.0);
+    m_data->setSimulatedPedal(pedalDemand);
+
     const qreal motorTemp = 45.0 + m_vehicleSpeed * 0.3 + 8.0 * std::sin(t * 0.05) + noise(2.0);
     const qreal heatsinkTemp = 35.0 + m_vehicleSpeed * 0.15 + 5.0 * std::sin(t * 0.04);
     const qreal dspTemp = 30.0 + 5.0 * std::sin(t * 0.03) + noise(1.0);

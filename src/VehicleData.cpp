@@ -453,6 +453,22 @@ void VehicleData::setSimulatedCells(qreal cellVoltageMin, qreal cellVoltageMax,
     recomputeEssFlags();
 }
 
+void VehicleData::setSimulatedPedal(qreal percent)
+{
+    // Clamped rather than trusted. The simulator derives this from the drive
+    // cycle, and a value outside 0-100 would push the bar's marker outside its
+    // track with no visible complaint.
+    if (percent < 0.0)
+        percent = 0.0;
+    else if (percent > 100.0)
+        percent = 100.0;
+
+    if (differs(m_pedalPercent, percent)) {
+        m_pedalPercent = percent;
+        emit pedalPercentChanged();
+    }
+}
+
 // ── Writable from QML ────────────────────────────────────────────────────
 
 void VehicleData::setLeftBlinker(bool v)

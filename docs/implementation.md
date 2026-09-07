@@ -290,6 +290,29 @@ and the UI dims all three letters.
   `ArrowIndicator` it needs no `colorMode`
 - Steady while active; the flashing verification comes from both arrows at once
 
+### `qml/PedalBar.qml`
+- Vertical one-pedal-drive pedal position bar, in the centre card right of the speed
+- Three fixed zone bands (regen 0-20 %, coast 20-50 %, drive 50-100 %) drawn as three
+  rectangles using per-corner radius, with a white marker travelling the full height
+- `active` gates the whole component; bound to `driveMode === "D"` so it is Drive-only
+- The marker centre travels `[thickness/2, height - thickness/2]` rather than the raw
+  0-100 range, so it sits flush at both ends instead of hanging half outside the track
+- The reveal is a **wipe**, not a squash: a clipping `Item` grows from the bottom while
+  the bands keep their true heights, so the zone boundaries do not appear to move
+- The marker is one dark `Rectangle` with a white core inset 1 px top and bottom, so
+  the edging is intrinsic to the moving item. Not `border` (always all four sides, and
+  capping the ends reads as inset rather than spanning), and **not** two separate line
+  items -- that version visibly drifted, because an unrounded fractional `y` let the
+  body and the lines round to physical pixels independently
+- The marker's `y`, thickness and edge width are all snapped to **device** pixels via
+  `Screen.devicePixelRatio`, not logical ones. Logical rounding is not enough: at 1.5x
+  a logical integer sits on a half device pixel, and the edging then resolves onto
+  different physical rows from frame to frame. Measured on a moving marker, logical
+  rounding gives edges that swap between 1 and 2 device px (always summing to 3) while
+  device snapping holds a constant 2 / 5 / 2. Same reasoning as the SVG rasterisation
+  in `HazardIndicator.qml`
+- `_regenTop` and `_coastTop` are duplicated in the VCU. See the warning in the file
+
 ### `qml/ArrowIndicator.qml`
 - Blinker arrow. Picks a day or night SVG based on `colorMode`; colour is baked
   into the SVG, so its `activeColor` property is unused

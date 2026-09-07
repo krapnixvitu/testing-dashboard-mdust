@@ -103,6 +103,11 @@ private:
     // writable -- see setHazardActive().
     Q_PROPERTY(bool hazardActive READ hazardActive WRITE setHazardActive NOTIFY hazardActiveChanged)
     Q_PROPERTY(QString driveMode READ driveMode WRITE setDriveMode NOTIFY driveModeChanged)
+    // Accelerator travel, 0-100 %. Read-only by design: there is deliberately no
+    // WRITE accessor, so QML cannot fabricate a pedal position the way keyboard
+    // input fabricates gear. The only writers are the simulator and, once the
+    // driver-controls message exists, the CAN ingest path.
+    Q_PROPERTY(qreal pedalPercent READ pedalPercent NOTIFY pedalPercentChanged)
 
     // ── UI-only state ──
     Q_PROPERTY(bool lapModeActive READ lapModeActive WRITE setLapModeActive NOTIFY lapModeActiveChanged)
@@ -152,6 +157,7 @@ public:
     bool rightBlinker() const { return m_rightBlinker; }
     bool hazardActive() const { return m_hazardActive; }
     QString driveMode() const { return m_driveMode; }
+    qreal pedalPercent() const { return m_pedalPercent; }
     bool lapModeActive() const { return m_lapModeActive; }
     qreal targetDeltaTime() const { return m_targetDeltaTime; }
     bool debugWarningActive() const { return m_debugWarningActive; }
@@ -188,6 +194,7 @@ public:
     void setSimulatedBms(qreal netCurrent, qreal packDeltaV, bool fault);
     void setSimulatedCells(qreal cellVoltageMin, qreal cellVoltageMax,
                            qreal cellTempMin, qreal cellTempMax);
+    void setSimulatedPedal(qreal percent);
 
 signals:
     void vehicleSpeedChanged();
@@ -222,6 +229,7 @@ signals:
     void rightBlinkerChanged();
     void hazardActiveChanged();
     void driveModeChanged();
+    void pedalPercentChanged();
     void lapModeActiveChanged();
     void targetDeltaTimeChanged();
     void debugWarningActiveChanged();
@@ -280,6 +288,7 @@ private:
     // Empty means "no gear reported". Every QML comparison against D/N/R then
     // fails, so no letter is highlighted.
     QString m_driveMode;
+    qreal m_pedalPercent = 0.0;
     bool m_lapModeActive = false;
     qreal m_targetDeltaTime = 0.0;
     bool m_debugWarningActive = false;

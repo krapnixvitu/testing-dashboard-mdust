@@ -88,6 +88,13 @@ Audited against the iESC display requirements on 2026-09-03; full per-item statu
   light. Blocked on the lights owner, who has not yet confirmed a layout. Decide with
   them whether the source sends actual lamp state or merely "indicator requested" —
   the regulation asks for *verification*, which argues for mirroring the real lamp.
+- **Pedal position.** `PedalBar.qml` draws accelerator travel against the three
+  one-pedal-drive zones, and `VehicleData::pedalPercent` is deliberately read-only so
+  nothing in the UI can invent a value. No driver-controls message carries pedal
+  position yet, so on a real bus the bar is **doubly blocked**: it needs gear as well,
+  and neither exists. Only the simulator drives it today. Settle it alongside the gear
+  and blinker protocol rather than as a separate conversation, since all three come
+  from the same owner. The zone percentages also need confirming against the VCU.
 - **Gear message.** Under active discussion with the ECU (ESP32) and
   driver-controls (Arduino) owners. Agreed so far: the ECU should own gear state
   and broadcast it periodically rather than the dashboard trusting a button
@@ -130,6 +137,14 @@ Audited against the iESC display requirements on 2026-09-03; full per-item statu
   `DebugDashboard.qml`; threshold changes must be made in both.
 - **Dead plumbing.** DSP board temperature, bus current, amp-hours and motor RPM
   are decoded and passed into components that no longer display them.
+- **The pedal bar is not theme-aware.** Its three band colours are fixed inside
+  `PedalBar.qml` instead of being passed in from `RaceDashboard.qml` like every other
+  component's colours. It was designed against the night palette; nobody has looked at
+  it in day mode, where the dark bands may disappear into a light card.
+- **The pedal bar's coast/drive boundary is dark-on-dark.** Since drive changed from
+  amber to teal, coast (`#3E434A`) and drive (`#007766`) differ by hue rather than
+  brightness. It reads fine on a desktop monitor; the test that matters is the real
+  panel in daylight.
 
 ## Documentation Map
 - `ui-layout.md` — what is on screen and what it means

@@ -19,8 +19,15 @@
   - `CriticalOverlay.qml`: full-screen critical alert
   - `WarningBanner.qml`: top warning banner
   - `ArrowIndicator.qml` / `HazardIndicator.qml`: blinker arrows and the hazard triangle
+  - `PedalBar.qml`: one-pedal-drive pedal position, in the centre card. Drive only, and
+    hidden on a real bus because neither gear nor pedal position has a CAN source yet
 - Build: `cmake -B build -G "MinGW Makefiles"` then `cmake --build build`. Qt 6.10.1 is at `Z:/Qt/6.10.1/mingw_64` and already on `PATH`.
 - Tests: `cmake -B build -DBUILD_TESTING=ON` then `ctest --test-dir build`. Three suites: `decoder`, `vehicledata`, `bmsdecoder`.
 - Flags: `--can-interface <name>` (default `can0`), `--simulate` to force the simulator, `--kiosk` for borderless fullscreen with the cursor hidden (in-car display; `Esc` quits, only wired up in this mode), `--panel 5in|7in` to lock the window to a candidate display's exact geometry.
 - Windows has no SocketCAN, so it always falls back to the simulator.
+- Qt versions differ by machine: dev is **6.10.1**, the Pi is **6.8.2** (Trixie). Qt 6.7
+  features are safe; check `qmake6 -query QT_VERSION` before assuming anything newer.
+- Sizes are written as `px(n)` against an 800x480 reference. Anything that *moves* also
+  needs snapping to device pixels (`Screen.devicePixelRatio`), not logical ones -- see
+  the marker in `PedalBar.qml`.
 - Pi/CAN hardware bring-up: see `docs/pi-setup.md`.

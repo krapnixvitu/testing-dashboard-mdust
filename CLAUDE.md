@@ -172,11 +172,14 @@ changelog.
 Phase 3, hardware bring-up, at **Stage 1** (dashboard building and displaying on the
 Pi). Staged plan and troubleshooting in `docs/pi-setup.md`.
 
-Blocked on other teams, both already plumbed through the backend and gated so they
+Blocked on other teams, all already plumbed through the backend and gated so they
 light up as soon as a source exists:
 
 - **Gear message** — byte layout not yet agreed with the ECU (ESP32) and
   driver-controls (Arduino) owners.
+- **Pedal position** — `pedalPercent` feeds the one-pedal-drive bar in the centre
+  card. Read-only by design, and doubly blocked: the bar needs gear too, so it is
+  hidden on a real bus until both land.
 - **BMS** — the Lithium Balance n-BMS is decoded (`0x100`–`0x102`). Two things remain:
   the **ESS thresholds in `src/BmsLimits.h` are unset** pending the cell datasheet, and
   **`bmsFault` has no source** because the BMS configuration broadcasts no status signal.

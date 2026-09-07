@@ -145,11 +145,22 @@ If it complains at startup about a missing QML module, find the package with:
 apt search qml6-module | grep -i <module name>
 ```
 
-> **Version note:** Bookworm ships Qt 6.4, while the Windows dev machine has
-> 6.10. Our backend uses only long-standing Qt features (`QSocketNotifier`,
-> `QTimer`, `QQmlApplicationEngine`), so 6.4 should build cleanly. Confirming
-> that here is deliberate — much easier than discovering a Qt problem while
-> simultaneously debugging CAN wiring.
+> **Version note:** the Pi's Qt version comes from the OS release, not the board,
+> so check it rather than assuming:
+>
+> ```bash
+> qmake6 -query QT_VERSION
+> ```
+>
+> **The car's Pi reports 6.8.2**, which means Raspberry Pi OS **Trixie**. (Bookworm,
+> the previous release, ships 6.4.2 — if you flash an older image you get that
+> instead, and anything below is worth re-checking before using a recent Qt feature.)
+> The Windows dev machine has 6.10.1, so dev and target are two minor versions apart.
+>
+> What this permits: Qt 6.7 additions are safe. `PedalBar.qml` uses per-corner radius
+> (`topLeftRadius`) and `font.features` for tabular figures, neither of which exists in
+> 6.4. What it does not permit is assuming parity with the dev machine — Windows will
+> still happily compile things the Pi cannot, so a Pi build remains the real check.
 
 ### Get the code and build it
 

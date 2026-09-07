@@ -236,6 +236,34 @@ Item {
                 colorMode: root.colorMode
                 z: 100
             }
+
+            // One-pedal-drive pedal position, in the right-hand column of the
+            // centre card, starting well below the indicator row.
+            //
+            // Centred in the space between the speed number and the card edge
+            // rather than pushed against the edge. A three-digit speed at 110 px
+            // reaches about x 297 of the card's 400, so the free column runs
+            // 297-400 and its centre sits 24 px in from the right. That is a
+            // deliberate break from the right blinker's 8 px margin: the two no
+            // longer line up, because the bar reads better balanced in its own
+            // space than aligned with something 60 px above it.
+            //
+            // Drive only, and doubly blocked on a real bus: it needs gear (no
+            // source yet) and pedal position (no source at all), so on the car
+            // it stays hidden until the driver-controls messages land.
+            PedalBar {
+                id: pedalBar
+                anchors.right: parent.right
+                anchors.rightMargin: root.px(24)
+                y: root.px(66)
+                uiScale: root._uiScale
+
+                pedalPercent: backend.pedalPercent
+                active: backend.driveMode === "D"
+
+                textColor: root._textColor
+                z: 50
+            }
         }
 
         // ─── RIGHT CARD (Temperatures) ───
