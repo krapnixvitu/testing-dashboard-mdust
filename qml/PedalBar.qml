@@ -112,7 +112,7 @@ Item {
         clip: true
 
         Behavior on height {
-            NumberAnimation { duration: 280; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: 560; easing.type: Easing.OutCubic }
         }
 
         Item {
@@ -214,8 +214,8 @@ Item {
         // wipe up and finds the number already there.
         Behavior on opacity {
             SequentialAnimation {
-                PauseAnimation { duration: 130 }
-                NumberAnimation { duration: 150 }
+                PauseAnimation { duration: 300 }
+                NumberAnimation { duration: 240 }
             }
         }
 
@@ -251,8 +251,10 @@ Item {
                 text: "%"
                 font.pixelSize: root.px(16)
                 font.family: "Segoe UI"
+                // Same colour and weight of presence as the number. It was dimmed
+                // to 55 % to push it into the background, which made it read as a
+                // greyed-out unit rather than part of the value.
                 color: root.textColor
-                opacity: 0.55
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: root.px(3)
             }

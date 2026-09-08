@@ -195,7 +195,8 @@ Elements:
   track rather than being inset from it. There are no labels on the bar
   itself -- at speed a colour boundary is faster to read than a word.
 
-  Shown **in Drive only**, revealed with a 280 ms wipe from the bottom edge upward.
+  Shown **in Drive only**, revealed with a 560 ms wipe from the bottom edge upward,
+  the readout fading in over the tail of it.
   In Neutral and Reverse the zones do not apply, so showing the scale would be
   misleading rather than merely useless.
 
