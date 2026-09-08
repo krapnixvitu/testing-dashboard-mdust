@@ -39,6 +39,17 @@ Item {
     readonly property real _uiScale: Math.min(width / 800, height / 480)
     function px(n) { return Math.round(n * root._uiScale) }
 
+    // The team logo appears in Neutral at a standstill, replacing the speed
+    // number. Owned here rather than inside SpeedGauge because the right card
+    // shows the same logo in its spare space and the two must never both be up:
+    // one predicate, and the centre card wins.
+    //
+    // backend.vehicleStopped carries the 5/6 km/h hysteresis in C++. A single
+    // threshold would flicker the logo against the speed number several times a
+    // second while the reading sat on it.
+    readonly property bool _neutralLogoVisible: backend.driveMode === "N"
+                                                && backend.vehicleStopped
+
     // ═══════════════════════════════════════════════════════
     // DERIVED ALERT STATE
     // ═══════════════════════════════════════════════════════
@@ -380,6 +391,7 @@ Item {
                 rpm: backend.motorRpm
                 odometer: backend.odometer.toFixed(1)
                 driveMode: backend.driveMode
+                logoVisible: root._neutralLogoVisible
                 lapModeActive: backend.lapModeActive
                 targetDeltaTime: backend.targetDeltaTime
                 
@@ -483,6 +495,7 @@ Item {
                 packTemp: backend.packTemp
                 packDeltaV: backend.packDeltaV
                 bmsValid: backend.bmsValid
+                showLogo: !root._neutralLogoVisible
                 
                 textColor: root._textColor
                 accentGreen: root._accentGreen

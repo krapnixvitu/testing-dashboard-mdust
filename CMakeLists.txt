@@ -50,7 +50,7 @@ qt_add_qml_module(SolarDashboard
         qml/HazardIndicator.qml
         qml/PedalBar.qml
     RESOURCES
-        assets/images/mdu-solar-team-logo.png
+        assets/images/mdu-solar-team-logo-white.png
         assets/images/blinker-left.svg
         assets/images/blinker-right.svg
         assets/images/blinker-left-day.svg

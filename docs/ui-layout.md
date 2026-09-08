@@ -75,7 +75,7 @@ the indicator row.
 │ │  120.0 V   │ │        62      ▓▓  │ │ PACK       │       │
 │ │ POWER      │ │       km/h     ══  │ │  ● 31°C    │       │
 │ │  1200 W    │ │                ░░  │ │            │       │
-│ │ EFFICIENCY │ │     D   N   R  ██  │ │ (reserved) │       │
+│ │ EFFICIENCY │ │     D   N   R  ██  │ │    logo    │       │
 │ │  15        │ │               65%  │ │            │       │
 │ └────────────┘ └────────────────────┘ └────────────┘       │
 ├────────────────────────────────────────────────────────────┤
@@ -163,7 +163,12 @@ Elements:
 - **Team logo** — replaces the speed number while in **Neutral and nearly stopped**.
   Never in Drive or Reverse, at any speed. It appears below 5 km/h and disappears above
   6 km/h; the 1 km/h gap is deliberate, so a speed reading sitting on the boundary cannot
-  flicker the logo against the speed number.
+  flicker the logo against the speed number. That hysteresis is `backend.vehicleStopped`,
+  the same C++ property the critical takeover is gated on.
+
+  The swap is a **parallel cross-fade over 560 ms**, matching the pedal bar reveal: the
+  speed number fades out while the logo fades in. It used to be sequential at 150 ms
+  each; at 560 ms that would have made a 1.12 s exchange.
 
   > Gear has no live source yet, so **on a real bus the logo will not appear at all**
   > until the ECU gear protocol lands. That is intended, not a fault.
@@ -230,10 +235,32 @@ Each temperature row is a label, a coloured status dot and a value in °C:
 | **MOTOR** | Motor controller | 80 °C | 100 °C |
 | **PACK** | BMS, hottest cell | 45 °C | 60 °C |
 
-The two rows sit in the **top half** of the card at their original size. The bottom half
-is **held open deliberately** for a planned addition — `TempBar.qml` keeps its block
-height at a quarter of the card rather than dividing by the row count, so the rows do not
-grow into space that is being reserved.
+The two rows sit in the **top half** of the card at their original size. `TempBar.qml`
+keeps its block height at a quarter of the card rather than dividing by the row count, so
+the rows do not grow into the space below them.
+
+The **bottom half holds the team logo**, fading in over 560 ms to match the pedal bar
+reveal. It is dimmed to the same tone as an **unselected gear letter** — expressed as the
+same `0.2` opacity those letters use rather than a baked grey, so it stays matched if the
+text colour or card background change. Over the `#1E1E1E` card that lands at `#454545`,
+measured identical to the `N` and `R` glyphs. It reads as branding rather than competing
+with the temperatures above it. It is shown whenever the centre card is *not* showing its own logo — only one is
+ever up, and the Neutral one wins. In practice that means it is visible whenever the car
+is moving, or in any gear other than Neutral.
+
+> **The logo asset is a recoloured copy.** `mdu-solar-team-logo-white.png` is the
+> original `mdu-solar-team-logo.png` with every non-transparent pixel set to `#E0E0E0`,
+> matching the card text, and the alpha channel left byte-for-byte untouched so the shape
+> and antialiasing are identical. The original is a single flat `rgb(240,112,16)` on
+> transparency, which is why a straight channel swap works.
+>
+> The orange original is kept on disk but is **no longer in `QML_FILES`/`RESOURCES`**, so
+> it is not embedded. Recolouring is a rerun of the same channel swap, not an edit of a
+> vector file: this is a PNG, not an SVG. Only the blinker and hazard icons are SVGs.
+
+> One predicate drives both, `RaceDashboard._neutralLogoVisible`. `SpeedGauge` no longer
+> works its own version out: it takes a `logoVisible` property instead, so there is a
+> single owner and the two logos cannot disagree.
 
 Rows with no live source show `--` with a grey dot instead of a colour, so a missing
 sensor can never be mistaken for a healthy reading. The PACK rows enter that state

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 
 Item {
     id: root
@@ -13,6 +14,10 @@ Item {
     property real packTemp: 0.0        // °C
     property real packDeltaV: 0.0      // V
     property bool bmsValid: false
+
+    // Team logo in the spare bottom half. False whenever the centre card is
+    // showing its own logo -- only one at a time, and the neutral one wins.
+    property bool showLogo: false
     
     // ── Sizing ──
     // Against the 800x480 reference design; see RaceDashboard._uiScale.
@@ -75,7 +80,50 @@ Item {
             textColor: root.textColor
         }
 
-        // The bottom half of the card is intentionally left empty -- reserved
-        // for a planned addition. See col._blockH above.
+        // ═══════════════════════════════════════
+        // TEAM LOGO -- the reserved bottom half
+        // ═══════════════════════════════════════
+        // Two blocks tall, which is the whole space col._blockH was holding open.
+        Item {
+            width: parent.width
+            height: col._blockH * 2
+
+            Image {
+                id: teamLogo
+                anchors.centerIn: parent
+                width: Math.min(parent.width, parent.height) * 0.82
+                height: width
+                fillMode: Image.PreserveAspectFit
+                source: "../assets/images/mdu-solar-team-logo-white.png"
+                smooth: true
+                // Rasterise at panel resolution rather than scaling a smaller
+                // bitmap up, the same reason HazardIndicator does it.
+                sourceSize.width: Math.ceil(width * Screen.devicePixelRatio)
+                sourceSize.height: Math.ceil(height * Screen.devicePixelRatio)
+
+                // Held false until construction finishes so the first appearance
+                // fades in as well. A binding evaluated at creation does not run
+                // its Behavior, so without this the logo would simply be there on
+                // launch instead of arriving.
+                property bool _ready: false
+                Component.onCompleted: _ready = true
+
+                // Dimmed to exactly the tone of an unselected gear letter.
+                //
+                // Expressed as the same 0.2 opacity those letters use rather than
+                // a baked grey, so it stays matched if textColor or the card
+                // background ever change. Over the #1E1E1E card that lands at
+                // about #454545.
+                readonly property real _dimOpacity: 0.2
+
+                opacity: (_ready && root.showLogo) ? _dimOpacity : 0.0
+                visible: opacity > 0
+
+                // Matches the pedal bar reveal exactly.
+                Behavior on opacity {
+                    NumberAnimation { duration: 560; easing.type: Easing.OutCubic }
+                }
+            }
+        }
     }
 }

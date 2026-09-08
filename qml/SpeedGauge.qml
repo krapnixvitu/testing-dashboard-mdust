@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Shapes
+import QtQuick.Window
 
 Item {
     id: root
@@ -11,6 +12,12 @@ Item {
     property string odometer: "0.0"  // km string
     property string driveMode: "D"   // "D", "N", "R"
     property bool lapModeActive: false
+    // Whether the team logo replaces the speed number.
+    //
+    // Driven by the parent rather than worked out here, because the right card
+    // shows the same logo in its spare space and the two must never both be up.
+    // One predicate, one owner.
+    property bool logoVisible: false
     property real targetDeltaTime: 0.0  // seconds (driver time - ghost time)
     
     // ── Sizing ──
@@ -39,39 +46,16 @@ Item {
     // ── Smoothed speed for animation ──
     property real _animatedSpeed: 0.0
     Behavior on _animatedSpeed { NumberAnimation { duration: 180; easing.type: Easing.OutQuad } }
-    onSpeedChanged: {
-        _animatedSpeed = speed;
-        _updateLogoVisibility();
-    }
+    onSpeedChanged: _animatedSpeed = speed
 
     readonly property real _animatedFraction: Math.max(0, Math.min(_animatedSpeed / maxSpeed, 1.0))
 
-    // ── Team logo visibility ──
-    // Neutral AND slow. Never in Drive or Reverse at any speed.
-    //
-    // Two thresholds rather than one, because a single one flickers: the speed
-    // reading jitters, and a value sitting on the boundary would cross it
-    // repeatedly, cross-fading the logo against the speed number several times
-    // a second. Showing below 5 and hiding above 6 leaves a 1 km/h dead zone
-    // that noise cannot cross, so the state only changes when the car really
-    // does. The cost is that the switch point differs by direction -- appearing
-    // at 5 when slowing, vanishing at 6 when pulling away -- which nobody will
-    // ever notice.
-    property bool _logoVisible: false
-    onDriveModeChanged: _updateLogoVisibility()
-    Component.onCompleted: _updateLogoVisibility()
-
-    function _updateLogoVisibility() {
-        if (root.driveMode !== "N") {
-            root._logoVisible = false;
-            return;
-        }
-        if (root.speed < 5.0)
-            root._logoVisible = true;
-        else if (root.speed > 6.0)
-            root._logoVisible = false;
-        // Between 5 and 6, hold whatever state we already have.
-    }
+    // Logo visibility used to be computed here, with its own 5/6 km/h
+    // hysteresis. That predicate now lives in C++ as VehicleData::vehicleStopped
+    // -- added for the alert takeover gate -- and RaceDashboard combines it with
+    // the gear to drive `logoVisible` above. Same thresholds, one definition,
+    // and the right card can ask the same question without this component
+    // having to expose anything.
 
     // ── Helper: degrees to radians ──
     function _deg2rad(deg) { return deg * Math.PI / 180.0; }
@@ -248,7 +232,13 @@ Item {
         width: root.px(150)
         height: root.px(150)
         fillMode: Image.PreserveAspectFit
-        source: "../assets/images/mdu-solar-team-logo.png"
+        source: "../assets/images/mdu-solar-team-logo-white.png"
+        // Decode at the size actually drawn. The source is 1024x1024; without
+        // this Qt decodes all of it into a ~4 MB texture to paint a 150 px
+        // square. Same reasoning as HazardIndicator.qml, and TempBar.qml already
+        // does it for its copy of this logo.
+        sourceSize.width: Math.ceil(width * Screen.devicePixelRatio)
+        sourceSize.height: Math.ceil(height * Screen.devicePixelRatio)
         opacity: 0.0
         visible: opacity > 0
         smooth: true
@@ -360,42 +350,31 @@ Item {
     states: [
         State {
             name: "neutral"
-            when: root._logoVisible
+            when: root.logoVisible
             PropertyChanges { target: speedText; opacity: 0.0 }
             PropertyChanges { target: kmhLabel; opacity: 0.0 }
             PropertyChanges { target: teamLogo; opacity: 1.0 }
         },
         State {
             name: "driving"
-            when: !root._logoVisible
+            when: !root.logoVisible
             PropertyChanges { target: speedText; opacity: 1.0 }
             PropertyChanges { target: kmhLabel; opacity: 1.0 }
             PropertyChanges { target: teamLogo; opacity: 0.0 }
         }
     ]
 
-    transitions: [
-        Transition {
-            from: "driving"
-            to: "neutral"
-            SequentialAnimation {
-                ParallelAnimation {
-                    NumberAnimation { target: speedText; property: "opacity"; to: 0.0; duration: 150 }
-                    NumberAnimation { target: kmhLabel; property: "opacity"; to: 0.0; duration: 150 }
-                }
-                NumberAnimation { target: teamLogo; property: "opacity"; to: 1.0; duration: 150 }
-            }
-        },
-        Transition {
-            from: "neutral"
-            to: "driving"
-            SequentialAnimation {
-                NumberAnimation { target: teamLogo; property: "opacity"; to: 0.0; duration: 150 }
-                ParallelAnimation {
-                    NumberAnimation { target: speedText; property: "opacity"; to: 1.0; duration: 150 }
-                    NumberAnimation { target: kmhLabel; property: "opacity"; to: 1.0; duration: 150 }
-                }
-            }
+    // One transition, both directions, all three items animating together.
+    //
+    // Previously two sequential transitions at 150 ms each: the speed faded out,
+    // and only then did the logo fade in. At the 560 ms the pedal bar reveal uses
+    // that would have made a 1.12 s swap. Cross-fading in parallel keeps the whole
+    // exchange at 560 ms.
+    transitions: Transition {
+        ParallelAnimation {
+            NumberAnimation { target: speedText; property: "opacity"; duration: 560; easing.type: Easing.OutCubic }
+            NumberAnimation { target: kmhLabel;  property: "opacity"; duration: 560; easing.type: Easing.OutCubic }
+            NumberAnimation { target: teamLogo;  property: "opacity"; duration: 560; easing.type: Easing.OutCubic }
         }
-    ]
+    }
 }

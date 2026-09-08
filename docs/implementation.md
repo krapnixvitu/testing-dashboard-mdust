@@ -320,6 +320,21 @@ and the UI dims all three letters.
 - Blinker arrow. Picks a day or night SVG based on `colorMode`; colour is baked
   into the SVG, so its `activeColor` property is unused
 
+> **Every `Image` pointed at a large asset sets `sourceSize`.** The team logo source is
+> 1024x1024; without it Qt decodes the whole thing into a ~4 MB texture to paint a 150 px
+> square. `SpeedGauge`, `TempBar` and `HazardIndicator` all set it to the drawn size times
+> `Screen.devicePixelRatio`. Worth keeping consistent on a 2 GB Pi.
+
+> **Both team logos are driven by one predicate.** `RaceDashboard._neutralLogoVisible`
+> (`driveMode === "N" && backend.vehicleStopped`) is passed to `SpeedGauge.logoVisible`
+> and inverted into `TempBar.showLogo`, so only one logo is ever up and the centre one
+> wins. `SpeedGauge` used to compute this itself with a hand-rolled 5/6 km/h hysteresis;
+> that predicate now lives in C++ as `vehicleStopped`, added for the alert takeover gate,
+> so the duplicate is gone.
+>
+> The centre swap is a single parallel `Transition` at 560 ms, matching the pedal bar
+> reveal and `TempBar`'s logo fade. It was two sequential transitions at 150 ms each.
+
 ### `qml/CriticalOverlay.qml`
 - Full-screen flashing overlay, **gated on `backend.vehicleStopped`**. It hides speed,
   gear and both indicators, so it is not allowed to appear while the car is moving
