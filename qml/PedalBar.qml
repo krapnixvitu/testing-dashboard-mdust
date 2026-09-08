@@ -81,8 +81,6 @@ Item {
     function snap(v) { return Math.round(v * _dpr) / _dpr }
 
     readonly property real _markerThickness: snap(px(6))
-    // A whole number of device pixels, never fewer than one.
-    readonly property real _markerEdge: Math.max(1.0, Math.round(_dpr)) / _dpr
 
     readonly property real _clamped: Math.max(0, Math.min(100, pedalPercent))
 
@@ -182,24 +180,20 @@ Item {
                 // different physical rows from one frame to the next.
                 y: root.snap((parent.height - height) * (1.0 - root._clamped / 100.0))
 
-                // The edging is this rectangle showing through above and below
-                // the white core, not two line items riding on top of it, so
-                // there is exactly one thing moving and nothing to fall out of
-                // step with.
+                // Plain white, no edging.
                 //
-                // Done this way rather than with `border`, which is always all
-                // four sides: the core spans the full width, so the dark shows
-                // only top and bottom. Capping the ends would read as the marker
-                // being inset from the track instead of spanning it, which is the
-                // opposite of what a position indicator should say.
-                color: "#12151A"
-
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.topMargin: root._markerEdge
-                    anchors.bottomMargin: root._markerEdge
-                    color: "#FFFFFF"
-                }
+                // It previously had a dark line along its top and bottom edges,
+                // on the reasoning that white on amber was the weakest pairing
+                // it had to survive. The drive band is teal now, so every band
+                // is dark and white stands off all three on its own. Being
+                // tried without the edging to confirm that.
+                //
+                // If it does need bringing back: the edging was the marker
+                // rectangle itself showing through above and below an inset
+                // white core -- NOT `border` (always all four sides, which caps
+                // the ends and reads as inset rather than spanning), and NOT two
+                // separate line items (they drifted against the core as it moved).
+                color: "#FFFFFF"
             }
         }
     }

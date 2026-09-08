@@ -192,9 +192,12 @@ Elements:
   the pedal being in its normal powered zone is not a warning. The trade is that coast
   and drive are now both dark, so that boundary is separated by hue rather than
   brightness -- worth re-checking on the real panel in daylight. A white marker travels the
-  full height and the percentage is printed beneath. The marker is capped with a dark
-  line on its top and bottom edges only, never its ends, so it reads as spanning the
-  track rather than being inset from it. There are no labels on the bar
+  full height and the percentage is printed beneath. The marker is plain white with no
+  edging: it had a dark line along its top and bottom while the drive band was amber,
+  but every band is dark since drive became teal, so white stands off all three on its
+  own. Regen (`#40C4FF`) is the weakest pairing at roughly 1.8:1 against white, versus
+  ~4.6:1 on teal and ~6.8:1 on the coast grey — that is the one to re-check on the real
+  panel. There are no labels on the bar
   itself -- at speed a colour boundary is faster to read than a word.
 
   Shown **in Drive only**, revealed with a 560 ms wipe from the bottom edge upward,

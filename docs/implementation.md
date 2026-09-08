@@ -299,17 +299,20 @@ and the UI dims all three letters.
   0-100 range, so it sits flush at both ends instead of hanging half outside the track
 - The reveal is a **wipe**, not a squash: a clipping `Item` grows from the bottom while
   the bands keep their true heights, so the zone boundaries do not appear to move
-- The marker is one dark `Rectangle` with a white core inset 1 px top and bottom, so
-  the edging is intrinsic to the moving item. Not `border` (always all four sides, and
-  capping the ends reads as inset rather than spanning), and **not** two separate line
-  items -- that version visibly drifted, because an unrounded fractional `y` let the
-  body and the lines round to physical pixels independently
-- The marker's `y`, thickness and edge width are all snapped to **device** pixels via
+- The marker is a plain white `Rectangle`, no edging. It previously carried a dark line
+  top and bottom, which existed because white on the old amber drive band was the weakest
+  pairing; teal made every band dark enough that white carries on its own. If it ever
+  needs bringing back, the working construction was the marker rectangle itself showing
+  through above and below an inset white core -- **not** `border` (always all four sides,
+  and capping the ends reads as inset rather than spanning), and **not** two separate line
+  items, which visibly drifted against the core as it moved
+- The marker's `y` and thickness are snapped to **device** pixels via
   `Screen.devicePixelRatio`, not logical ones. Logical rounding is not enough: at 1.5x
-  a logical integer sits on a half device pixel, and the edging then resolves onto
-  different physical rows from frame to frame. Measured on a moving marker, logical
-  rounding gives edges that swap between 1 and 2 device px (always summing to 3) while
-  device snapping holds a constant 2 / 5 / 2. Same reasoning as the SVG rasterisation
+  a logical integer sits on a half device pixel, so the marker resolves onto different
+  physical rows from frame to frame. With the edging present, logical rounding made the
+  edges swap between 1 and 2 device px (always summing to 3) while device snapping held a
+  constant 2 / 5 / 2; borderless, it keeps the white run at a constant 9 device px instead
+  of shimmering. Still required. Same reasoning as the SVG rasterisation
   in `HazardIndicator.qml`
 - `_regenTop` and `_coastTop` are duplicated in the VCU. See the warning in the file
 
