@@ -244,3 +244,97 @@ state, no per-signal valid flag. The closest proxies:
 
 None of these are currently broadcast, so seeing any of them means adding them to a TX
 frame during the config rebuild.
+
+## Alerts — how warnings and criticals are wired
+
+### There is a definite system, and it runs in four stages
+
+It all lives in one file, `qml/RaceDashboard.qml`.
+
+```
+backend flags/values  ->  detection booleans  ->  selection table  ->  presentation
+   (C++)                    (_warnX/_criticalX)   (_warning/_critical)  (_shown*)
+```
+
+**1. Detection** — one boolean per condition, near the top of the file:
+
+```qml
+readonly property bool _criticalCellOverTemp: (backend.essFlags & 0x020) !== 0
+readonly property bool _criticalMotorOverheat: backend.motorTemp > 100.0
+readonly property bool _warnMotorTemp: backend.motorTemp > 80.0 && backend.motorTemp <= 100.0
+```
+
+Sources are either bit-masks over `backend.errorFlags` / `limitFlags` (WaveSculptor
+status bits) and `backend.essFlags` (BMS, computed in C++), or direct comparisons on a
+value.
+
+**2. `_hasCritical` / `_hasWarning`** — a plain OR of every boolean in that tier. This is
+what decides whether *anything* fires.
+
+**3. Selection** — `_critical` and `_warning`, each a chain of early returns:
+
+```qml
+readonly property var _critical: {
+    if (_criticalCellOverTemp) return { cause: "ESS CELL OVER-TEMPERATURE", action: "STOP SAFELY" };
+    if (_criticalCellOverVoltage) return { cause: "ESS CELL OVER-VOLTAGE", action: "STOP SAFELY" };
+    ...
+    if (_criticalBmsFault) return { cause: "BMS FAULT", action: "STOP SAFELY" };
+    return null;
+}
+```
+
+**Priority is source order.** There is no priority number anywhere — first match wins and
+returns immediately. Moving a line up or down changes what the driver sees. That is why
+the `BMS FAULT` reordering mattered.
+
+**4. Presentation** — `_alertSeverity`, `_alertAction`, `_alertCause`,
+`_alertExtraCount`, `_alertColor`, then latched into `_shownSeverity` / `_shownAction` /
+`_shownCause` / `_shownExtra` / `_shownColor`, which is what `AlertBanner` and the
+background actually render.
+
+### Cross-tier rule
+
+A critical always outranks a warning — one channel, highest severity wins:
+
+```qml
+readonly property bool _warningActive: (_hasWarning || backend.debugWarningActive) && !_criticalActive
+```
+
+### The current orders
+
+**Criticals** — ESS first (pack loss is unrecoverable), then motor, then controller
+electronics, then `BMS FAULT` last as the fallback:
+
+`CELL OVER-TEMP` -> `CELL OVER-VOLTAGE` -> `CELL UNDER-VOLTAGE` -> `ESS OVER-CURRENT` ->
+`MOTOR OVERHEAT` -> `HARDWARE OVER-CURRENT` -> `SOFTWARE OVER-CURRENT` ->
+`DC BUS OVER-VOLTAGE` -> `IGBT DESAT` -> `BMS FAULT`
+
+**Warnings** — ESS first, then thermal, then controller; things the driver cannot act on
+say `TELL THE PITS` rather than inventing an instruction:
+
+`LOW CELL VOLTAGE` -> `HIGH PACK CURRENT` -> `HIGH CELL VOLTAGE` -> `PACK HOT` ->
+`PACK COLD` -> `MOTOR n°C` -> `HEATSINK HOT` -> `LOW BUS VOLTAGE` ->
+`MOTOR OVER SPEED` -> `15V RAIL` -> `BAD HALL`
+
+### Adding a new one — five places, two of which fail silently
+
+| # | Where | If you forget |
+| :- | :- | :- |
+| 1 | Source — a new `EssFlag` bit in `src/BmsLimits.h` + `recomputeEssFlags()`, or a comparison on an existing property | nothing to detect |
+| 2 | Declare `_warnX` / `_criticalX` | — |
+| 3 | **Add to the `_hasWarning` / `_hasCritical` OR chain** | **the alert never fires — the table is only consulted once `_has*` is true** |
+| 4 | Add a row to `_warning` / `_critical` at the right priority position | `_has*` true but no text |
+| 5 | **Add to the `_countTrue([...])` array** | **the `+N` badge undercounts** |
+
+Steps 3 and 5 are separate lists from step 4, which is the weak point of the current
+design — three places enumerate the same set of conditions and nothing checks they agree.
+
+### Two caveats
+
+**Thresholds are split.** ESS limits live in `src/BmsLimits.h` (all `NaN` until the cell
+datasheet, so no ESS alert can fire yet); motor/heatsink thresholds are hardcoded in QML
+(`> 100.0`, `> 80.0`).
+
+**`DebugDashboard.qml` has its own duplicate copies** of the detection booleans and
+message tables. Adding a condition to Race Mode does not add it there. That is a known
+issue in `docs/roadmap.md` — the debug view was only ported far enough to keep building.
