@@ -66,18 +66,32 @@ Item {
                                          || _criticalCellOverVoltage || _criticalCellUnderVoltage
                                          || _criticalCellOverTemp || _criticalEssOverCurrent
 
-    readonly property string _criticalMessage: {
-        if (_criticalBmsFault)         return "BMS FAULT";
-        if (_criticalCellOverTemp)     return "ESS CELL OVER TEMPERATURE";
-        if (_criticalCellOverVoltage)  return "ESS CELL OVER VOLTAGE";
-        if (_criticalCellUnderVoltage) return "ESS CELL UNDER VOLTAGE";
-        if (_criticalEssOverCurrent)   return "ESS OVER CURRENT";
-        if (_criticalMotorOverheat)    return "MOTOR OVERHEAT";
-        if (_criticalHwOverCurrent)    return "HARDWARE OVER CURRENT";
-        if (_criticalSwOverCurrent)    return "SOFTWARE OVER CURRENT";
-        if (_criticalBusOverVoltage)   return "DC BUS OVER VOLTAGE";
-        if (_criticalDesatFault)       return "IGBT DESAT FAULT";
-        return "";
+    // Highest-priority live critical, as { cause, action }.
+    //
+    // ORDERING MATTERS. The generic BMS fault is deliberately LAST: it used to
+    // be first, which meant a bare "BMS FAULT" would replace the specific cause
+    // the moment Data ID 34 (STATUS) starts reporting. It is the fallback for
+    // "something is wrong and nothing more specific matched", not a headline.
+    //
+    // One table rather than parallel cause/action functions, so the priority
+    // order exists in exactly one place.
+    //
+    // Every action is currently STOP SAFELY: Reg. 3.5 has a critical fault
+    // isolating the pack, so the car is losing propulsion regardless and the
+    // job is to get off the racing line. The per-fault field is kept so a fault
+    // wanting different advice does not need the structure changed.
+    readonly property var _critical: {
+        if (_criticalCellOverTemp)     return { cause: "ESS CELL OVER-TEMPERATURE", action: "STOP SAFELY" };
+        if (_criticalCellOverVoltage)  return { cause: "ESS CELL OVER-VOLTAGE",     action: "STOP SAFELY" };
+        if (_criticalCellUnderVoltage) return { cause: "ESS CELL UNDER-VOLTAGE",    action: "STOP SAFELY" };
+        if (_criticalEssOverCurrent)   return { cause: "ESS OVER-CURRENT",          action: "STOP SAFELY" };
+        if (_criticalMotorOverheat)    return { cause: "MOTOR OVERHEAT",            action: "STOP SAFELY" };
+        if (_criticalHwOverCurrent)    return { cause: "HARDWARE OVER-CURRENT",     action: "STOP SAFELY" };
+        if (_criticalSwOverCurrent)    return { cause: "SOFTWARE OVER-CURRENT",     action: "STOP SAFELY" };
+        if (_criticalBusOverVoltage)   return { cause: "DC BUS OVER-VOLTAGE",       action: "STOP SAFELY" };
+        if (_criticalDesatFault)       return { cause: "IGBT DESAT FAULT",          action: "STOP SAFELY" };
+        if (_criticalBmsFault)         return { cause: "BMS FAULT",                 action: "STOP SAFELY" };
+        return null;
     }
 
     // Warning conditions (Layer 2 banner)
@@ -102,21 +116,201 @@ Item {
                                         || _warnCellOverTemp || _warnCellUnderTemp
                                         || _warnEssOverCurrent
 
-    readonly property string _warningMessage: {
-        // ESS first: the pack is the thing the driver can least afford to lose,
-        // and each of these names the action that recovers it.
-        if (_warnCellUnderVoltage) return "ESS WARNING: LOW CELL VOLTAGE — LIFT THROTTLE";
-        if (_warnEssOverCurrent)   return "ESS WARNING: HIGH CURRENT — REDUCE POWER";
-        if (_warnCellOverVoltage)  return "ESS WARNING: HIGH CELL VOLTAGE — EASE REGEN";
-        if (_warnCellOverTemp)     return "ESS WARNING: PACK HOT — REDUCE POWER";
-        if (_warnCellUnderTemp)    return "ESS WARNING: PACK COLD — REDUCED PERFORMANCE";
-        if (_warnMotorTemp)      return "MOTOR TEMP WARNING  " + Math.round(backend.motorTemp) + "°C";
-        if (_warnHeatsinkTemp)   return "HEATSINK TEMP WARNING";
-        if (_warnLowVoltage)     return "LOW BUS VOLTAGE";
-        if (_warnMotorOverSpeed) return "MOTOR OVER SPEED";
-        if (_warn15vUvlo)        return "15V RAIL UNDER VOLTAGE";
-        if (_warnBadHall)        return "BAD HALL SEQUENCE";
+    // Highest-priority live warning, same shape as _critical.
+    //
+    // ESS first: the pack is the thing the driver can least afford to lose, and
+    // each of these names the action that recovers it. Faults the driver cannot
+    // act on say TELL THE PITS rather than inventing an instruction.
+    readonly property var _warning: {
+        if (_warnCellUnderVoltage) return { cause: "LOW CELL VOLTAGE",       action: "LIFT THROTTLE" };
+        if (_warnEssOverCurrent)   return { cause: "HIGH PACK CURRENT",      action: "REDUCE POWER" };
+        if (_warnCellOverVoltage)  return { cause: "HIGH CELL VOLTAGE",      action: "EASE REGEN" };
+        if (_warnCellOverTemp)     return { cause: "PACK HOT",               action: "REDUCE POWER" };
+        if (_warnCellUnderTemp)    return { cause: "PACK COLD",              action: "EXPECT LOW POWER" };
+        if (_warnMotorTemp)        return { cause: "MOTOR " + Math.round(backend.motorTemp) + "\u00B0C",
+                                            action: "REDUCE POWER" };
+        if (_warnHeatsinkTemp)     return { cause: "HEATSINK HOT",           action: "REDUCE POWER" };
+        if (_warnLowVoltage)       return { cause: "LOW BUS VOLTAGE",        action: "REDUCE POWER" };
+        if (_warnMotorOverSpeed)   return { cause: "MOTOR OVER SPEED",       action: "REDUCE SPEED" };
+        if (_warn15vUvlo)          return { cause: "15V RAIL UNDER-VOLTAGE", action: "TELL THE PITS" };
+        if (_warnBadHall)          return { cause: "BAD HALL SEQUENCE",      action: "TELL THE PITS" };
+        return null;
+    }
+
+    // ===================================================
+    // ALERT PRESENTATION
+    // ===================================================
+
+    function _countTrue(flags) {
+        var n = 0;
+        for (var i = 0; i < flags.length; ++i)
+            if (flags[i]) ++n;
+        return n;
+    }
+
+    readonly property int _criticalCount: _countTrue([
+        _criticalCellOverTemp, _criticalCellOverVoltage, _criticalCellUnderVoltage,
+        _criticalEssOverCurrent, _criticalMotorOverheat, _criticalHwOverCurrent,
+        _criticalSwOverCurrent, _criticalBusOverVoltage, _criticalDesatFault,
+        _criticalBmsFault])
+
+    readonly property int _warningCount: _countTrue([
+        _warnCellUnderVoltage, _warnEssOverCurrent, _warnCellOverVoltage,
+        _warnCellOverTemp, _warnCellUnderTemp, _warnMotorTemp, _warnHeatsinkTemp,
+        _warnLowVoltage, _warnMotorOverSpeed, _warn15vUvlo, _warnBadHall])
+
+    readonly property bool _criticalActive: _hasCritical || backend.debugCriticalActive
+    // A critical outranks a warning: one alert channel, highest severity wins.
+    readonly property bool _warningActive: (_hasWarning || backend.debugWarningActive)
+                                           && !_criticalActive
+    readonly property bool _alertActive: _criticalActive || _warningActive
+
+    readonly property string _alertSeverity: _criticalActive ? "critical" : "warning"
+    readonly property color _alertColor: _criticalActive ? "#FF1744" : root._accentAmber
+
+    readonly property string _alertAction: {
+        if (_criticalActive) return _critical ? _critical.action : "STOP SAFELY";
+        if (_warningActive)  return _warning ? _warning.action : "TEST WARNING";
         return "";
+    }
+
+    readonly property string _alertCause: {
+        if (_criticalActive) return _critical ? _critical.cause : "TEST CRITICAL FAULT";
+        if (_warningActive)  return _warning ? _warning.cause : "DEBUG OVERRIDE";
+        return "";
+    }
+
+    // Additional live faults beyond the one named, so a multiple fault is not
+    // silently reduced to a single line.
+    readonly property int _alertExtraCount: {
+        var n = _criticalActive ? _criticalCount : (_warningActive ? _warningCount : 0);
+        return n > 1 ? n - 1 : 0;
+    }
+
+    // ---- Latched presentation ----
+    //
+    // What the banner and background actually render. Deliberately NOT the live
+    // values: the banner slides out over 300 ms and the background fades over
+    // 240 ms, and re-deriving severity and text the instant _alertActive goes
+    // false repaints a departing critical as an empty amber warning for the
+    // whole exit animation.
+    //
+    // Binding with restoreMode RestoreNone leaves the last written value in
+    // place when `when` stops holding, which is exactly the latch wanted here.
+    // The default RestoreBindingOrValue would put the old value back and undo it.
+    property string _shownSeverity: "warning"
+    property string _shownAction: ""
+    property string _shownCause: ""
+    property int _shownExtra: 0
+    property color _shownColor: root._accentAmber
+
+    Binding {
+        target: root; property: "_shownSeverity"
+        value: root._alertSeverity
+        when: root._alertActive
+        restoreMode: Binding.RestoreNone
+    }
+    Binding {
+        target: root; property: "_shownAction"
+        value: root._alertAction
+        when: root._alertActive
+        restoreMode: Binding.RestoreNone
+    }
+    Binding {
+        target: root; property: "_shownCause"
+        value: root._alertCause
+        when: root._alertActive
+        restoreMode: Binding.RestoreNone
+    }
+    Binding {
+        target: root; property: "_shownExtra"
+        value: root._alertExtraCount
+        when: root._alertActive
+        restoreMode: Binding.RestoreNone
+    }
+    Binding {
+        target: root; property: "_shownColor"
+        value: root._alertColor
+        when: root._alertActive
+        restoreMode: Binding.RestoreNone
+    }
+
+    // Identity of the current alert. The flash re-arms when this changes -- a
+    // new fault, or a warning escalating to critical -- but NOT when a value
+    // merely moves within one condition, which would otherwise restart the
+    // strobe every time the motor temperature ticked over a degree.
+    //
+    // Deliberately not underscore-prefixed like its neighbours: it needs an
+    // onAlertKeyChanged handler, and handler names for underscore-led property
+    // names are awkward enough to be worth avoiding here.
+    readonly property string alertKey: _alertActive
+                                       ? (_alertSeverity + "|" + _alertCause)
+                                       : ""
+
+    // Flash to attract, then hold steady to inform. A warning can persist for
+    // minutes -- motor temperature over 80 C through a long climb -- and a
+    // border strobing that whole time becomes noise the driver stops seeing.
+    property bool alertFlashing: false
+
+    onAlertKeyChanged: {
+        if (root.alertKey === "") {
+            root.alertFlashing = false;
+            alertFlashTimer.stop();
+        } else {
+            root.alertFlashing = true;
+            alertFlashTimer.restart();
+        }
+    }
+
+    Timer {
+        id: alertFlashTimer
+        interval: 5000
+        onTriggered: root.alertFlashing = false
+    }
+
+    // ===================================================
+    // ALERT BACKGROUND
+    // ===================================================
+    // The black between the cards becomes the alert field. Nothing on screen is
+    // covered, and peripheral motion is what actually catches the eye -- the
+    // same principle as a master-caution light.
+    //
+    // Declared FIRST so it paints behind contentArea and the footer, showing
+    // through in exactly the places the Window colour does.
+    //
+    // Owned here rather than by animating Window.color in Main.qml: the alert
+    // state is computed in this file, so Main would have to reach through its
+    // Loader into dashboardLoader.item to read it, and DebugDashboard does not
+    // declare the same properties.
+    Rectangle {
+        id: alertBackground
+        anchors.fill: parent
+        color: root._shownColor
+
+        // Not drawn at all when idle. Window.color is the scene graph clear
+        // colour and costs nothing; a full-screen Rectangle is a real quad every
+        // frame, and painting black over black would be pure overdraw.
+        //
+        // Keyed off opacity rather than _alertActive so the fade-out actually
+        // plays: binding this to _alertActive hid the rectangle instantly and
+        // the Behavior below never ran.
+        visible: opacity > 0
+
+        // Opacity carries both the animation and the intensity: the dark half of
+        // the flash is simply opacity 0 letting the Window through, and the
+        // steady state is a lower opacity rather than a second blend colour.
+        property bool _flashOn: false
+        opacity: !root._alertActive ? 0.0
+                 : (root.alertFlashing ? (_flashOn ? 1.0 : 0.0) : 0.45)
+
+        Behavior on opacity { NumberAnimation { duration: 240 } }
+
+        Timer {
+            running: root._alertActive && root.alertFlashing
+            interval: 300
+            repeat: true
+            onTriggered: alertBackground._flashOn = !alertBackground._flashOn
+        }
     }
 
     // ═══════════════════════════════════════════════════════
@@ -472,28 +666,36 @@ Item {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // OVERLAY LAYER 2 -- Warning Banner
-    // ═══════════════════════════════════════════════════════
-    WarningBanner {
-        id: warningBanner
-        anchors.left: parent.left
-        anchors.right: parent.right
+    // ===================================================
+    // ALERT BANNER -- bottom, over the footer
+    // ===================================================
+    AlertBanner {
+        id: alertBanner
         uiScale: root._uiScale
 
-        active: (root._hasWarning && !root._hasCritical) || backend.debugWarningActive
-        message: backend.debugWarningActive ? "TEST WARNING" : root._warningMessage
+        active: root._alertActive
+        severity: root._shownSeverity
+        action: root._shownAction
+        cause: root._shownCause
+        extraCount: root._shownExtra
     }
 
-    // ═══════════════════════════════════════════════════════
-    // OVERLAY LAYER 1 -- Critical Overlay (highest z-order)
-    // ═══════════════════════════════════════════════════════
+    // ===================================================
+    // CRITICAL TAKEOVER -- stopped only
+    // ===================================================
+    // Full screen hides speed, gear and both indicators, so it is gated on the
+    // car actually being stopped. While moving, a critical is carried by the
+    // flashing background and the red banner instead, and everything the
+    // regulations require stays on screen.
+    //
+    // backend.vehicleStopped has 5/6 km/h hysteresis in C++: a single threshold
+    // would flash the whole display on and off as the speed wandered across it.
     CriticalOverlay {
         id: criticalOverlay
         anchors.fill: parent
         uiScale: root._uiScale
 
-        active: root._hasCritical || backend.debugCriticalActive
-        message: backend.debugCriticalActive ? "TEST CRITICAL FAULT" : root._criticalMessage
+        active: root._criticalActive && backend.vehicleStopped
+        message: root._alertCause
     }
 }

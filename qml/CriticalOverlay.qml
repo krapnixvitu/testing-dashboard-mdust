@@ -38,14 +38,16 @@ Rectangle {
     // ═══════════════════════════════════════════
     // WARNING ICON (triangle ▲)
     // ═══════════════════════════════════════════
-    Text {
+    WarningTriangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: messageText.top
         anchors.bottomMargin: root.px(8)
-        text: "\u26A0"  // ⚠ warning sign
-        font.pixelSize: root.px(96)
-        color: "#FFFFFF"
-        horizontalAlignment: Text.AlignHCenter
+        width: root.px(104)
+        height: root.px(92)
+        ink: "#FFFFFF"
+        // The overlay ground flashes black to red, so the exclamation is cut in
+        // the darker of the two rather than tracking the animation.
+        ground: "#000000"
     }
 
     // ═══════════════════════════════════════════

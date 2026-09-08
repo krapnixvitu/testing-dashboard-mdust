@@ -278,13 +278,17 @@ Item {
     // ═══════════════════════════════════════════════════════
     // OVERLAY LAYER 2 -- Warning Banner
     // ═══════════════════════════════════════════════════════
-    WarningBanner {
+    // Minimal port to AlertBanner, which now anchors itself to the bottom.
+    // This view is a frozen reference copy and is not being restyled; its own
+    // message table still returns a single string, so it goes in the cause slot
+    // with a generic action above it.
+    AlertBanner {
         id: warningBanner
-        anchors.left: parent.left
-        anchors.right: parent.right
 
         active: (root._hasWarning && !root._hasCritical) || backend.debugWarningActive
-        message: backend.debugWarningActive ? "TEST WARNING" : root._warningMessage
+        severity: "warning"
+        action: "WARNING"
+        cause: backend.debugWarningActive ? "TEST WARNING" : root._warningMessage
     }
 
     // ═══════════════════════════════════════════════════════

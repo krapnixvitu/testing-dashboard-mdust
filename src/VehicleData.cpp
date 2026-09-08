@@ -19,6 +19,10 @@ constexpr int kBmsWatchdogTimeoutMs = 3000;
 constexpr int kPowerAverageWindowMs = 10000;
 
 // Below this speed the efficiency figure is meaningless (divide by ~zero).
+// Stopped/moving hysteresis, in km/h. Matches the logo gate in SpeedGauge.qml.
+constexpr qreal kStoppedBelowKmh = 5.0;
+constexpr qreal kMovingAboveKmh = 6.0;
+
 constexpr qreal kEfficiencyMinSpeedKmh = 5.0;
 
 // Matches the smoothing MockBackend.qml used, so the readout behaves the same.
@@ -100,6 +104,19 @@ void VehicleData::recomputeDerived()
             emit efficiencyChanged();
         }
     }
+
+    // Stopped, with hysteresis. Deliberately not a single comparison: the UI
+    // gates a full-screen alert takeover on this, so a speed hovering on one
+    // threshold would flash the whole display on and off. Between the two
+    // bounds the previous answer stands.
+    const bool wasStopped = m_vehicleStopped;
+    if (m_vehicleSpeed < kStoppedBelowKmh)
+        m_vehicleStopped = true;
+    else if (m_vehicleSpeed > kMovingAboveKmh)
+        m_vehicleStopped = false;
+
+    if (m_vehicleStopped != wasStopped)
+        emit vehicleStoppedChanged();
 }
 
 // ── CAN watchdog ─────────────────────────────────────────────────────────

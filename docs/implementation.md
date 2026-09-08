@@ -243,7 +243,7 @@ and the UI dims all three letters.
 - Layout: three rounded cards (InfoBar / SpeedGauge / TempBar) over a 32 px
   footer. **No top bar** — blinkers and the hazard triangle are overlaid on the
   centre card
-- Computes alert states and manages overlays (CriticalOverlay, WarningBanner)
+- Computes alert states and drives the alert background, AlertBanner and CriticalOverlay
 
 ### `qml/DebugDashboard.qml`
 - Debug/diagnostic variant. Frozen copy of the pre-theme design
@@ -318,12 +318,45 @@ and the UI dims all three letters.
   into the SVG, so its `activeColor` property is unused
 
 ### `qml/CriticalOverlay.qml`
-- Full-screen flashing overlay
-- Used for critical faults (BMS, overheat, overcurrent, overvoltage)
+- Full-screen flashing overlay, **gated on `backend.vehicleStopped`**. It hides speed,
+  gear and both indicators, so it is not allowed to appear while the car is moving
+- While moving, a critical is carried by the alert background and `AlertBanner` instead
 
-### `qml/WarningBanner.qml`
-- Top amber banner
-- Used for warnings (low voltage, temp warning, etc.)
+### `qml/AlertBanner.qml`
+- Replaces the old `WarningBanner.qml`, which was a top strip that completely covered the
+  blinker arrows and hazard triangle
+- Bottom-anchored, slides up over the footer, carries **both** severities via `severity`
+- Anchors itself rather than letting the caller do it: the slide direction and the edge it
+  slides from are one decision, and splitting them across two files is how the old version
+  ended up hard to move
+- Two lines (action, then cause) plus a `+N` badge for additional live faults
+
+> **Alert presentation is latched while it exits.** `RaceDashboard` renders from
+> `_shownSeverity` / `_shownAction` / `_shownCause` / `_shownColor`, not the live derived
+> values, held by `Binding { restoreMode: Binding.RestoreNone }` gated on `_alertActive`.
+> Without this the banner re-derives the moment an alert clears — severity falls back to
+> "warning" and the strings empty — so a departing critical repainted itself as a blank
+> amber banner for the whole 300 ms slide-out. `RestoreNone` matters: the default
+> `RestoreBindingOrValue` puts the previous value back and undoes the latch.
+>
+> The alert background is keyed off `opacity > 0` rather than `_alertActive` for the same
+> reason: binding `visible` to the live flag hid it instantly and its fade never ran.
+>
+> **The banner's slide is also gated on `_armed`**, set the first time it is genuinely
+> shown. `uiScale` derives from the root item size, which is 0 until the Loader lays it
+> out, so the banner's `height` starts at 0 — and its resting position, `-height`, is then
+> 0, the *visible* position. When the real size arrived, `height` jumped 0 → 80 and the
+> `Behavior` animated the margin 0 → −80, playing the exit animation for a banner that had
+> never appeared. It showed as a blank amber flash about 250 ms after launch. Any
+> `Behavior` on a property derived from `px()` has this hazard.
+
+### `qml/WarningTriangle.qml`
+- The warning triangle, drawn on a `Canvas` rather than typed as U+26A0
+- U+26A0 renders as a **colour emoji** on Windows (Segoe UI Emoji), which ignores the
+  `color` property and leaves an amber triangle on the red critical ground. U+FE0E, the
+  text-presentation variation selector, does not override it
+- Drawing needs no font, no import and no asset, and renders identically on the dev
+  machine and the Pi, whose font sets differ
 
 ## 6) Alert Logic
 

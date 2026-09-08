@@ -53,8 +53,8 @@ has the old top bar and flat sidebars.
 | `M` | Toggle day / night theme |
 | `H` | Toggle hazard lights (both arrows flash together) |
 | `L` | Toggle lap mode |
-| `W` | Force the warning banner (shows "TEST WARNING") |
-| `C` | Force the critical overlay (shows "TEST CRITICAL FAULT") |
+| `W` | Force a warning (`TEST WARNING` / `DEBUG OVERRIDE`) |
+| `C` | Force a critical (`STOP SAFELY` / `TEST CRITICAL FAULT`) |
 | `←` `→` | Cycle gear D / N / R |
 
 Gear keys are development-only. On a live CAN bus the backend rejects keyboard
@@ -174,8 +174,10 @@ Elements:
   three decimals. Red when behind the target, green when ahead.
 - **"LAP MODE"** caption at the bottom of the card while lap mode is active.
 - **Pedal bar** (`PedalBar.qml`) -- a vertical bar in the right-hand column showing
-  accelerator travel against the three one-pedal-drive zones. 56 x 294 px at the
-  reference size, starting 13 px below the indicator row.
+  accelerator travel against the three one-pedal-drive zones. 56 x 280 px at the
+  reference size, starting 13 px below the indicator row. The bar was shortened from
+  294 when the alert banner moved to the bottom: the banner covers the lowest ~20 px of
+  the cards, and at 294 the percentage readout was clipped on both panels.
 
   Horizontally it is **centred in the free column to the right of the speed number**,
   not pushed against the card edge: a three-digit speed at 110 px reaches about x 297
@@ -279,50 +281,105 @@ Purpose: background diagnostics that never compete with the speed for attention.
 > The Motor dot stopped going amber for limiting at the same time — it is now a liveness
 > indicator like the others.
 
-## Alert Overlays
+## Alerts
 
-Two layers. Critical always wins: while a critical fault is active the warning
-banner is suppressed, so the driver is never shown two competing messages.
+One channel, two severities. A critical always outranks a warning, so the driver is
+never shown two competing messages.
 
-### Layer 1: Critical Overlay (full screen)
+Everything appears in **non-content space**. Nothing the regulations require is covered
+while the car is moving.
 
-Behaviour: the whole screen flashes between black and red roughly once per
-second, with a large warning symbol, the fault name, and the sub-heading
-**"STOP VEHICLE IMMEDIATELY"**. It covers everything and swallows input.
+> **Why this moved.** The warning banner used to be a top strip, and at the reference
+> size it spanned y `0-68` while the blinker arrows spanned `26-60` and the hazard
+> triangle `21-65`. It covered both **completely**, so the direction-indicator and hazard
+> verification required by Reg. 2.26.1 were not displayed at all while any warning was
+> up. The critical overlay was worse: full screen at any speed, hiding speed, gear and
+> both indicators at the moment the car was in trouble. See
+> `docs/regulatory-compliance.md`.
 
-Triggers, in the order the message is chosen:
+### The background flash
 
-| Condition | Message |
-| :--- | :--- |
-| BMS fault | `BMS FAULT` |
-| Cell temperature above the ESS limit | `ESS CELL OVER TEMPERATURE` |
-| Cell voltage above the ESS limit | `ESS CELL OVER VOLTAGE` |
-| Cell voltage below the ESS limit | `ESS CELL UNDER VOLTAGE` |
-| Pack current above the ESS limit | `ESS OVER CURRENT` |
-| Motor temperature above 100 °C | `MOTOR OVERHEAT` |
-| Hardware over-current | `HARDWARE OVER CURRENT` |
-| Software over-current | `SOFTWARE OVER CURRENT` |
-| DC bus over-voltage | `DC BUS OVER VOLTAGE` |
-| IGBT desaturation fault | `IGBT DESAT FAULT` |
+The black between the cards becomes the alert field: amber for a warning, red
+(`#FF1744`) for a critical. Peripheral motion is what actually catches the eye, and it
+covers nothing.
 
-### Layer 2: Warning Banner (top strip)
+It **flashes for about 5 seconds, then holds steady** at a lower intensity. A warning can
+persist for minutes -- motor temperature over 80 °C through a long climb -- and a border
+strobing that whole time becomes noise the driver stops seeing. The flash re-arms when the
+alert *identity* changes (a new fault, or a warning escalating to critical), not when a
+value merely moves within one condition.
 
-Behaviour: a semi-transparent amber banner slides down from the top with a
-warning symbol and text. It does not block the view.
+### The banner (bottom, over the footer)
 
-| Condition | Message |
-| :--- | :--- |
-| Cell voltage low | `ESS WARNING: LOW CELL VOLTAGE — LIFT THROTTLE` |
-| Pack current high | `ESS WARNING: HIGH CURRENT — REDUCE POWER` |
-| Cell voltage high | `ESS WARNING: HIGH CELL VOLTAGE — EASE REGEN` |
-| Cell temperature high | `ESS WARNING: PACK HOT — REDUCE POWER` |
-| Cell temperature low | `ESS WARNING: PACK COLD — REDUCED PERFORMANCE` |
-| Motor temperature 80–100 °C | `MOTOR TEMP WARNING  n°C` |
-| Heatsink above 80 °C | `HEATSINK TEMP WARNING` |
-| Bus voltage lower limit active | `LOW BUS VOLTAGE` |
-| Motor over-speed | `MOTOR OVER SPEED` |
-| 15 V rail under-voltage | `15V RAIL UNDER VOLTAGE` |
-| Bad motor position hall sequence | `BAD HALL SEQUENCE` |
+`AlertBanner.qml` slides up from the bottom edge, covering the footer. That is the right
+thing to cover: device dots and the odometer are our own diagnostics, not regulated
+content.
+
+Two lines, **action first**:
+
+```
+ ⚠   STOP SAFELY                    ┌────┐
+     ESS CELL OVER-TEMPERATURE      │ +2 │
+                                    └────┘
+```
+
+The action is what has to register in peripheral vision; the cause is there when the
+driver glances down or calls it to the pits. `+N` counts additional live faults of the
+same tier, so a multiple fault is not silently reduced to one line.
+
+Amber ground with black text for warnings, red with white for criticals — black on
+`#FF1744` is unreadable.
+
+### The full-screen takeover (stopped only)
+
+`CriticalOverlay.qml` still exists, but only fires when **`backend.vehicleStopped`** is
+true. It hides speed, gear and both indicators, so it is not allowed to appear while the
+car is moving.
+
+`vehicleStopped` is computed in C++ with **5/6 km/h hysteresis** — true below 5, false
+above 6, holding between. A single threshold would flash the whole display on and off as
+the speed wandered across it. Measured against the simulator drive cycle, the takeover
+appears for the ~10 s idle phase of each 60 s cycle and nowhere else.
+
+### Critical faults
+
+Priority order. `BMS FAULT` is deliberately **last**: it is the fallback for "something is
+wrong and nothing more specific matched", not a headline.
+
+| Condition | Cause line | Action |
+| :--- | :--- | :--- |
+| Cell temperature above the ESS limit | `ESS CELL OVER-TEMPERATURE` | `STOP SAFELY` |
+| Cell voltage above the ESS limit | `ESS CELL OVER-VOLTAGE` | `STOP SAFELY` |
+| Cell voltage below the ESS limit | `ESS CELL UNDER-VOLTAGE` | `STOP SAFELY` |
+| Pack current above the ESS limit | `ESS OVER-CURRENT` | `STOP SAFELY` |
+| Motor temperature above 100 °C | `MOTOR OVERHEAT` | `STOP SAFELY` |
+| Hardware over-current | `HARDWARE OVER-CURRENT` | `STOP SAFELY` |
+| Software over-current | `SOFTWARE OVER-CURRENT` | `STOP SAFELY` |
+| DC bus over-voltage | `DC BUS OVER-VOLTAGE` | `STOP SAFELY` |
+| IGBT desaturation fault | `IGBT DESAT FAULT` | `STOP SAFELY` |
+| BMS fault (fallback) | `BMS FAULT` | `STOP SAFELY` |
+
+Every action is the same because Reg. 3.5 has a critical fault isolating the pack: the car
+is losing propulsion regardless, and the job is to get off the racing line. The field is
+per-fault so one wanting different advice does not need the structure changed.
+
+### Warnings
+
+| Condition | Cause line | Action |
+| :--- | :--- | :--- |
+| Cell voltage low | `LOW CELL VOLTAGE` | `LIFT THROTTLE` |
+| Pack current high | `HIGH PACK CURRENT` | `REDUCE POWER` |
+| Cell voltage high | `HIGH CELL VOLTAGE` | `EASE REGEN` |
+| Cell temperature high | `PACK HOT` | `REDUCE POWER` |
+| Cell temperature low | `PACK COLD` | `EXPECT LOW POWER` |
+| Motor temperature 80–100 °C | `MOTOR n°C` | `REDUCE POWER` |
+| Heatsink above 80 °C | `HEATSINK HOT` | `REDUCE POWER` |
+| Bus voltage lower limit active | `LOW BUS VOLTAGE` | `REDUCE POWER` |
+| Motor over-speed | `MOTOR OVER SPEED` | `REDUCE SPEED` |
+| 15 V rail under-voltage | `15V RAIL UNDER-VOLTAGE` | `TELL THE PITS` |
+| Bad motor position hall sequence | `BAD HALL SEQUENCE` | `TELL THE PITS` |
+
+Faults the driver cannot act on say `TELL THE PITS` rather than inventing an instruction.
 
 Motor and bus conditions come from the motor controller's status message — see
 `WaveSculptor22_CAN_Protocol_Reference.md` for the bit definitions. The ESS rows come

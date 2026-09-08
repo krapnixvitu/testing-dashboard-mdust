@@ -31,10 +31,38 @@ Must be provided to the driver **at all times while driving**.
 `SpeedGauge.qml` renders it as the hero element from `backend.vehicleSpeed`, decoded from
 the WaveSculptor velocity frame `0x403`. Real source, decoded, tested.
 
+### Occlusion — found and fixed 2026-09-08
+
+Applies to items 1, 2 and 3 together, so it is recorded once here rather than three times.
+
+**The alert UI used to hide the mandatory displays at the worst moment.**
+
+- The warning banner was a top strip spanning y `0-68` at the 800x480 reference. The
+  blinker arrows span `26-60` and the hazard triangle `21-65`. It covered both
+  **entirely** — not partially — so while any warning was up, items 2 and 3 were not
+  displayed.
+- `CriticalOverlay.qml` was `anchors.fill: parent`, opaque, at any speed. During a
+  critical fault items 1, 2 and 3 all disappeared at once.
+
+**Fixed by moving alerts into non-content space.** The banner is now bottom-anchored over
+the footer (device dots and odometer — our diagnostics, not regulated content), and the
+alert colour flashes in the background between the cards. The full-screen takeover is
+gated on `backend.vehicleStopped`, a C++ property with 5/6 km/h hysteresis, so it can only
+appear once the car has stopped. Verified against the simulator drive cycle: the takeover
+appears only during the ~10 s idle phase of each 60 s cycle.
+
+> **This reading is an inference, and worth confirming.** The standards file lists what
+> must be *displayed*; it does not explicitly say those elements may never be obscured.
+> That a mandatory display has to be available while driving is our interpretation. Per
+> CLAUDE.md that file is a secondary summary of the 2024 rules, so check the current-year
+> regulation before treating the occlusion requirement as settled. The change is an
+> improvement either way.
+
 ### 2. Direction indicator verification — UI done, no live source
 
 `ArrowIndicator.qml`, placed top-left and top-right of the centre card, bound to
-`backend.leftBlinker` / `rightBlinker`.
+`backend.leftBlinker` / `rightBlinker`. **No longer covered by an active alert** — see the
+occlusion note above.
 
 **The gap is the source.** Nothing decodes a blinker message — `ws22::decode()` handles
 motor-controller frames only, and while `kDriverControlsBase` (`0x500`) is declared in

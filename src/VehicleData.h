@@ -61,6 +61,15 @@ private:
     Q_PROPERTY(int errorFlags READ errorFlags NOTIFY errorFlagsChanged)
     Q_PROPERTY(int limitFlags READ limitFlags NOTIFY limitFlagsChanged)
 
+    // Speed-derived. True when the car is stopped or nearly so, with 5/6 km/h
+    // hysteresis: true below 5, false above 6, holding state in between.
+    //
+    // Two thresholds rather than one because a speed reading sitting on a single
+    // boundary jitters across it, and the UI gates a full-screen alert takeover
+    // on this -- a single threshold would strobe the whole display on and off.
+    // Same reasoning as the logo gate in SpeedGauge.qml.
+    Q_PROPERTY(bool vehicleStopped READ vehicleStopped NOTIFY vehicleStoppedChanged)
+
     // ── Bus health watchdog ──
     Q_PROPERTY(bool canHealthy READ canHealthy NOTIFY canHealthyChanged)
 
@@ -136,6 +145,7 @@ public:
     int errorFlags() const { return m_errorFlags; }
     int limitFlags() const { return m_limitFlags; }
     bool canHealthy() const { return m_canHealthy; }
+    bool vehicleStopped() const { return m_vehicleStopped; }
 
     qreal netCurrent() const { return m_netCurrent; }
     bool netCurrentValid() const { return m_bmsValid; }
@@ -212,6 +222,7 @@ signals:
     void errorFlagsChanged();
     void limitFlagsChanged();
     void canHealthyChanged();
+    void vehicleStoppedChanged();
     void netCurrentChanged();
     void packTempChanged();
     void packTempMinChanged();
@@ -264,6 +275,8 @@ private:
     int m_errorFlags = 0;
     int m_limitFlags = 0;
     bool m_canHealthy = false;
+    // Starts true: a dashboard that has heard no speed yet is not moving.
+    bool m_vehicleStopped = true;
 
     qreal m_netCurrent = 0.0;
     qreal m_packTemp = 0.0;

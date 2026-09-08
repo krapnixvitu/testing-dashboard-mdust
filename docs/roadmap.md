@@ -134,7 +134,12 @@ Audited against the iESC display requirements on 2026-09-03; full per-item statu
   near-black background. Decide whether to re-theme it or retire it; Race Mode
   is the only maintained view. Details in `docs/implementation.md` §9.
 - **Alert logic is duplicated** between `RaceDashboard.qml` and
-  `DebugDashboard.qml`; threshold changes must be made in both.
+  `DebugDashboard.qml`; threshold changes must be made in both. `RaceDashboard` now has
+  the cause/action tables and the alert background; `DebugDashboard` was ported only far
+  enough to keep building and has neither.
+- **`DebugDashboard`'s critical overlay is not speed-gated.** Race Mode only shows the
+  full-screen takeover when stopped; the frozen debug view still takes over at any speed.
+  It is a bench view, not something the car runs, so this was left alone.
 - **Dead plumbing.** DSP board temperature, bus current, amp-hours and motor RPM
   are decoded and passed into components that no longer display them.
 - **The pedal bar is not theme-aware.** Its three band colours are fixed inside

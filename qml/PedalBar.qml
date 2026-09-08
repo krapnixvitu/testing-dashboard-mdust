@@ -56,7 +56,12 @@ Item {
     readonly property color _driveColor: "#007766"
 
     // -- Internal geometry --
-    readonly property real _barHeight: px(294)
+    // 280, not 294. The alert banner slides up over the footer and the bottom
+    // ~20 px of the cards, and at 294 the percentage readout ended only 14 px
+    // above the card bottom -- so an active alert clipped the digits on both
+    // panels (by 6 px at 800x480, 8 px at 1024x600). Shortening the bar clears
+    // it with room to spare rather than relying on the banner staying small.
+    readonly property real _barHeight: px(280)
     readonly property real _gap: px(6)
     readonly property real _readoutHeight: px(28)
     readonly property real _radius: px(8)

@@ -229,6 +229,34 @@ void testDerivedPowerFromBusFrame()
     check(std::fabs(data.netPower() - 1200.0) < 1e-6, "netPower = V * I");
 }
 
+// The full-screen critical takeover is gated on this, so a single threshold
+// would strobe the whole display on and off whenever the speed sat on it. The
+// held band is the point of the test, not an implementation detail.
+void testVehicleStoppedHysteresis()
+{
+    VehicleData data;
+    data.setSimulated(true);
+
+    check(data.vehicleStopped(), "stopped before any speed is reported");
+
+    data.setSimulatedMotorState(20.0, 0.0, 120.0, 1.0);
+    check(!data.vehicleStopped(), "moving at 20 km/h");
+
+    // Coming down through the band: must stay moving until below 5.
+    data.setSimulatedMotorState(5.5, 0.0, 120.0, 1.0);
+    check(!data.vehicleStopped(), "still moving at 5.5 while slowing");
+
+    data.setSimulatedMotorState(4.9, 0.0, 120.0, 1.0);
+    check(data.vehicleStopped(), "stopped below 5");
+
+    // Going back up through the band: must stay stopped until above 6.
+    data.setSimulatedMotorState(5.5, 0.0, 120.0, 1.0);
+    check(data.vehicleStopped(), "still stopped at 5.5 while pulling away");
+
+    data.setSimulatedMotorState(6.1, 0.0, 120.0, 1.0);
+    check(!data.vehicleStopped(), "moving above 6");
+}
+
 } // namespace
 
 int main(int argc, char *argv[])
@@ -248,6 +276,7 @@ int main(int argc, char *argv[])
     testEssFlagsStayClearWhileLimitsUnset();
     testCanHealthStartsUnhealthy();
     testDerivedPowerFromBusFrame();
+    testVehicleStoppedHysteresis();
 
     std::printf("\n%d checks, %d failures\n", g_checks, g_failures);
     return g_failures == 0 ? 0 : 1;

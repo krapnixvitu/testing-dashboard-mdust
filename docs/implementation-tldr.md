@@ -16,8 +16,9 @@
   - `SpeedGauge.qml`: speed arc + RPM + odometer
   - `InfoBar.qml`: battery/power/efficiency
   - `TempBar.qml`: temps + limits (uses `TempReadout.qml`)
-  - `CriticalOverlay.qml`: full-screen critical alert
-  - `WarningBanner.qml`: top warning banner
+  - `CriticalOverlay.qml`: full-screen critical alert, only when `backend.vehicleStopped`
+  - `AlertBanner.qml`: bottom alert banner over the footer, both severities
+  - `WarningTriangle.qml`: the warning triangle, drawn (U+26A0 is a colour emoji on Windows)
   - `ArrowIndicator.qml` / `HazardIndicator.qml`: blinker arrows and the hazard triangle
   - `PedalBar.qml`: one-pedal-drive pedal position, in the centre card. Drive only, and
     hidden on a real bus because neither gear nor pedal position has a CAN source yet
@@ -25,6 +26,9 @@
 - Tests: `cmake -B build -DBUILD_TESTING=ON` then `ctest --test-dir build`. Three suites: `decoder`, `vehicledata`, `bmsdecoder`.
 - Flags: `--can-interface <name>` (default `can0`), `--simulate` to force the simulator, `--kiosk` for borderless fullscreen with the cursor hidden (in-car display; `Esc` quits, only wired up in this mode), `--panel 5in|7in` to lock the window to a candidate display's exact geometry.
 - Windows has no SocketCAN, so it always falls back to the simulator.
+- Alerts never cover speed, gear or the indicators while moving. The old top banner
+  covered the blinkers and hazard triangle completely; the full-screen critical overlay
+  covered everything. `vehicleStopped` (C++, 5/6 km/h hysteresis) gates the takeover.
 - Qt versions differ by machine: dev is **6.10.1**, the Pi is **6.8.2** (Trixie). Qt 6.7
   features are safe; check `qmake6 -query QT_VERSION` before assuming anything newer.
 - Sizes are written as `px(n)` against an 800x480 reference. Anything that *moves* also

@@ -44,7 +44,8 @@ qt_add_qml_module(SolarDashboard
         qml/TempBar.qml
         qml/TempReadout.qml
         qml/CriticalOverlay.qml
-        qml/WarningBanner.qml
+        qml/AlertBanner.qml
+        qml/WarningTriangle.qml
         qml/ArrowIndicator.qml
         qml/HazardIndicator.qml
         qml/PedalBar.qml
