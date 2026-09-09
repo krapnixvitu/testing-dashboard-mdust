@@ -192,7 +192,7 @@ Elements:
   something 60 px above it.
 
   The bands are fixed: **regen** 0-20 % (blue `#40C4FF`), **coast** 20-50 %
-  (grey `#3E434A`), **drive** 50-100 % (teal `#007766`). Drive was amber until it was
+  (grey `#454545`), **drive** 50-100 % (teal `#007766`). Drive was amber until it was
   changed on 2026-09-07: amber means "warning" everywhere else on this dashboard, and
   the pedal being in its normal powered zone is not a warning. The trade is that coast
   and drive are now both dark, so that boundary is separated by hue rather than
@@ -448,9 +448,16 @@ not usable as-is.
 - **Blue** — regeneration or charging (negative power/current)
 - **Teal** — the powered zone of the pedal bar. Deliberately not amber, which would
   read as a warning when the pedal is doing something entirely normal
-- **Grey** — no data source; value unknown. Note the pedal bar's coast band is a
-  *different* grey (`#3E434A`, not `#6B7280`), because coasting is a real state rather
-  than a missing one
+- **Grey** — two different greys, and the difference is load-bearing:
+  - `#6B7280` means **no data source; value unknown**
+  - `#454545` is the **dim/inactive** tone — unselected gear letters, the right-card
+    team logo, and the pedal bar's coast band. Coasting is a real state, not a missing
+    one, so it must not borrow the "no data" grey.
+
+  The dim tone is never written as a hex literal: it is `textColor` at `0.2` opacity over
+  the `#1E1E1E` card, which resolves to `#454545`. All three are expressed that way so
+  they stay matched if the text colour or card background change. Measured identical at
+  `(69,69,69)`.
 
 ### Theme palettes
 

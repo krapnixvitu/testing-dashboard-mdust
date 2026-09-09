@@ -147,7 +147,7 @@ Audited against the iESC display requirements on 2026-09-03; full per-item statu
   component's colours. It was designed against the night palette; nobody has looked at
   it in day mode, where the dark bands may disappear into a light card.
 - **The pedal bar's coast/drive boundary is dark-on-dark.** Since drive changed from
-  amber to teal, coast (`#3E434A`) and drive (`#007766`) differ by hue rather than
+  amber to teal, coast (`#454545`) and drive (`#007766`) differ by hue rather than
   brightness. It reads fine on a desktop monitor; the test that matters is the real
   panel in daylight.
 

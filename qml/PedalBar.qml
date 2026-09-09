@@ -42,9 +42,17 @@ Item {
     // Regen borrows the blue that POWER already uses for regeneration, so the
     // two agree about what colour recovering energy is.
     readonly property color _regenColor: "#40C4FF"
-    // Deliberately not #6B7280: that grey means "no data" everywhere else on
-    // this dashboard, and coasting is a real state rather than a missing one.
-    readonly property color _coastColor: "#3E434A"
+    // Coast is the same tone as an unselected gear letter and the team logo in
+    // the right card: the text colour at 0.2 opacity over the card, which lands
+    // at #454545.
+    //
+    // Expressed as an opacity rather than a baked hex so all three stay matched
+    // if textColor or the card background ever change. It used to be its own
+    // #3E434A, which is why it read as not quite belonging to the same family.
+    //
+    // Still deliberately not #6B7280: that grey means "no data" everywhere else
+    // on this dashboard, and coasting is a real state rather than a missing one.
+    readonly property real _dimOpacity: 0.2
     // Teal. Previously amber, which collided with the "warning" meaning amber
     // carries everywhere else on this dashboard; this says nothing but "powered".
     //
@@ -144,7 +152,8 @@ Item {
                 anchors.right: parent.right
                 anchors.bottom: regenBand.top
                 height: parent.height * ((root._coastTop - root._regenTop) / 100.0)
-                color: root._coastColor
+                color: root.textColor
+                opacity: root._dimOpacity
             }
 
             // Drive -- everything above coast.
