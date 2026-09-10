@@ -307,12 +307,22 @@ Item {
         // the Behavior below never ran.
         visible: opacity > 0
 
-        // Opacity carries both the animation and the intensity: the dark half of
-        // the flash is simply opacity 0 letting the Window through, and the
-        // steady state is a lower opacity rather than a second blend colour.
+        // Opacity carries the animation: the dark half of the flash is simply
+        // opacity 0 letting the Window through.
+        //
+        // The hold is FULL colour, not a reduced one. It used to settle to 0.45,
+        // which read as washed out rather than as an alert that is still active.
+        // The last flash-on now runs straight into the hold instead of dropping
+        // back.
+        //
+        // The cost is real and was accepted: a sustained warning -- motor over
+        // 80 C through a long climb -- means a full-strength amber border for as
+        // long as it lasts, which is what the dim hold was avoiding. If that
+        // proves fatiguing on the real panel, pull back the warning tier, not
+        // the critical one.
         property bool _flashOn: false
         opacity: !root._alertActive ? 0.0
-                 : (root.alertFlashing ? (_flashOn ? 1.0 : 0.0) : 0.45)
+                 : (root.alertFlashing ? (_flashOn ? 1.0 : 0.0) : 1.0)
 
         Behavior on opacity { NumberAnimation { duration: 240 } }
 

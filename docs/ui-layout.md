@@ -333,7 +333,7 @@ The black between the cards becomes the alert field: amber for a warning, red
 (`#FF1744`) for a critical. Peripheral motion is what actually catches the eye, and it
 covers nothing.
 
-It **flashes for about 5 seconds, then holds steady** at a lower intensity. A warning can
+It **flashes for about 5 seconds, then holds steady at full colour**. A warning can
 persist for minutes -- motor temperature over 80 °C through a long climb -- and a border
 strobing that whole time becomes noise the driver stops seeing. The flash re-arms when the
 alert *identity* changes (a new fault, or a warning escalating to critical), not when a
