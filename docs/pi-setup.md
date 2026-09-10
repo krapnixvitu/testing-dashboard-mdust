@@ -244,7 +244,6 @@ Keys to try:
 
 | Key | Expected |
 |---|---|
-| `M` | Whole screen switches between the dark night palette and the light day one |
 | `→` `←` | Gear cycles D / N / R. In **N** the speed number is replaced by the team logo |
 | `W` | Amber warning banner slides down from the top |
 | `C` | Screen flashes red with "STOP VEHICLE IMMEDIATELY" |

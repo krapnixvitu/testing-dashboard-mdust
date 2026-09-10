@@ -38,8 +38,8 @@ The dashboard supports two independent modes:
 - A brief indicator appears bottom-right showing the active mode, for 1.5 s
 
 **The two modes no longer look alike.** Race Mode was rebuilt around rounded
-cards and the day/night theme. Debug Mode is a frozen pre-theme copy and still
-has the old top bar and flat sidebars.
+cards and the current palette. Debug Mode is a frozen copy from before that and
+still has the old top bar and flat sidebars.
 
 > **Known issue:** Debug Mode was not updated when theming was added, so its
 > child components fall back to their default black text and are largely
@@ -50,7 +50,6 @@ has the old top bar and flat sidebars.
 | Key | Effect |
 | :--- | :--- |
 | `D` | Toggle Race / Debug mode |
-| `M` | Toggle day / night theme |
 | `H` | Toggle hazard lights (both arrows flash together) |
 | `L` | Toggle lap mode |
 | `W` | Force a warning (`TEST WARNING` / `DEBUG OVERRIDE`) |
@@ -434,7 +433,6 @@ Mode in several ways:
   vertical lines.
 - Footer shows only the **CAN** dot, a pipe-separated limit list
   (`LIMITING: PWM | I_MOT | …`) and **bus current** on the right.
-- **Not theme-aware.** It ignores the day/night setting entirely.
 
 As noted above, it currently renders most of its numbers in near-black and is
 not usable as-is.
@@ -459,22 +457,24 @@ not usable as-is.
   they stay matched if the text colour or card background change. Measured identical at
   `(69,69,69)`.
 
-### Theme palettes
+### Palette
 
-| Element | Night (default) | Day |
-| :--- | :--- | :--- |
-| Screen background | `#000000` | `#D1D5DB` |
-| Card background | `#1E1E1E` | `#F4F4F9` |
-| Primary text | `#E0E0E0` | `#111827` |
-| Accent green | `#00E676` | `#059669` |
-| Footer background | `#121212` | `#374151` |
+There is **one palette**. A light "day" theme existed until 2026-09-10, toggled with
+`M`; it was removed because the car is driven with the screen shaded, nothing ever
+selected it in anger, and every colour on the dashboard carried two values of which only
+one was ever seen.
 
-Amber (`#FFB300`), red (`#FF1744`), blue (`#40C4FF`), teal (`#007766`) and grey
-(`#6B7280`) are shared by both themes, as is the white footer text.
+| Element | Colour |
+| :--- | :--- |
+| Screen background | `#000000` |
+| Card background | `#1E1E1E` |
+| Primary text | `#E0E0E0` |
+| Accent green | `#00E676` |
+| Footer background | `#121212` |
+| Footer text | `#FFFFFF` |
 
-> The pedal bar is **not** theme-aware: its three band colours are fixed in
-> `PedalBar.qml` rather than passed in from `RaceDashboard`. That is fine in the dark
-> palette it was designed against, but the day palette has not been looked at.
+Plus amber (`#FFB300`), red (`#FF1744`), blue (`#40C4FF`), teal (`#007766`) and the two
+greys above.
 
 ### Units
 - Speed: km/h

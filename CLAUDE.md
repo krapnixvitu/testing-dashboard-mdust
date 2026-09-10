@@ -65,7 +65,7 @@ Development keyboard controls are tabulated in `docs/ui-layout.md`.
   (pure C++)                    |  context property `backend`
                                 v
                           qml/Main.qml
-                                |  Loader + colorMode
+                                |  Loader
                                 v
               RaceDashboard.qml  or  DebugDashboard.qml
                                 |

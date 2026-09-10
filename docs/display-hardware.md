@@ -147,10 +147,10 @@ moving car. See `docs/implementation.md` §4 for how `_uiScale` and `px()` work.
 
 ### Backlight PWM — only the 7″ has internal control
 
-The dashboard already has a day/night theme toggled by `M` (`qml/Main.qml`), but that
-only changes the palette; it does not change actual panel brightness. A 1000 cd/m² panel
-at full backlight at night is dazzling, so real brightness control is likely to be
-wanted eventually.
+Nothing in the software changes panel brightness. The dashboard had a light/dark palette
+toggle until 2026-09-10, but a palette was never a substitute for a backlight: a
+1000 cd/m² panel at full backlight at night is dazzling whatever colours it draws. Real
+brightness control is likely to be wanted eventually.
 
 - **7″** — supports **internal** PWM, and has an OSD menu for brightness. Internal means
   the panel can dim itself without the Pi driving anything, and the OSD gives a manual
@@ -159,7 +159,7 @@ wanted eventually.
   line from a Pi GPIO and wiring it to the panel.
 
 So brightness control is close to free on the 7″ and is a wiring-plus-code task on the
-5″. Worth weighing if automatic day/night dimming is wanted.
+5″. Worth weighing if automatic ambient dimming is wanted.
 
 ### Power
 

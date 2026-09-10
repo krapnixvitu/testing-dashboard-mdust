@@ -5,15 +5,17 @@ Item {
 
     // ── Backend connection (injected by parent) ──
     property QtObject backend
-    property string colorMode: "night"  // Injected by parent
     
     // ── Theme colors ──
-    readonly property color _cardColor: colorMode === "night" ? "#1E1E1E" : "#F4F4F9"
-    readonly property color _textColor: colorMode === "night" ? "#E0E0E0" : "#111827"
-    readonly property color _accentGreen: colorMode === "night" ? "#00E676" : "#059669"
+    // One palette. The light "day" theme was removed on 2026-09-10: the car is
+    // driven with the screen shaded and nothing ever selected it in anger, so
+    // every colour on this dashboard had two values and only one was ever seen.
+    readonly property color _cardColor: "#1E1E1E"
+    readonly property color _textColor: "#E0E0E0"
+    readonly property color _accentGreen: "#00E676"
     readonly property color _accentAmber: "#FFB300"
-    readonly property color _footerColor: colorMode === "night" ? "#121212" : "#374151"
-    readonly property color _separatorColor: colorMode === "night" ? "#E0E0E0" : "#1A1A1A"
+    readonly property color _footerColor: "#121212"
+    readonly property color _separatorColor: "#E0E0E0"
     readonly property color _footerTextColor: "#FFFFFF"  // Always white for contrast on dark footer
 
     // VehicleData::DeviceStatus -> footer dot colour. Grey is the honest state
@@ -420,7 +422,6 @@ Item {
                 active: backend.leftBlinker
                 pointsLeft: true
                 activeColor: root._accentGreen
-                colorMode: root.colorMode
                 z: 100
             }
 
@@ -449,7 +450,6 @@ Item {
                 active: backend.rightBlinker
                 pointsLeft: false
                 activeColor: root._accentGreen
-                colorMode: root.colorMode
                 z: 100
             }
 

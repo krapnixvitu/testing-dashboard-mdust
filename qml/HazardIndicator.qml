@@ -22,8 +22,7 @@ Item {
     opacity: root.active ? 1.0 : 0.0
     Behavior on opacity { NumberAnimation { duration: 150 } }
 
-    // SVG hazard triangle. No day/night variants: the red is shared by both
-    // themes, unlike the blinkers' green, so there is nothing to swap.
+    // SVG hazard triangle. Single variant, so there is nothing to swap.
     //
     // The colour is baked into the file as a literal. Qt's SVG renderer does
     // not understand CSS `currentColor`, and an unsupported fill renders

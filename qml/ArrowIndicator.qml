@@ -7,7 +7,6 @@ Item {
     property bool active: false
     property bool pointsLeft: true
     property color activeColor: "#00E676"  // Not used (color embedded in SVG)
-    property string colorMode: "night"  // Injected by parent
 
     // ── Sizing ──
     // Against the 800x480 reference design; see RaceDashboard._uiScale.
@@ -25,7 +24,7 @@ Item {
     Image {
         anchors.fill: parent
         source: {
-            var suffix = (root.colorMode === "day") ? "-day.svg" : ".svg";
+            var suffix = ".svg";
             return root.pointsLeft 
                 ? "../assets/images/blinker-left" + suffix
                 : "../assets/images/blinker-right" + suffix;

@@ -127,7 +127,7 @@ File: `CMakeLists.txt`
   BmsDecoder           (extended, big endian)
                                 v
                           qml/Main.qml
-                                |  Loader + colorMode
+                                |  Loader
                                 v
               RaceDashboard.qml  or  DebugDashboard.qml
                                 |
@@ -228,32 +228,31 @@ and the UI dims all three letters.
 ## 5) Component Responsibilities
 
 ### `qml/Main.qml`
-- Root window (800x480); background colour follows the active theme
-- Owns `dashboardMode` ("race"/"debug") and `colorMode` ("night"/"day")
+- Root window (800x480); background is a flat `#000000`
+- Owns `dashboardMode` ("race"/"debug")
 - Mode controller: loads `RaceDashboard.qml` or `DebugDashboard.qml` via Loader,
-  injecting `backend` and binding `colorMode`
+  injecting `backend`
 - Handles all development key input: `D`, `M`, `L`, `W`, `C`, `H`, arrow keys
-- Displays a brief mode indicator on switch (not theme-aware; hardcoded dark)
+- Displays a brief mode indicator on switch
 
 ### `qml/RaceDashboard.qml`
 - Race-focused dashboard variant (default mode), and **the only maintained one**
-- Receives `backend` and `colorMode` from Main.qml
-- Owns the theme palette as `readonly property color` values derived from
-  `colorMode`, and passes those colours down to every child component
+- Receives `backend` from Main.qml
+- Owns the palette as `readonly property color` constants and passes those colours
+  down to every child component
 - Layout: three rounded cards (InfoBar / SpeedGauge / TempBar) over a 32 px
   footer. **No top bar** — blinkers and the hazard triangle are overlaid on the
   centre card
 - Computes alert states and drives the alert background, AlertBanner and CriticalOverlay
 
 ### `qml/DebugDashboard.qml`
-- Debug/diagnostic variant. Frozen copy of the pre-theme design
+- Debug/diagnostic variant. Frozen copy of an older design
 - Layout: 36 px top bar (glyph blinkers + title), flat sidebars separated by
   lines, footer with CAN dot / pipe-separated limits / bus current
 - Duplicates the alert logic from RaceDashboard rather than sharing it
 
-> **Broken — see §9.** It has no `colorMode` property and passes no theme
-> colours to its children, so they fall back to a default near-black text colour
-> against a near-black background.
+> **Broken — see §9.** It passes no colours to its children, so they fall back to a
+> default near-black text colour against a near-black background.
 
 ### `qml/SpeedGauge.qml`
 - Large animated speed number + "km/h", D/N/R gear triplet, lap delta and
@@ -286,8 +285,7 @@ and the UI dims all three letters.
 
 ### `qml/HazardIndicator.qml`
 - Red hazard triangle, shown centred between the two blinker arrows
-- Single SVG with no day/night variants: red is shared by both palettes, so unlike
-  `ArrowIndicator` it needs no `colorMode`
+- Single SVG; the colour is baked in
 - Steady while active; the flashing verification comes from both arrows at once
 
 ### `qml/PedalBar.qml`
@@ -317,8 +315,9 @@ and the UI dims all three letters.
 - `_regenTop` and `_coastTop` are duplicated in the VCU. See the warning in the file
 
 ### `qml/ArrowIndicator.qml`
-- Blinker arrow. Picks a day or night SVG based on `colorMode`; colour is baked
-  into the SVG, so its `activeColor` property is unused
+- Blinker arrow. Colour is baked into the SVG, so its `activeColor` property is
+  unused. It used to pick between day and night variants; those were deleted with
+  day mode
 
 > **Every `Image` pointed at a large asset sets `sourceSize`.** The team logo source is
 > 1024x1024; without it Qt decodes the whole thing into a ~4 MB texture to paint a 150 px
@@ -470,11 +469,11 @@ the CAN ingest path rather than the QML setter.
 
 ### Open issues
 
-**`DebugDashboard.qml` is unreadable.** When theming was added, the child
-components gained colour properties that RaceDashboard supplies and Debug does
-not, so they fall back to defaults — a near-black text colour on a near-black
-background. `Main.qml` also binds `colorMode` on the loaded item, which Debug
-does not declare. Either give it the same theme plumbing or retire it.
+**`DebugDashboard.qml` is unreadable.** The child components take colour properties
+that RaceDashboard supplies and Debug does not, so they fall back to defaults — a
+near-black text colour on a near-black background. Removing day mode did not change
+this: the problem is that Debug injects nothing, not that there were two palettes.
+Either give it the same plumbing or retire it.
 
 **Alert logic is duplicated** across the two dashboards (see §6).
 

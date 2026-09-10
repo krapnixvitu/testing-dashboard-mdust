@@ -53,8 +53,6 @@ qt_add_qml_module(SolarDashboard
         assets/images/mdu-solar-team-logo-white.png
         assets/images/blinker-left.svg
         assets/images/blinker-right.svg
-        assets/images/blinker-left-day.svg
-        assets/images/blinker-right-day.svg
         assets/images/hazard.svg
 )
 

@@ -15,7 +15,7 @@ Window {
     maximumHeight: panelLocked ? panelHeight : 16777215
     visible: true
     title: "MDU Solar Dashboard"
-    color: colorMode === "night" ? "#000000" : "#D1D5DB"
+    color: "#000000"
 
     // ═══════════════════════════════════════════════════════
     // KIOSK MODE -- borderless and fullscreen, covering any
@@ -37,7 +37,6 @@ Window {
     // DASHBOARD MODE STATE
     // ═══════════════════════════════════════════════════════
     property string dashboardMode: "race"
-    property string colorMode: "night"  // "night" or "day"
 
     // ═══════════════════════════════════════════════════════
     // FOCUS SCOPE -- Handles key events for mode switching
@@ -94,12 +93,6 @@ Window {
                 event.accepted = true;
             }
             
-            // Color mode toggle
-            else if (event.key === Qt.Key_M) {
-                window.colorMode = (window.colorMode === "night") ? "day" : "night";
-                event.accepted = true;
-            }
-
             // Hazard lights. Development-only: the backend rejects this write
             // on a live bus, where hazard state must come from the car.
             else if (event.key === Qt.Key_H) {
@@ -117,8 +110,11 @@ Window {
             source: window.dashboardMode === "race" ? "RaceDashboard.qml" : "DebugDashboard.qml"
 
             onLoaded: {
+                // Only backend. There used to be a colorMode binding here too,
+                // which was a latent error: DebugDashboard never declared that
+                // property, so every switch to Debug assigned to something that
+                // did not exist.
                 item.backend = backend;
-                item.colorMode = Qt.binding(function() { return window.colorMode; });
             }
         }
 

@@ -129,9 +129,10 @@ Audited against the iESC display requirements on 2026-09-03; full per-item statu
   decided.
 
 ## Known Issues
-- **Debug Mode is unreadable.** It was not updated when day/night theming was
-  added, so its child components fall back to a near-black text colour on a
-  near-black background. Decide whether to re-theme it or retire it; Race Mode
+- **Debug Mode is unreadable.** It passes no colours to its child components, so they
+  fall back to a near-black default against a near-black background. Removing day mode
+  did not fix this: the problem is that Debug injects nothing, not that there were two
+  palettes. Decide whether to re-theme it or retire it; Race Mode
   is the only maintained view. Details in `docs/implementation.md` §9.
 - **Alert logic is duplicated** between `RaceDashboard.qml` and
   `DebugDashboard.qml`; threshold changes must be made in both. `RaceDashboard` now has
@@ -142,10 +143,6 @@ Audited against the iESC display requirements on 2026-09-03; full per-item statu
   It is a bench view, not something the car runs, so this was left alone.
 - **Dead plumbing.** DSP board temperature, bus current, amp-hours and motor RPM
   are decoded and passed into components that no longer display them.
-- **The pedal bar is not theme-aware.** Its three band colours are fixed inside
-  `PedalBar.qml` instead of being passed in from `RaceDashboard.qml` like every other
-  component's colours. It was designed against the night palette; nobody has looked at
-  it in day mode, where the dark bands may disappear into a light card.
 - **The pedal bar's coast/drive boundary is dark-on-dark.** Since drive changed from
   amber to teal, coast (`#454545`) and drive (`#007766`) differ by hue rather than
   brightness. It reads fine on a desktop monitor; the test that matters is the real
