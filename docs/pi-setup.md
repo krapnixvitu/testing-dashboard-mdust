@@ -264,6 +264,50 @@ Once this stage works, every remaining problem is CAN-related.
 
 ---
 
+### Running the scrutineering demonstration
+
+This is the branch the Pi runs for the event. It needs no CAN hardware, so it
+works at Stage 1 -- which is the point: the car is not drivable and the
+demonstration must not depend on it being so.
+
+```bash
+git fetch origin
+git checkout scrutineering-demo
+cmake -B build
+cmake --build build
+DISPLAY=:0 ./build/SolarDashboard --demo --kiosk
+```
+
+`--demo` walks the regulated display elements automatically, one every 6 s,
+captioned with the regulation, and loops. It implies `--simulate`.
+
+To drive it by hand instead -- which is what you want if a scrutineer is asking
+questions and you need to hold on one alert -- drop `--demo` and use the number
+keys:
+
+```bash
+DISPLAY=:0 ./build/SolarDashboard --simulate --kiosk
+```
+
+Keys `1`-`9` select a scenario, `0` clears, `Space` steps to the next. The full
+table, with the exact text each one puts on screen, is in
+`docs/regulatory-compliance.md` section 6.
+
+**`--kiosk` matters here.** The Pi desktop's panel across the top makes the
+dashboard look like a window on a computer rather than an instrument. It also
+hides the mouse cursor. `Esc` quits, since there is no window chrome.
+
+> **Take a keyboard.** The demonstration is keyboard-driven, and `--demo` alone
+> cannot pause on the element someone is asking about.
+
+> **Do not press `D`.** It switches to Debug Mode, which is largely unreadable
+> and shows no ESS alerts at all. There is no on-screen way to tell you are in
+> it other than a brief indicator, and `D` again switches back.
+
+After the event, `git checkout main` removes all of this -- the demonstration
+lives only on this branch.
+
+
 ## Stage 2 — Fake CAN, still no hardware
 
 ### What CAN actually is
