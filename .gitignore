@@ -24,6 +24,11 @@ compile_commands.json
 Thumbs.db
 .DS_Store
 
+# Personal working notes -- Juan's own scratch file, not project documentation.
+# Untracked on purpose: it reads like instructions but is a note-to-self, and
+# nothing should act on it or publish it.
+reminders_for_myself
+
 # Credentials -- never commit these
 raspberrypi_login_info.txt
 *login_info*
