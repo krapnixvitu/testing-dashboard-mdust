@@ -247,6 +247,53 @@ Item {
     // ═══════════════════════════════════════════
     // D/N/R GEAR INDICATORS + LAP MODE INDICATOR
     // ═══════════════════════════════════════════
+    //
+    // Each letter lives in a FIXED box and the glyph scales inside it.
+    //
+    // Without that the letters have no explicit width, so each is sized from its
+    // own glyph -- and since font.pixelSize animates over 150 ms while
+    // font.weight snaps instantly, the Row's implicitWidth changed every frame of
+    // a gear change. The Row is centred, so its x was recomputed each time and
+    // every letter shifted. Switching R -> N visibly vibrated D, which is not
+    // animating anything of its own during that change: the only way D could move
+    // was for something to move it.
+    //
+    // Glyph advance widths are integers at each rendered size, so a letter's
+    // measured width steps as pixelSize sweeps 38 -> 28. The Row width is the sum
+    // of two stepping widths; whether the steps cancel depends on the glyph pair,
+    // which is why one transition showed it and others did not.
+    //
+    // Boxing removes the whole class rather than that one pair: nothing can
+    // reflow, so nothing can move sideways.
+    readonly property real _gearActiveSize: px(38)
+    readonly property real _gearIdleSize: px(28)
+
+    TextMetrics {
+        id: gearMetricsD
+        font.family: "Segoe UI"
+        font.pixelSize: root._gearActiveSize
+        font.weight: Font.Bold
+        text: "D"
+    }
+    TextMetrics {
+        id: gearMetricsN
+        font: gearMetricsD.font
+        text: "N"
+    }
+    TextMetrics {
+        id: gearMetricsR
+        font: gearMetricsD.font
+        text: "R"
+    }
+
+    // The widest of the three at their largest state, so all three boxes are
+    // equal and the row is symmetric whichever gear is active. The padding is
+    // for bold glyph overhang, which the advance width does not include.
+    readonly property real _gearBoxW: Math.max(gearMetricsD.width,
+                                               gearMetricsN.width,
+                                               gearMetricsR.width) + px(4)
+    readonly property real _gearBoxH: gearMetricsD.height
+
     Item {
         id: gearIndicatorContainer
         anchors.top: kmhLabel.bottom
@@ -262,7 +309,10 @@ Item {
             // Drive
             Text {
                 text: "D"
-                font.pixelSize: root.driveMode === "D" ? root.px(38) : root.px(28)
+                width: root._gearBoxW
+                height: root._gearBoxH
+                font.pixelSize: root.driveMode === "D" ? root._gearActiveSize
+                                                        : root._gearIdleSize
                 font.weight: root.driveMode === "D" ? Font.Bold : Font.Normal
                 font.family: "Segoe UI"
                 color: root.textColor
@@ -278,7 +328,10 @@ Item {
             // Neutral
             Text {
                 text: "N"
-                font.pixelSize: root.driveMode === "N" ? root.px(38) : root.px(28)
+                width: root._gearBoxW
+                height: root._gearBoxH
+                font.pixelSize: root.driveMode === "N" ? root._gearActiveSize
+                                                        : root._gearIdleSize
                 font.weight: root.driveMode === "N" ? Font.Bold : Font.Normal
                 font.family: "Segoe UI"
                 color: root.textColor
@@ -294,7 +347,10 @@ Item {
             // Reverse
             Text {
                 text: "R"
-                font.pixelSize: root.driveMode === "R" ? root.px(38) : root.px(28)
+                width: root._gearBoxW
+                height: root._gearBoxH
+                font.pixelSize: root.driveMode === "R" ? root._gearActiveSize
+                                                        : root._gearIdleSize
                 font.weight: root.driveMode === "R" ? Font.Bold : Font.Normal
                 font.family: "Segoe UI"
                 color: root.textColor
