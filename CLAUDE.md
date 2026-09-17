@@ -47,6 +47,7 @@ relaunches.
 | `--simulate` | Force the built-in drive-cycle simulator. |
 | `--kiosk` | Borderless fullscreen for the in-car display, mouse cursor hidden. `Esc` quits, wired only in this mode. |
 | `--panel <5in\|7in>` | Size the window to a candidate display (800x480 / 1024x600) and lock it there, so a desktop run matches the Pi. |
+| `--demo` | Scrutineering demonstration: walk the regulated display elements automatically, one every 6 s, captioned with the regulation. Implies `--simulate`. Keys `1`-`9` select a scenario directly in any simulated run. See `docs/regulatory-compliance.md` §6. |
 
 **Windows has no SocketCAN and always falls back to the simulator**, so a Windows run
 never exercises `SocketCanReader`. Only the Pi can test the real ingest path.

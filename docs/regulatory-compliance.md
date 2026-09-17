@@ -10,7 +10,7 @@ is a **secondary summary of the 2024 regulations**, not the regulation text. iES
 biennial, so the **official current-year regulations are the authority** and this file is
 an index into them. Re-check every row against the current rulebook before scrutineering.
 
-Last reviewed: 2026-09-05.
+Last reviewed: 2026-09-17.
 
 ---
 
@@ -262,6 +262,83 @@ functions. If either is ever fitted:
 The existing D/N/R gear readout is a state indicator and is already handled correctly:
 gear is owned by CAN and the dashboard only displays it, with all three letters dimmed
 when nothing is reported.
+
+---
+
+## §6 Scrutineering demonstration
+
+Added 2026-09-17. **The car is not drivable and has no electrical wiring, so nothing on
+this page can be shown from a real bus.** What Reg. 2.26.1 actually requires is that the
+driver's screen *displays* these elements; this is how that is demonstrated without a car.
+
+Run `./build/SolarDashboard.exe --simulate --panel 5in`, then press the key in each row.
+`--demo` instead walks the whole table automatically, one scenario every 6 s, looping.
+A caption over the left card names the regulation and the element as each one appears.
+
+| Key | Requirement | Regulation | What appears on screen |
+| :--- | :--- | :--- | :--- |
+| `1` | Direction indicator verification | 2.26.1 #2 | Left arrow flashing at 90/min |
+| `2` | Direction indicator verification | 2.26.1 #2 | Right arrow flashing at 90/min |
+| `3` | Hazard lights verification | 2.26.1 #3 | Both arrows flashing together, hazard triangle steady |
+| `4` | Cell voltage below minimum | 2.5 / 3.5 | Banner: `LOW CELL VOLTAGE` / `LIFT THROTTLE` |
+| `5` | Cell voltage above maximum | 2.5 / 3.5 | Banner: `HIGH CELL VOLTAGE` / `EASE REGEN` |
+| `6` | Current above maximum | 2.5 / 3.5 | Banner: `HIGH PACK CURRENT` / `REDUCE POWER` |
+| `7` | Cell temperature above maximum | 2.5 / 3.5 | Banner: `PACK HOT` / `REDUCE POWER` |
+| `8` | Cell temperature below minimum | 2.5 / 3.5 | Banner: `PACK COLD` / `EXPECT LOW POWER` |
+| `9` | Cell over-temperature, critical | 2.5 / 3.5 | Full screen: `ESS CELL OVER-TEMPERATURE` / `STOP VEHICLE IMMEDIATELY` |
+| `0` | — | — | Clears the demonstration |
+
+Vehicle speed (item 1) needs no scenario: the simulated drive cycle is running throughout,
+so the speed number is live on screen behind every row above.
+
+Keys 4–8 are the **five trigger conditions Reg. 2.5 & 3.5 names**, one each. Key 9 shows
+the warning → critical escalation and the full-screen takeover.
+
+### What the demonstration does and does not claim
+
+**It injects presentation state, never a measurement.** Each scenario raises `essFlags`
+bits (`bms::EssFlag`) directly through `VehicleData`'s demo overrides. No cell voltage,
+temperature or current is fabricated at any point.
+
+This matters for an honest answer to the obvious scrutineering question. **`BmsLimits.h`
+is untouched and every limit in it is still `NaN`, so `essLimitsConfigured` stays `false`
+even while an ESS critical is on screen.** A dashboard being demonstrated cannot be
+mistaken for one that is actually watching the pack — which is the same principle as the
+rest of this document, applied to the demo itself. `testDemoDoesNotFakeConfiguredLimits`
+in `tests/test_vehicledata.cpp` asserts it.
+
+So the demonstration is evidence that **the display behaviour is correct and complete**.
+It is not evidence that the ESS thresholds are configured; §3 above is still the status of
+that, and it is still blocked on the Operational Limits export.
+
+### Guard rails
+
+- **Every demo write is rejected unless the backend is simulator-fed**, enforced in C++
+  the same way `setDriveMode()` and `setHazardActive()` are. A demo scenario left selected
+  cannot follow the dashboard onto a live bus.
+- **The caption does not occlude a mandatory display.** It sits over the left card
+  (BATTERY / POWER / EFFICIENCY — none of it regulated), clear of the speed number, the
+  blinker arrows at y 26–60 and the hazard triangle at y 21–65, and clear of the footer
+  strip `AlertBanner` slides over. Covering a mandatory display while demonstrating that
+  mandatory display would repeat the fault recorded in §1 above.
+- **Demonstrate in Race Mode only.** `DebugDashboard.qml` knows nothing about `essFlags`,
+  so keys `4`–`9` show nothing there, and it carries no caption. It is also largely
+  unreadable (see `docs/roadmap.md`, Known Issues). **Avoid the `D` key during a
+  demonstration.**
+- **The scenario table is tested, not just written.** `tests/test_demodirector.cpp` checks
+  that keys are unique, that every scenario is described, and that all five Reg. 2.5/3.5
+  triggers are still covered — so this table and the code cannot drift apart silently.
+
+### Where it lives
+
+| Piece | File |
+| :--- | :--- |
+| The scenario table | `src/DemoDirector.cpp` |
+| Demo overrides and their guards | `src/VehicleData.cpp`, `setDemo*()` |
+| Indicator flashing at 90/min | `src/VehicleSimulator.cpp`, `tickBlinkers()` |
+| On-screen caption | `qml/DemoCaption.qml` |
+| Key bindings | `qml/Main.qml` |
+| The alert strings themselves | `qml/RaceDashboard.qml`, the `_critical` / `_warning` tables |
 
 ---
 

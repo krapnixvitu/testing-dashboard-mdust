@@ -75,6 +75,12 @@ void VehicleSimulator::tick()
         m_targetSpeed = 2.0 + QRandomGenerator::global()->generateDouble() * 3.0;
     }
 
+    // A critical alert only takes the full screen once backend.vehicleStopped
+    // is true, so a demonstration of the takeover has to be able to bring the
+    // car to a halt rather than wait for the idle phase of the drive cycle.
+    if (m_holdIdle)
+        m_targetSpeed = 0.0;
+
     m_vehicleSpeed += (m_targetSpeed - m_vehicleSpeed) * 0.15;
     if (m_vehicleSpeed < 0.0)
         m_vehicleSpeed = 0.0;
@@ -164,6 +170,25 @@ void VehicleSimulator::tickBlinkers()
         m_data->setLeftBlinker(flash);
         m_data->setRightBlinker(flash);
         return;
+    }
+
+    // A demonstration holds one indicator on instead of following the turn
+    // cycle. Handled here rather than by writing the lamps directly, because
+    // this tick would overwrite such a write 3 times a second -- and because
+    // the flash rate then stays the regulated 90/min from one place.
+    switch (m_data->demoIndicator()) {
+    case VehicleData::DemoIndicator::Left:
+        m_data->setLeftBlinker(flash);
+        m_data->setRightBlinker(false);
+        return;
+    case VehicleData::DemoIndicator::Right:
+        m_data->setLeftBlinker(false);
+        m_data->setRightBlinker(flash);
+        return;
+    case VehicleData::DemoIndicator::Hazard:
+        // Handled by the hazardActive branch above; setDemoIndicator() sets it.
+    case VehicleData::DemoIndicator::None:
+        break;
     }
 
     if (phase >= 10.0 && phase < 20.0) {

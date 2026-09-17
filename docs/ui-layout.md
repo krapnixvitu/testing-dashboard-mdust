@@ -55,13 +55,19 @@ still has the old top bar and flat sidebars.
 | `W` | Force a warning (action `TEST WARNING`, cause `DEBUG OVERRIDE`) |
 | `C` | Force a critical (action `STOP SAFELY`, cause `TEST CRITICAL FAULT`) |
 | `←` `→` | Cycle gear D / N / R |
+| `1`–`9` | Select a scrutineering demonstration scenario |
+| `0` | Clear the demonstration |
+| `Space` | Step to the next demonstration scenario |
 | `Esc` | Quit — kiosk mode only, so a stray Escape cannot kill a dev session |
 
 Gear keys are development-only. On a live CAN bus the backend rejects keyboard
 gear writes, so the arrow keys do nothing once real data is flowing.
 
 `W` and `C` force the alert channel on without naming a cause, so the banner falls
-back to placeholder text rather than a real one.
+back to placeholder text rather than a real one. **They are not the way to
+demonstrate compliance** — the `1`–`9` scenarios drive the real cause/action tables
+instead, and are what `docs/regulatory-compliance.md` §6 documents. Like gear, every
+demonstration key is rejected by the backend on a live bus.
 
 ## Layout Map — Race Mode
 

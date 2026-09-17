@@ -22,6 +22,12 @@ public:
     void start();
     void stop();
 
+    // Forces the drive cycle to a standstill, so a demonstration can reach
+    // backend.vehicleStopped on demand -- the gate on the full-screen critical
+    // overlay. Ordinary runs never set it.
+    void setHoldIdle(bool v) { m_holdIdle = v; }
+    bool holdIdle() const { return m_holdIdle; }
+
 private:
     void tick();
     void tickBlinkers();
@@ -39,4 +45,5 @@ private:
     qreal m_odometer = 0.0;
     qreal m_ampHours = 0.0;
     int m_blinkerCount = 0;
+    bool m_holdIdle = false;
 };

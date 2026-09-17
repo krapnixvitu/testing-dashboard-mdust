@@ -107,6 +107,7 @@ File: `main.cpp`
 | `BmsLimits.h` | ESS thresholds and alert bits, all unset until the cell datasheet exists. |
 | `SocketCanReader.h/.cpp` | Opens a raw CAN socket, installs a kernel filter, reads frames via `QSocketNotifier`. Linux only. |
 | `VehicleSimulator.h/.cpp` | Timer-driven synthetic drive cycle. Replaced the old `MockBackend.qml`. |
+| `DemoDirector.h/.cpp` | The scrutineering demonstration table: one scenario per regulated display element, driven by keys `1`-`9` or by `--demo`. |
 
 ### QML Module
 File: `CMakeLists.txt`
@@ -398,7 +399,18 @@ Critical suppresses the warning banner, so only one message shows at a time.
 Exact thresholds and message strings are tabulated in `docs/ui-layout.md`.
 
 `backend.debugWarningActive` and `backend.debugCriticalActive` force each layer
-for testing, via `W` and `C`.
+for testing, via `W` and `C`. They force the channel on without naming a cause,
+so the banner falls back to placeholder text — fine for checking the animation,
+useless as evidence.
+
+**For a demonstration, use the scenario keys instead.** `DemoDirector`
+(`src/DemoDirector.h/.cpp`) holds one table mapping keys `1`–`9` to the regulated
+display elements, and drives them through the real cause/action tables above by
+raising `essFlags` bits directly. Both the keys and the scripted `--demo` run read
+that one table. The overrides it writes (`VehicleData::setDemoEssFlags`,
+`setDemoIndicator`, `setDemoBmsFault`) are rejected unless the backend is
+simulator-fed, and they inject presentation state only — `BmsLimits.h` stays NaN and
+`essLimitsConfigured` stays false throughout. See `docs/regulatory-compliance.md` §6.
 
 > The two dashboards hold **copies** of the motor and bus logic. A threshold change
 > must be made in both files or the modes will disagree. **`DebugDashboard.qml` knows

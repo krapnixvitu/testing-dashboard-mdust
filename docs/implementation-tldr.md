@@ -9,6 +9,7 @@
 - `MockBackend.qml` was deleted in Phase 2; its drive-cycle logic moved into `VehicleSimulator`.
 - `Main.qml` is a mode controller that loads `RaceDashboard.qml` or `DebugDashboard.qml` via Loader.
 - Mode switching: Press 'D' key to toggle between Race and Debug modes (still keyboard; a physical input is a Phase 3 decision).
+- Scrutineering demo: keys `1`-`9` (or `--demo`) walk the regulated display elements through their real alert text. Table in `src/DemoDirector.cpp`; injects presentation state only, so `essLimitsConfigured` stays false.
 - Dashboard variants:
   - `RaceDashboard.qml`: race-focused dashboard (default), will be customized for driving
   - `DebugDashboard.qml`: debug/diagnostic dashboard, frozen reference copy

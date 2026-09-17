@@ -202,6 +202,12 @@ void VehicleData::recomputeEssFlags()
         else if (amps > bms::kPackCurrentWarning) flags |= bms::EssOverCurrentWarning;
     }
 
+    // Demonstration overrides, OR'd in outside the m_bmsValid gate so a
+    // scrutineering demo does not depend on the BMS staleness timer. Always
+    // zero unless DemoDirector has been asked for a scenario, and it can only
+    // ask in simulator mode.
+    flags |= m_demoEssFlags;
+
     if (m_essFlags != flags) {
         m_essFlags = flags;
         emit essFlagsChanged();
@@ -442,8 +448,11 @@ void VehicleData::setSimulatedBms(qreal netCurrent, qreal packDeltaV, bool fault
         m_packDeltaV = packDeltaV;
         emit packDeltaVChanged();
     }
-    if (m_bmsFault != fault) {
-        m_bmsFault = fault;
+    // The simulator passes false every tick, so OR in the demo override here
+    // or it would be erased 5 times a second.
+    const bool effectiveFault = fault || m_demoBmsFault;
+    if (m_bmsFault != effectiveFault) {
+        m_bmsFault = effectiveFault;
         emit bmsFaultChanged();
     }
 }
@@ -517,6 +526,56 @@ void VehicleData::setHazardActive(bool v)
         return;
     m_hazardActive = v;
     emit hazardActiveChanged();
+}
+
+// ── Demonstration overrides ─────────────────────────────────────────────
+//
+// All four are guarded on m_simulated for the same reason setHazardActive()
+// and setDriveMode() are: on a live bus these would assert something about
+// the car that nobody has measured.
+
+void VehicleData::setDemoEssFlags(int flags)
+{
+    if (!m_simulated)
+        return;
+    if (m_demoEssFlags == flags)
+        return;
+    m_demoEssFlags = flags;
+    recomputeEssFlags();
+}
+
+void VehicleData::setDemoBmsFault(bool v)
+{
+    if (!m_simulated)
+        return;
+    if (m_demoBmsFault == v)
+        return;
+    m_demoBmsFault = v;
+    if (m_bmsFault != v) {
+        m_bmsFault = v;
+        emit bmsFaultChanged();
+    }
+}
+
+void VehicleData::setDemoIndicator(DemoIndicator v)
+{
+    if (!m_simulated)
+        return;
+    if (m_demoIndicator == v)
+        return;
+    m_demoIndicator = v;
+
+    // The blinker lamps themselves are driven by VehicleSimulator::tickBlinkers(),
+    // which reads this on its next 333 ms tick. Doing it there rather than here
+    // keeps flash generation in one place, at the regulated 90 flashes/min.
+    setHazardActive(v == DemoIndicator::Hazard);
+}
+
+void VehicleData::clearDemoState()
+{
+    setDemoIndicator(DemoIndicator::None);
+    setDemoBmsFault(false);
+    setDemoEssFlags(0);
 }
 
 void VehicleData::setDriveMode(const QString &v)

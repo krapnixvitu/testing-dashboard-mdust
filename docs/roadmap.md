@@ -77,6 +77,14 @@ Audited against the iESC display requirements on 2026-09-03; full per-item statu
   status signal. The error-frame block at `0x200` is the likely route and Data ID 34
   would suit the footer dot; both are recorded in
   `docs/LithiumBalance_BMS_CAN_Reference.md` §5.
+- ✅ **Scrutineering demonstration added (2026-09-17).** With no drivable car, the
+  regulated display elements could not be shown at all: `BmsLimits.h` is NaN so no ESS
+  alert could fire, the simulator never approaches a threshold, and the only demo path
+  rendered placeholder text. `--demo` and keys `1`-`9` now walk every Reg. 2.26.1 and
+  Reg. 2.5/3.5 element through its real on-screen presentation. It injects presentation
+  state only — no measurement is fabricated and `essLimitsConfigured` stays false — so it
+  demonstrates the display behaviour without claiming the thresholds are set. Evidence
+  table in `docs/regulatory-compliance.md` §6.
 - ⚠ **Open question for the electrical team.** The dashboard must run off the main
   pack (Reg. 2.26.2) while hazards run off the auxiliary battery (Reg. 2.30) — so
   the screen dies during a main-battery cut-off while the hazards keep flashing,

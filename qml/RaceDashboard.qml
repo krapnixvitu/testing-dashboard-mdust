@@ -378,6 +378,25 @@ Item {
                 accentAmber: root._accentAmber
                 separatorColor: root._separatorColor
             }
+
+            // Scrutineering demonstration caption. Sits over the left card
+            // because nothing regulated is drawn here -- see DemoCaption.qml
+            // for why that placement is deliberate. Invisible in every normal
+            // run: `demo` is inert unless a scenario has been selected.
+            DemoCaption {
+                id: demoCaption
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: root.px(6)
+                uiScale: root._uiScale
+
+                visible: demo.active
+                regulation: demo.regulation
+                title: demo.scenarioName
+                accentColor: root._accentGreen
+                textColor: root._textColor
+            }
         }
 
         // ─── CENTER CARD (Speed) ───

@@ -206,6 +206,31 @@ public:
                            qreal cellTempMin, qreal cellTempMax);
     void setSimulatedPedal(qreal percent);
 
+    // ── Scrutineering demonstration overrides ──
+    //
+    // Reg. 2.26.1 requires the driver's screen to *display* indicator, hazard
+    // and ESS warning state. The car has no wiring and every limit in
+    // BmsLimits.h is still NaN, so none of that is reachable from a
+    // measurement -- which would leave the mandatory displays undemonstrable.
+    // These drive the display path directly instead.
+    //
+    // They inject presentation state, never a measurement. No cell voltage,
+    // temperature or current is fabricated, BmsLimits.h is untouched and
+    // essLimitsConfigured stays false, so a demonstrated dashboard still
+    // cannot be mistaken for a configured one. Every write is rejected unless
+    // this instance is simulator-fed, the same rule as setDriveMode() and
+    // setHazardActive(), and for the same reason.
+    enum class DemoIndicator { None = 0, Left, Right, Hazard };
+
+    void setDemoEssFlags(int flags);
+    void setDemoBmsFault(bool v);
+    void setDemoIndicator(DemoIndicator v);
+    void clearDemoState();
+
+    int demoEssFlags() const { return m_demoEssFlags; }
+    bool demoBmsFault() const { return m_demoBmsFault; }
+    DemoIndicator demoIndicator() const { return m_demoIndicator; }
+
 signals:
     void vehicleSpeedChanged();
     void motorRpmChanged();
@@ -307,6 +332,11 @@ private:
     bool m_debugWarningActive = false;
     bool m_debugCriticalActive = false;
     bool m_simulated = false;
+
+    // Demonstration overrides. Zero/false/None in every normal run.
+    int m_demoEssFlags = 0;
+    bool m_demoBmsFault = false;
+    DemoIndicator m_demoIndicator = DemoIndicator::None;
 
     QTimer m_watchdog;
     // Separate from m_watchdog: BMS frames are an order of magnitude slower

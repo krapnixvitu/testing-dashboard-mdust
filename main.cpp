@@ -5,6 +5,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 
+#include "src/DemoDirector.h"
 #include "src/SocketCanReader.h"
 #include "src/VehicleData.h"
 #include "src/VehicleSimulator.h"
@@ -45,6 +46,15 @@ int main(int argc, char *argv[])
                        "'5in' (800x480) or '7in' (1024x600)."),
         QStringLiteral("name"));
     parser.addOption(panelOption);
+
+    QCommandLineOption demoOption(
+        QStringLiteral("demo"),
+        QStringLiteral("Scrutineering demonstration: walk the regulated display "
+                       "elements automatically, one every 6 s, with an on-screen "
+                       "caption naming the regulation. Implies --simulate. The "
+                       "number keys select a scenario directly in any simulated "
+                       "run; this only adds the timer."));
+    parser.addOption(demoOption);
 
     parser.process(app);
 
@@ -87,7 +97,10 @@ int main(int argc, char *argv[])
     SocketCanReader canReader(&vehicleData);
     VehicleSimulator simulator(&vehicleData);
 
-    bool useSimulator = parser.isSet(simulateOption);
+    // --demo drives the dashboard through VehicleData's demo overrides, and
+    // those are rejected unless the instance is simulator-fed. Asking for a
+    // demonstration on a live bus would otherwise silently do nothing.
+    bool useSimulator = parser.isSet(simulateOption) || parser.isSet(demoOption);
 
     if (!useSimulator && !SocketCanReader::isSupportedOnThisPlatform()) {
         qInfo("SocketCAN unavailable on this platform; using simulator.");
@@ -109,12 +122,20 @@ int main(int argc, char *argv[])
     if (useSimulator)
         simulator.start();
 
+    // Always constructed, so `demo` is never null in QML and the caption needs
+    // no branch. Inert until a scenario is selected, and every scenario it can
+    // apply is itself refused on a live bus.
+    DemoDirector demoDirector(&vehicleData, &simulator);
+    if (parser.isSet(demoOption))
+        demoDirector.startAutoAdvance();
+
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("backend"), &vehicleData);
     engine.rootContext()->setContextProperty(QStringLiteral("kioskMode"), parser.isSet(kioskOption));
     engine.rootContext()->setContextProperty(QStringLiteral("panelWidth"), panelWidth);
     engine.rootContext()->setContextProperty(QStringLiteral("panelHeight"), panelHeight);
     engine.rootContext()->setContextProperty(QStringLiteral("panelLocked"), panelLocked);
+    engine.rootContext()->setContextProperty(QStringLiteral("demo"), &demoDirector);
 
     const QUrl url(QStringLiteral("qrc:/SolarDashboard/qml/Main.qml"));
 

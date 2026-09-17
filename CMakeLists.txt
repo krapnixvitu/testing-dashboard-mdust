@@ -23,6 +23,8 @@ qt_add_executable(SolarDashboard
     src/VehicleSimulator.cpp
     src/SocketCanReader.h
     src/SocketCanReader.cpp
+    src/DemoDirector.h
+    src/DemoDirector.cpp
 )
 
 qt_add_qml_module(SolarDashboard
@@ -49,6 +51,7 @@ qt_add_qml_module(SolarDashboard
         qml/ArrowIndicator.qml
         qml/HazardIndicator.qml
         qml/PedalBar.qml
+        qml/DemoCaption.qml
     RESOURCES
         assets/images/mdu-solar-team-logo-white.png
         assets/images/blinker-left.svg
@@ -99,4 +102,20 @@ if(BUILD_TESTING)
     set_target_properties(test_bms_decoder PROPERTIES AUTOMOC OFF)
 
     add_test(NAME bmsdecoder COMMAND test_bms_decoder)
+
+    # The scrutineering demonstration table. Checks the table itself -- unique
+    # keys, captions present, every Reg. 2.5/3.5 trigger covered -- because the
+    # table is the evidence claim in docs/regulatory-compliance.md and the two
+    # must not drift apart.
+    add_executable(test_demodirector
+        tests/test_demodirector.cpp
+        src/DemoDirector.cpp
+        src/VehicleData.cpp
+        src/VehicleSimulator.cpp
+        src/WaveSculptorDecoder.cpp
+        src/BmsDecoder.cpp
+    )
+    target_link_libraries(test_demodirector PRIVATE Qt6::Core)
+
+    add_test(NAME demodirector COMMAND test_demodirector)
 endif()

@@ -193,6 +193,106 @@ void testEssFlagsStayClearWhileLimitsUnset()
     check(!data.essLimitsConfigured(), "and the UI can see why");
 }
 
+void testDemoOverridesRejectedOnLiveBus()
+{
+    std::printf("Demonstration overrides are rejected on a live bus\n");
+
+    // Same rule as gear and hazard. A scrutineering demo is fake data by
+    // definition, so it must not be able to reach a dashboard that is reading
+    // a real car -- otherwise a demo left selected would announce an ESS fault
+    // nobody measured.
+    VehicleData data;   // not simulated
+
+    data.setDemoEssFlags(bms::EssCellOverTempCritical);
+    check(data.demoEssFlags() == 0, "ESS flag override ignored on a real bus");
+    check(data.essFlags() == 0, "and essFlags stays clear");
+
+    data.setDemoIndicator(VehicleData::DemoIndicator::Hazard);
+    check(data.demoIndicator() == VehicleData::DemoIndicator::None,
+          "indicator override ignored on a real bus");
+    check(!data.hazardActive(), "and hazard stays off");
+
+    data.setDemoBmsFault(true);
+    check(!data.demoBmsFault(), "BMS fault override ignored on a real bus");
+    check(!data.bmsFault(), "and bmsFault stays false");
+}
+
+void testDemoEssFlagsRaiseTheirOwnBit()
+{
+    std::printf("Each demonstration scenario raises exactly its own ESS bit\n");
+
+    VehicleData data;
+    data.setSimulated(true);
+
+    const int bits[] = {
+        bms::EssCellUnderVoltageWarning,
+        bms::EssCellOverVoltageWarning,
+        bms::EssOverCurrentWarning,
+        bms::EssCellOverTempWarning,
+        bms::EssCellUnderTempWarning,
+        bms::EssCellOverTempCritical,
+    };
+
+    for (int bit : bits) {
+        data.setDemoEssFlags(bit);
+        check(data.essFlags() == bit, "essFlags carries exactly the demo bit");
+    }
+
+    data.clearDemoState();
+    check(data.essFlags() == 0, "clearing returns essFlags to zero");
+}
+
+void testDemoDoesNotFakeConfiguredLimits()
+{
+    std::printf("A demonstrated alert does not claim the limits are set\n");
+
+    // This is the guarantee that makes the whole demo approach honest. The
+    // scenarios inject presentation state, never a measurement, so BmsLimits.h
+    // stays NaN and essLimitsConfigured stays false even while an ESS critical
+    // is on screen. A dashboard being demonstrated must not look like a
+    // dashboard that is actually watching the pack.
+    VehicleData data;
+    data.setSimulated(true);
+    data.setDemoEssFlags(bms::EssCellOverTempCritical);
+
+    check(data.essFlags() == bms::EssCellOverTempCritical, "the alert is up");
+    check(!data.essLimitsConfigured(), "but the limits are still unconfigured");
+    check(!bms::limitsConfigured(), "and BmsLimits.h was not touched");
+}
+
+void testDemoBmsFaultSurvivesTheSimulatorTick()
+{
+    std::printf("A demonstrated BMS fault is not erased by the simulator\n");
+
+    // VehicleSimulator calls setSimulatedBms(..., false) five times a second.
+    // Without the OR in that setter the fault would flicker off immediately.
+    VehicleData data;
+    data.setSimulated(true);
+    data.setDemoBmsFault(true);
+    check(data.bmsFault(), "fault is raised");
+
+    data.setSimulatedBms(10.0, 0.03, false);
+    check(data.bmsFault(), "and survives a simulator tick passing false");
+
+    data.clearDemoState();
+    data.setSimulatedBms(10.0, 0.03, false);
+    check(!data.bmsFault(), "clearing lets it fall again");
+}
+
+void testDemoIndicatorDrivesHazard()
+{
+    std::printf("The hazard scenario engages hazard state\n");
+
+    VehicleData data;
+    data.setSimulated(true);
+
+    data.setDemoIndicator(VehicleData::DemoIndicator::Hazard);
+    check(data.hazardActive(), "hazard engaged");
+
+    data.setDemoIndicator(VehicleData::DemoIndicator::Left);
+    check(!data.hazardActive(), "and released when a turn signal is selected");
+}
+
 void testCanHealthStartsUnhealthy()
 {
     std::printf("CAN health reflects real traffic\n");
@@ -274,6 +374,11 @@ int main(int argc, char *argv[])
     testBmsValidityFollowsBmsFrames();
     testPackDeltaVIsDerived();
     testEssFlagsStayClearWhileLimitsUnset();
+    testDemoOverridesRejectedOnLiveBus();
+    testDemoEssFlagsRaiseTheirOwnBit();
+    testDemoDoesNotFakeConfiguredLimits();
+    testDemoBmsFaultSurvivesTheSimulatorTick();
+    testDemoIndicatorDrivesHazard();
     testCanHealthStartsUnhealthy();
     testDerivedPowerFromBusFrame();
     testVehicleStoppedHysteresis();

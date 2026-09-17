@@ -99,6 +99,25 @@ Window {
                 backend.hazardActive = !backend.hazardActive;
                 event.accepted = true;
             }
+
+            // Scrutineering demonstration. 1-9 select a regulated display
+            // element, 0 clears, Space steps to the next one. The table lives
+            // in src/DemoDirector.cpp so the keys and the scripted --demo run
+            // walk the same list; QML only forwards the digit. Like every
+            // other development input here, the backend refuses these on a
+            // live bus.
+            else if (event.key >= Qt.Key_1 && event.key <= Qt.Key_9) {
+                demo.selectKey(event.key - Qt.Key_0);
+                event.accepted = true;
+            }
+            else if (event.key === Qt.Key_0) {
+                demo.clear();
+                event.accepted = true;
+            }
+            else if (event.key === Qt.Key_Space) {
+                demo.next();
+                event.accepted = true;
+            }
         }
 
         // ═══════════════════════════════════════════════════════
