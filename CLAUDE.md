@@ -211,6 +211,7 @@ Known issues live in `docs/roadmap.md`. Do not restate them here; they will drif
 | `docs/implementation-tldr.md` | One-screen quick reference |
 | `docs/Notes.md` | Quick-reference notes and things to raise with the team |
 | `docs/concepts.md` | CAN filters/masks and byte order, from scratch |
+| `docs/hardware/mvp-week48-plan.md` | Week 48 MVP: wiring, screen choice, CAN board test, shopping list, open questions |
 | `docs/hardware/pi-setup.md` | Staged Raspberry Pi and CAN bring-up |
 | `docs/hardware/display-hardware.md` | The two candidate Riverdi panels, and what each costs in layout work |
 | `docs/hardware/wiring.md` | In-car installation: requirements, hardware/software interface contract, open decisions |
