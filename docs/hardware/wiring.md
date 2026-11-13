@@ -148,7 +148,8 @@ supply to the dashboard.
 - **Pi 5 V converter** — part and placement.
 - **Connector family** for power, CAN and the shell separation point.
 - **Is the Pi a CAN bus end?** Decides the onboard terminator.
-- **CAN board for the car.** Keep the hand-modified MCP2515 + SN65HVD230 module, or use a
+- **CAN board for the car.** The MVP uses a Waveshare RS485 CAN HAT (12 MHz crystal;
+  `mvp-week48-plan.md` §4). For the competition car: keep the hand-modified MCP2515 + SN65HVD230 module, or use a
   purpose-built 3.3 V MCP2515 CAN HAT. A HAT uses the same driver and overlay, so the
   software does not change **if the interrupt pin and crystal match** §2; otherwise update
   the overlay line. Flying-lead modifications and long-term road vibration are a poor

@@ -29,8 +29,7 @@ Hardware first, because parts have lead times. Plan, shopping list, CAN board te
 procedure and open questions: **`docs/hardware/mvp-week48-plan.md`**.
 
 - ☐ Order parts (CAN HAT backup, 12 V → 5 V buck, bench parts) — Fri 13 Nov
-- ☐ Test the modified MCP2515 board (plan §4.1)
-- ☐ Bench rig: 12 V → buck → Pi, Riverdi 7″ on 12 V, two-node CAN test
+- ☐ Bench rig: 12 V → buck → Pi, Riverdi 7″ on 12 V, Waveshare CAN HAT up (plan §4)
 - ☐ Debug dashboard rebuilt, keeping speed, indicators, hazard and ESS warnings visible
 - ☐ Kiosk autostart at boot (pulled forward from Stage 5)
 - ☐ Remove lap mode
