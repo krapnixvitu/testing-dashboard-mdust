@@ -22,7 +22,7 @@ it says so.
 | Raspberry Pi 4 Model B (2 GB) | Boots Raspberry Pi OS. Dashboard bring-up at Stage 1 (`pi-setup.md`). |
 | Joy-it aluminium "armor" case, two fans | Fitted. Fans take **5 V and GND from the GPIO header**; nothing else uses GPIO. |
 | MCP2515 module, TJA1050 swapped for an SN65HVD23x | Hand-modified, **never tested**. Possible heat damage during soldering. |
-| Riverdi 7″ `RVT70HQHFWN00` and 5″ `RVT50HSHFWN00` | Bought (`display-hardware.md`). Confirm both are in the team room. |
+| Riverdi 7″ `RVT70HSHNWN00` and 5″ `RVT50HQHNWN00`, **frameless** | Bought (`display-hardware.md`). Confirm both are in the team room. |
 | AliExpress HDMI screen | Used for testing. Micro-USB power, HDMI, on/off switch, no touch. |
 | Purple shielded CAN cable, 2×3 connectors | In the team room, details unconfirmed (§6). |
 
@@ -94,12 +94,12 @@ the car.
 
 ## 3 Which screen for the MVP
 
-| | Riverdi 7″ `RVT70HQHFWN00` | Riverdi 5″ `RVT50HSHFWN00` | AliExpress HDMI screen |
+| | Riverdi 7″ `RVT70HSHNWN00` | Riverdi 5″ `RVT50HQHNWN00` | AliExpress HDMI screen |
 | :--- | :--- | :--- | :--- |
-| Power | DC jack, **7–30 V, straight from 12 V** | DC jack 7–36 V **or USB-C** | Micro-USB 5 V, needs the buck's 5 V |
+| Power | DC jack 5.5 × 2.1 mm, **7–30 V, straight from 12 V** | DC jack 7–36 V **or USB-C** | Micro-USB 5 V, needs the buck's 5 V |
 | Brightness | 1000 cd/m², readable in sun | 1000 cd/m² | Unknown, probably ~250–400 cd/m² |
 | Resolution | 1024×600 (`--panel 7in`) | 800×480 (`--panel 5in`) | Check (`--panel` or plain fullscreen) |
-| Mounting | **Metal frame included** | Not listed | Bare PCB |
+| Mounting | No frame: bezel with mechanics | No frame | Bare PCB |
 | Brightness control | OSD menu, no software needed | External PWM only | Switch only |
 | Connectors in a car | DC jack: locking-ish, can be swapped for a pigtail | DC jack or USB-C | Micro-USB: fragile under vibration |
 | On hand | Yes | Yes | Yes |
@@ -107,8 +107,17 @@ the car.
 **Recommendation: use the Riverdi 7″ for the MVP**, with the AliExpress screen as the
 fallback. It is not more complex to wire than the AliExpress one: it is an HDMI cable
 plus a DC jack, and the DC jack takes 12 V directly, which is exactly the "connect it to
-our 12 V" setup wanted for the car. It also comes with a mounting frame and is readable
-in daylight, which the AliExpress screen probably is not.
+our 12 V" setup wanted for the car. It is also readable in daylight, which the
+AliExpress screen probably is not.
+
+**Mounting for the MVP.** Both Riverdi panels are frameless, so the mount comes from the
+mechanics team. For week 48, a simple 3D-printed or laser-cut bezel and bracket is enough:
+it must hold the panel by its edges or mounting points rather than by the glass, leave
+the HDMI and DC connectors reachable with strain relief, and leave air around the back.
+**Do not let the frame block the MVP**: bench testing and the first in-car test can run
+with the panel temporarily secured. The competition mount is a separate design (crash
+and vision rules, `wiring.md` §3) and benefits from the MVP showing where the panel
+actually has to sit.
 
 Fallback rule: **if the 7″ does not show a picture within an hour of bench work, switch
 to the AliExpress screen** and move on. The dashboard's UI scales to either, so nothing
@@ -116,8 +125,8 @@ in the software changes. The only Riverdi-specific risk is EDID not offering 102
 the fix is one line in `config.txt` (`display-hardware.md`, "Raspberry Pi bring-up
 notes").
 
-What to buy for it: a DC barrel plug pigtail matching the panel's jack (**size to be
-confirmed**, §6), and a micro-HDMI-to-HDMI cable if the team's one is not available.
+What to buy for it: a **5.5 × 2.1 mm** DC barrel plug pigtail (from the 7″ datasheet:
+pin 1 VDD, pin 2 GND), and a micro-HDMI-to-HDMI cable if the team's one is not available.
 
 ---
 
@@ -265,7 +274,7 @@ have stores, so their items can be picked up the same day.
 | :--- | :--- | :--- |
 | 6 | Inline blade fuse holder + 3 A fuses | First thing after the 12 V tap |
 | 7 | Automotive wire, 0.75–1 mm², red and black | 12 V and 5 V runs |
-| 8 | DC barrel plug pigtail, **size matching the Riverdi jack** | Panel power from 12 V |
+| 8 | DC barrel plug pigtail, **5.5 × 2.1 mm** | Panel power from 12 V |
 | 9 | USB-C plug to screw terminal / open-ended USB-C cable | Buck → Pi |
 | 10 | Micro-HDMI to HDMI cable, 0.5–1 m | Only if the team's one is missing |
 | 11 | Heat shrink, cable ties, WAGO 221 lever connectors | Securing and splitting |
@@ -330,8 +339,9 @@ unreliable crimps.
 
 **On the bench**
 14. Is the micro-HDMI cable still there? Are both Riverdi panels there?
-15. What size is the Riverdi DC jack? (Measure the plug diameter, or check the datasheet
-    for the exact part number.)
+15. Read the part-number label on the back of each Riverdi panel and confirm it matches
+    `display-hardware.md` (frameless, 7″ `RVT70HSHNWN00`, 5″ `RVT50HQHNWN00`). The 7″
+    jack should be 5.5 × 2.1 mm.
 16. Can a HAT plug on to the Pi with the Joy-it case closed, or is the header covered?
 17. The SN65HVD chip's exact marking and the MCP2515 crystal marking (§4.1 A).
 18. Is the ESP32 simulator in the room with a working transceiver (second node for
@@ -407,7 +417,7 @@ mount design, read-only root. All stay on `roadmap.md`.
 | Sun 15 Nov | Pick up Kjell/Biltema items (6–13) if stores are open; otherwise Monday. |
 | **Mon 16 Nov** | Order connector housings/pins (item 14). Pi: finish Stage 1 and Stage 2 (`vcan0`). |
 | Tue 17 – Wed 18 Nov | Electrokit order arrives. Bench: 12 V → buck → Pi, `vcgencmd get_throttled`. Riverdi panel on 12 V. Test E with the HAT. |
-| Thu 19 – Sun 22 Nov (wk 47) | Debug dashboard. Kiosk autostart. Remove lap mode. Build the harness with the real connector. |
+| Thu 19 – Sun 22 Nov (wk 47) | Debug dashboard. Kiosk autostart. Remove lap mode. Build the harness with the real connector. Mechanics: simple bezel and bracket for the panel. |
 | Mon 23 – Wed 25 Nov (wk 48) | In the car: listen-only on the real bus, `candump`, then the dashboard. Note every ID seen. |
 | Thu 26 – Sun 29 Nov (wk 48) | Fix what the real bus showed. Drive test. Buffer. |
 
