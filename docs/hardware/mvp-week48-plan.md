@@ -213,10 +213,10 @@ Every link below has been checked against what the plan needs.
 | 6 | [WAGO 221-413, 3-pole](https://www.electrokit.com/en/skarvdon-3-pos-0.2-4mm2-wago) | 6 | 6 × ~8 SEK | Split 12 V + and GND to panel and buck; spares. 0.2–4 mm², 32 A. |
 | 7 | [WAGO 221-415, 5-pole](https://www.electrokit.com/en/skarvdon-5-pos-0.2-4mm2-wago) | 2 | 2 × 15 SEK | A common ground point. |
 | 8 | [Inline fuse holder, MINI/ATM blade, 10 A, with leads](https://www.electrokit.com/mini-atm-flatsakringshallare-med-kabel-10a) | 2 | 2 × 29 SEK | First thing after the 12 V tap. 1.31 mm² leads, IP54, no fuse included. One spare. |
-| 9 | 120 Ω resistors | a few | ~10 SEK | Bench termination. |
-| 10 | 40-pin GPIO ribbon cable | 1 | ~60 SEK | Only if the HAT cannot sit on the Joy-it case (§2). |
+| 9 | [Flat cable IDC 40-pin for Raspberry Pi GPIO, 200 mm](https://www.electrokit.com/flatkabel-40p-for-raspberry-pi-gpio-200mm) | 1 | 28 SEK | Only needed if the HAT cannot sit on the Joy-it case (§2), but cheap enough to order now. **Both ends are female**, so it needs item 10 to take the HAT. |
+| 10 | [Pin header 2.54 mm 2×20, male](https://www.electrokit.com/stiftlist-2.54mm-2x20p) | 1 | 15 SEK | Plugs into the ribbon's far end so the HAT's female header has pins to sit on. Check pin 1 before fitting the HAT (§8). |
 
-About 850 SEK in all.
+About 900 SEK in all. 120 Ω resistors are not on the list: the ones from an Arduino kit are fine (§8).
 
 WAGO lever connectors are fine for the bench and the MVP. For the competition car,
 crimped and locking connectors are the better choice (vibration, `wiring.md` §4).
@@ -229,7 +229,7 @@ crimped and locking connectors are the better choice (vibration, `wiring.md` §4
 | 12 | Automotive wire, 0.75–1 mm², red and black | 12 V runs to the WAGOs |
 | 13 | Heat shrink, cable ties | Securing and strain relief |
 
-Already in the team room: a 12 V bench supply, and spare microSD cards.
+Already on hand: a 12 V bench supply and spare microSD cards (team room), 120 Ω resistors (Arduino kit).
 
 ### Order Monday, once the connector is identified (Mouser / DigiKey / Farnell)
 
@@ -356,7 +356,65 @@ mount design, read-only root. All stay on `roadmap.md`.
 
 ---
 
-## 8 Timeline
+## 8 Bench checklist — the one place to follow
+
+Every check from this plan, in the order you meet them. Tick them off as you go. A failed
+check is fixed before moving on, because each later step depends on the earlier ones.
+
+### Before anything is connected
+
+- [ ] **Buck output.** Fit the EKM006's VSEL jumper (open = 3.3 V, shorted = 5 V). Feed it
+  12 V from the bench supply with nothing on its output: multimeter reads **5.0–5.2 V**.
+- [ ] **USB-C lead.** Cut the DC plug off the adapter cable, find + with continuity (the
+  wire to the plug's centre pin), screw it into the buck, shorten to ~30 cm. With 12 V on
+  the buck, measure **5.0–5.2 V between VBUS and GND at the USB-C plug** (outer contacts of
+  the plug are awkward; measuring at the buck end and checking continuity to the plug's
+  shell for GND is enough).
+- [ ] **Panel pigtail polarity.** On the DC pigtail, find which wire goes to the centre
+  pin (continuity). Centre = **+12 V** (datasheet: pin 1 VDD). Mark it.
+- [ ] **Fuse.** 3 A MINI blade fuse in the inline holder, holder on the + lead, first
+  thing after the 12 V source.
+- [ ] **120 Ω resistors** (only if building a bench bus). Measure one: anything from about
+  114 to 126 Ω is fine. Ordinary ¼ W resistors are plenty: across a CAN bus they dissipate
+  well under 0.1 W.
+
+### Pi and panel on the bench supply
+
+- [ ] Pi boots from the buck. Bench supply current noted: ______ A at 12 V.
+- [ ] **Under-voltage.** With the dashboard running for a few minutes:
+  `vcgencmd get_throttled` prints **`throttled=0x0`**.
+- [ ] **Voltage at the Pi under load.** Multimeter on **GPIO pin 2 (5 V) and pin 6 (GND)**:
+  **≥ 4.9 V**. If it is lower, shorten or thicken the USB-C lead.
+- [ ] Riverdi panel on 12 V shows a picture. If not within an hour, swap to the AliExpress
+  screen (§3).
+- [ ] Panel resolution: the dashboard fills the screen with `--panel 7in` (or `5in`). If the
+  7″ comes up at the wrong resolution, add `video=HDMI-A-1:1024x600M@60D` to
+  `/boot/firmware/config.txt` (`display-hardware.md`).
+- [ ] Total current with panel and Pi running: ______ A at 12 V (expect around 1–1.5 A).
+
+### CAN HAT
+
+- [ ] **If using the ribbon:** plug the ribbon on the Pi and the 2×20 pin header into its
+  far end, **without the HAT**. Power the Pi and measure at the far end: **3.3 V at the
+  position where the HAT's pin 1 lands, 5 V at pin 2**. Only then fit the HAT. Reversed,
+  the HAT would get 5 V on its 3.3 V pin.
+- [ ] Read the HAT's crystal: `12.000` → `oscillator=12000000`, `8.000` → `8000000`.
+- [ ] `config.txt` overlay added (§4.1), reboot, `dmesg | grep -i mcp` shows
+  `MCP2515 successfully initialized`.
+- [ ] Loopback test passes (`pi-setup.md` Stage 3).
+- [ ] Case fans still spin with the HAT fitted (pins 4 and 6).
+
+### On the car's bus
+
+- [ ] Car LV off: **≈ 60 Ω across CANH–CANL**. The HAT's terminator DIP switch **off**
+  unless the dashboard is a bus end.
+- [ ] `listen-only on` first (§4.3), then `candump -ta can0` shows frames.
+- [ ] Every ID seen written down (finds the missing gear / blinker / pedal IDs).
+- [ ] Listen-only off; dashboard shows live values and a green CAN dot.
+
+---
+
+## 9 Timeline
 
 | When | What |
 | :--- | :--- |
