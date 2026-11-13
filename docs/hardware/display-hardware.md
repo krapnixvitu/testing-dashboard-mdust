@@ -11,22 +11,34 @@ software depending on which one wins.
 
 ## A note on the part numbers
 
-The part numbers first circulated internally had the size digits swapped between the two
-codes. This was checked and corrected on 2026-09-03; the codes used below are the right
-ones.
+**Corrected 2026-11-13.** The panels the team bought are the **frameless** versions, and
+the size/resolution correction made on 2026-09-03 was itself wrong. The right codes are:
 
-Riverdi's numbering is size-first (`RVT43` = 4.3″, `RVT50` = 5.0″, `RVT70` = 7.0″,
-`RVT101` = 10.1″) and the field after it encodes resolution — `HS` for 800×480, `HQ` for
-1024×600. So the size is readable directly off the code, which is what made the swap
-easy to spot:
-
-| Circulated as | Actually | |
+| Panel | Part number | |
 | :--- | :--- | :--- |
-| `RVT50HQHFWN00` | **`RVT70HQHFWN00`** | 7.0″, 1024×600 |
-| `RVT70HSHFWN00` | **`RVT50HSHFWN00`** | 5.0″, 800×480 |
+| 7″ | **`RVT70HSHNWN00`** | 7.0″, 1024×600, no frame, no touch |
+| 5″ | **`RVT50HQHNWN00`** | 5.0″, 800×480, no frame, no touch |
 
-Worth knowing when reading older messages or a purchase order, which may still carry the
-swapped versions.
+How to read them, from the nomenclature table in Riverdi's datasheet for the 7″ HDMI
+module (`RV T 70 H S H F W N 00`):
+
+| Position | Code | Meaning |
+| :--- | :--- | :--- |
+| 1–2 | `RV` `T` | Riverdi, TFT |
+| 3 | `70` / `50` | Diagonal: 7.0″ / 5.0″ |
+| 4 | `H` | High brightness, IPS |
+| 5 | `S` (on the 7″) | **1024×600** |
+| 6 | `H` | HDMI |
+| 7 | `F` / `N` | `F` = with metal mounting frame. **`N` = without** (inferred: the table only defines `F`) |
+| 8 | `W` | White LED backlight |
+| 9 | `N` | No touch panel |
+| 10 | `00` | Version |
+
+The resolution letter is not shared across sizes: on the 5″ the 800×480 module is `HQ`,
+per the distributor's listing; the datasheet table does not define `Q`. The codes in use
+until today (`RVT70HQHFWN00`, `RVT50HSHFWN00`) do not appear in any Riverdi or
+distributor source, and they also claimed a frame. **Read the label on the back of each
+panel to confirm.**
 
 ---
 
@@ -34,16 +46,18 @@ swapped versions.
 
 | | **7″ panel** | **5″ panel** |
 | :--- | :--- | :--- |
-| Part number | `RVT70HQHFWN00` | `RVT50HSHFWN00` |
+| Part number | `RVT70HSHNWN00` | `RVT50HQHNWN00` |
 | Diagonal | 7.0″ | 5.0″ |
 | Resolution | **1024 × 600** | **800 × 480** |
-| Brightness | 1000 cd/m² | 1000 cd/m² |
+| Brightness | 1000 cd/m² (one distributor lists 800 for the frameless 7″ — check the datasheet) | 1000 cd/m² |
 | Panel type | IPS, full viewing angles | IPS, full viewing angles |
 | Interface | HDMI, plug and play | HDMI, plug and play |
 | Backlight PWM | **Internal *and* external** | External only |
 | OSD menu | **Yes** — brightness, contrast, saturation, volume, language | Not listed |
-| Power input | DC jack 7.0–30.0 V | DC jack 7.0–36.0 V **or USB-C** |
-| Mounting | **Metal mounting frame** | Not listed |
+| Power input | DC jack **5.5 × 2.1 mm**, 7.0–30.0 V (12 V typical) | DC jack 7.0–36.0 V **or USB-C** |
+| Mounting | **No frame** (frameless version bought) | **No frame** |
+| Outline (distributor) | 164.9 × 100 × 19.7 mm | 120.7 × 75.8 × 19.6 mm |
+| Operating temperature | −20 to 70 °C | −20 to 70 °C |
 
 Both are 1000 cd/m² IPS, which is the specification that matters most for this project:
 the dashboard has to stay readable in direct outback sun for nine hours a day. Neither panel is a
@@ -181,8 +195,10 @@ required either way.
 > for it. Both input ranges probably accept that bus directly — see
 > `docs/hardware/wiring.md`.
 
-The 7″ also ships with a **metal mounting frame**, which is a point in its favour for
-the enclosure — the roadmap still lists the enclosure as undecided.
+Both panels are the **frameless** versions, so the mount and bezel are ours to design
+with the mechanics team. That is not a loss: a frame designed for the car can be built
+around the crash and vision requirements (Reg. 2.11.2, 2.16), which a stock metal frame
+was never designed for.
 
 ---
 
@@ -225,8 +241,8 @@ The 5″ at 800×480 is a standard mode and should need nothing.
   **Needed before 5 Mar 2027**, when the Electrical System Specification is due.
 - **Is brightness control wanted?** Low priority for BWSC (daylight only). If yes, it is
   materially cheaper on the 7″.
-- **Does the enclosure design favour the 7″ metal mounting frame?** Enclosure is still
-  open per `docs/roadmap.md`.
+- **Mount and bezel design** — with the mechanics team, since both panels are frameless.
+  Enclosure is still open per `docs/roadmap.md`.
 
 ## Where the truth lives
 

@@ -21,6 +21,20 @@ From Reg. 1.12 and 1.29.1 — see `docs/reference/BWSC2027_Regulations_Reference
 | Sat 21 Aug 2027 | Dynamic Scrutineering, closes 12:30 | No start without passing. |
 | Sun 22 Aug 2027 | Official start, Darwin, 08:00 | |
 
+## MVP — end of ISO week 48 (Sun 29 Nov 2026)
+
+The first prototype: Pi and panel powered from the car's 12 V, reading the real CAN bus,
+with a driver screen and a **debug screen**, which is the car's only telemetry for now.
+Hardware first, because parts have lead times. Plan, shopping list, CAN board test
+procedure and open questions: **`docs/hardware/mvp-week48-plan.md`**.
+
+- ☐ Order parts (CAN HAT backup, 12 V → 5 V buck, bench parts) — Fri 13 Nov
+- ☐ Bench rig: 12 V → buck → Pi, Riverdi 7″ on 12 V, Waveshare CAN HAT up (plan §4)
+- ☐ Debug dashboard rebuilt, keeping speed, indicators, hazard and ESS warnings visible
+- ☐ Kiosk autostart at boot (pulled forward from Stage 5)
+- ☐ Remove lap mode
+- ☐ Listen-only on the car's bus, then the dashboard live
+
 ## Phase 1 (Complete) — QML design and mocking
 - A fully runnable UI on Windows; Race/Debug mode split with a Loader-based controller
   in `Main.qml`.

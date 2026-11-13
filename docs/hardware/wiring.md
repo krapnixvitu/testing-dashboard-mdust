@@ -54,6 +54,7 @@ matching software change in the same go.
 | Frames accepted | Standard `0x400`–`0x41F`, `0x500`–`0x51F`; extended `0x100`–`0x107` | Kernel filter in `src/SocketCanReader.cpp` | A new device outside these ranges is invisible |
 | Frame length | DLC 8 only | `src/SocketCanReader.cpp` drops `can_dlc < 8` | — |
 | Display | HDMI via the Pi's **micro**-HDMI port | — | |
+| Case fans | Joy-it aluminium case, two fans on **5 V pin 4 and GND pin 6** | — | Keep the CAN board on a different GND pin. MVP wiring: `mvp-week48-plan.md` §2 |
 | Panel resolution | 800×480 (5″) or 1024×600 (7″) | `--panel 5in\|7in`; UI scales from an 800×480 reference | Panel not yet chosen |
 | Power loss | Abrupt, every safe-state event | Read-only root filesystem — **planned**, roadmap Stage 5 | Not yet done |
 
@@ -147,7 +148,8 @@ supply to the dashboard.
 - **Pi 5 V converter** — part and placement.
 - **Connector family** for power, CAN and the shell separation point.
 - **Is the Pi a CAN bus end?** Decides the onboard terminator.
-- **CAN board for the car.** Keep the hand-modified MCP2515 + SN65HVD230 module, or use a
+- **CAN board for the car.** The MVP uses a Waveshare RS485 CAN HAT (12 MHz crystal;
+  `mvp-week48-plan.md` §4). For the competition car: keep the hand-modified MCP2515 + SN65HVD230 module, or use a
   purpose-built 3.3 V MCP2515 CAN HAT. A HAT uses the same driver and overlay, so the
   software does not change **if the interrupt pin and crystal match** §2; otherwise update
   the overlay line. Flying-lead modifications and long-term road vibration are a poor

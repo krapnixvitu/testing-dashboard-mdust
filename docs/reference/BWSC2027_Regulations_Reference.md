@@ -256,9 +256,9 @@ design changes close to impossible.
 > Vehicle components within the occupant cell must be designed to minimise the risk of
 > injury or entrapment in a crash.
 
-A rigid panel with a metal frame on a bracket in front of a helmeted driver is a head-strike
-candidate. The 7″ Riverdi's metal mounting frame is an advantage for the enclosure but makes
-this question sharper, not softer. Needs certifying-engineer input, and the energy-absorbing
+A rigid panel on a bracket in front of a helmeted driver is a head-strike candidate. Both
+Riverdi panels are the frameless versions, so the bezel and bracket are designed in-house
+with the mechanics team, and can be designed for this from the start. Needs certifying-engineer input, and the energy-absorbing
 or frangible mount is a design decision, not an afterthought.
 
 Also relevant: **2.11.5** requires at least 50 mm between every point of the helmet and the
