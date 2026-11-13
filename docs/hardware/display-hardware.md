@@ -46,7 +46,7 @@ swapped versions.
 | Mounting | **Metal mounting frame** | Not listed |
 
 Both are 1000 cd/m² IPS, which is the specification that matters most for this project:
-the dashboard has to stay readable in direct sunlight at Zolder. Neither panel is a
+the dashboard has to stay readable in direct outback sun for nine hours a day. Neither panel is a
 compromise on that front, so the choice comes down to size, resolution and the three
 differences below.
 
@@ -149,8 +149,10 @@ moving car. See `docs/implementation.md` §4 for how `_uiScale` and `px()` work.
 
 Nothing in the software changes panel brightness. The dashboard had a light/dark palette
 toggle until 2026-09-10, but a palette was never a substitute for a backlight: a
-1000 cd/m² panel at full backlight at night is dazzling whatever colours it draws. Real
-brightness control is likely to be wanted eventually.
+1000 cd/m² panel at full backlight at night is dazzling whatever colours it draws. **For
+BWSC this is low priority:** cars may not be driven after sunset (Reg. 3.21.4), so the
+panel runs at full brightness in daylight. Dimming would only matter for dawn or dusk
+setup and bench work.
 
 - **7″** — supports **internal** PWM, and has an OSD menu for brightness. Internal means
   the panel can dim itself without the Pi driving anything, and the OSD gives a manual
@@ -172,11 +174,12 @@ required either way.
   USB-C is genuinely convenient for bench work: the panel can run off the same kind of
   supply as the Pi during development.
 
-> **The USB-C advantage is bench-only.** iESC Reg. 2.26.2 requires the driver's display
-> and instrumentation to be powered **from the main energy storage system**, not from a
-> separate isolated battery. So in the car the panel is fed from a DC-DC off the traction
-> pack whichever model is chosen; a USB power bank or the auxiliary battery is not a
-> legal supply for it. See the regulations summary at the repo root.
+> **The USB-C advantage is bench-only.** BWSC Reg. 2.25.2 requires the driver's
+> instrumentation to be powered **from the energy storage system, not from separate
+> batteries**. So in the car the panel is fed from the car's low-voltage bus, which is
+> derived from the pack, whichever model is chosen; a USB power bank is not a legal supply
+> for it. Both input ranges probably accept that bus directly — see
+> `docs/hardware/wiring.md`.
 
 The 7″ also ships with a **metal mounting frame**, which is a point in its favour for
 the enclosure — the roadmap still lists the enclosure as undecided.
@@ -187,7 +190,7 @@ the enclosure — the roadmap still lists the enclosure as undecided.
 
 Both are plug-and-play HDMI, which is the easy path — no DSI ribbon, no display-specific
 driver. The Pi 4 has two **micro**-HDMI ports, so a micro-HDMI-to-HDMI cable is needed;
-this is the single most common thing to be caught out by (see `docs/pi-setup.md`
+this is the single most common thing to be caught out by (see `docs/hardware/pi-setup.md`
 Stage 0).
 
 **If the 7″ panel comes up at the wrong resolution**, the cause is EDID not offering
@@ -219,7 +222,9 @@ The 5″ at 800×480 is a standard mode and should need nothing.
 ## Open questions
 
 - **Which panel is primary?** Undecided; this is the decision the document exists for.
-- **Is automatic brightness control wanted?** If yes, it is materially cheaper on the 7″.
+  **Needed before 5 Mar 2027**, when the Electrical System Specification is due.
+- **Is brightness control wanted?** Low priority for BWSC (daylight only). If yes, it is
+  materially cheaper on the 7″.
 - **Does the enclosure design favour the 7″ metal mounting frame?** Enclosure is still
   open per `docs/roadmap.md`.
 

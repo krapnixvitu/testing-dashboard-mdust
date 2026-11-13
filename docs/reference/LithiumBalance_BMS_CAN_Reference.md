@@ -226,7 +226,7 @@ temperature rather than a constant.
 ## 6. What the dashboard decodes
 
 Three frames, five signals — the minimum that covers what the race dashboard displays
-plus the quantities the iESC ESS rules name as triggers. Decoded in `src/BmsDecoder.cpp`.
+plus the quantities the BWSC ESS rules (Reg. 2.5.5/2.5.6) name as limits. Decoded in `src/BmsDecoder.cpp`.
 
 | Signal | Dashboard property | ESS role |
 | :--- | :--- | :--- |
@@ -237,7 +237,7 @@ plus the quantities the iESC ESS rules name as triggers. Decoded in `src/BmsDeco
 | `CELL_T_MAX_VAL` | `packTemp` | cell over-temperature |
 | `CELL_T_MIN_VAL` | `packTempMin` | cell under-temperature |
 
-Thresholds live in `src/BmsLimits.h` and are **unset** until the cell datasheet exists.
+Thresholds live in `src/BmsLimits.h` and are **unset** until the Operational Limits view is exported (§5a).
 
 ### Injecting a test frame
 

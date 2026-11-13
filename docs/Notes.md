@@ -23,7 +23,7 @@ manual is explicit that *"safety thresholds must be configured by the user"* (p.
 the safe window depends entirely on cell chemistry.
 
 They live in the **"Operational Limits"** view of BMS Creator. That view is **not** part of
-the `CAN Settings` export we currently have in `docs/CAN-Database-(DBC)-BMS.xlsx` — ours
+the `CAN Settings` export we currently have in `docs/reference/CAN-Database-(DBC)-BMS.xlsx` — ours
 covers the CAN configuration only. **Someone needs to export the Operational Limits view.**
 
 What is in there, and the error code each one raises when crossed:

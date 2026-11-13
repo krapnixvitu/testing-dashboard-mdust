@@ -9,7 +9,7 @@ the 5″ (800×480), 1.25 on the 7″ (1024×600). The two panels are nearly the
 (1.667 vs 1.707), so it is the same design at two sizes, not two layouts.
 
 Run `--panel 5in` or `--panel 7in` on a desktop to see either exactly. See
-`docs/display-hardware.md`.
+`docs/hardware/display-hardware.md`.
 Theme: two palettes, night (default) and day, switchable at runtime. Both are
 high-contrast for outdoor readability.
 
@@ -98,9 +98,9 @@ because the Pi has no Segoe UI and falls back to different font metrics.
 
 > **What is deliberately absent.** Controller temperature, pack cell-spread (ΔV), pack
 > current and the motor controller's active-limit summary were all removed on 2026-09-07.
-> None are mandatory under Reg. 2.26.1, and none change a decision the driver can make at
+> None are mandatory under BWSC Reg. 2.25.1, and none change a decision the driver can make at
 > speed — they are race-engineer data and reach the pits over telemetry. The driver's job
-> is completing laps, not interpreting values. Their **warnings** were kept: the heatsink
+> is driving, not interpreting values. Their **warnings** were kept: the heatsink
 > banner and the ESS over-current alert both still fire. See
 > `docs/regulatory-compliance.md`.
 
@@ -108,18 +108,17 @@ because the Pi has no Segoe UI and falls back to different font metrics.
 Location: overlaid across the top of the centre card — arrows in the two corners,
 hazard triangle centred between them and level with them.
 
-- Drawn from SVG files in `assets/images/`. The arrows have separate day and night
-  versions so the green suits the active theme; the hazard triangle is a single
-  file, because its red is shared by both palettes.
+- Drawn from SVG files in `assets/images/` (`blinker-left.svg`,
+  `blinker-right.svg`, `hazard.svg`).
 - All three fade in and out over 150 ms. They do **not** self-flash — each is
   simply on or off, and whatever drives the state controls the rhythm.
-- **Hazard** shows a red triangle and is *steady* while engaged. The flashing the
-  regulations require you to verify is carried by the two arrows, which flash
+- **Hazard** shows a red triangle and is *steady* while engaged. The hazard signal
+  itself (Reg. 2.23.12: both indicators flashing at once) is carried by the two arrows, which flash
   **together** rather than alternating. The triangle says "this is hazard, not a
   turn".
 
 Purpose: legal indicators, visible without moving the eyes far from the speed.
-Both are mandatory under iESC Reg. 2.26.1 — see `docs/regulatory-compliance.md`.
+Both are mandatory under BWSC Reg. 2.25.1 — see `docs/regulatory-compliance.md`.
 
 ## Left Card (Energy / Strategy)
 Location: left column, 176 px wide at the reference size.
@@ -181,6 +180,9 @@ Elements:
 - **Lap delta** — appears above the speed in lap mode only, as a signed value to
   three decimals. Red when behind the target, green when ahead.
 - **"LAP MODE"** caption at the bottom of the card while lap mode is active.
+
+  > Lap mode is a circuit-racing leftover — the BWSC route has no laps, and its only
+  > source is the simulator. **Slated for removal**; see `docs/roadmap.md`.
 - **Pedal bar** (`PedalBar.qml`) -- a vertical bar in the right-hand column showing
   accelerator travel against the three one-pedal-drive zones. 56 x 280 px at the
   reference size, starting 13 px below the indicator row. The bar was shortened from
@@ -325,7 +327,7 @@ while the car is moving.
 > **Why this moved.** The warning banner used to be a top strip, and at the reference
 > size it spanned y `0-68` while the blinker arrows spanned `26-60` and the hazard
 > triangle `21-65`. It covered both **completely**, so the direction-indicator and hazard
-> verification required by Reg. 2.26.1 were not displayed at all while any warning was
+> verification required by BWSC Reg. 2.25.1 were not displayed at all while any warning was
 > up. The critical overlay was worse: full screen at any speed, hiding speed, gear and
 > both indicators at the moment the car was in trouble. See
 > `docs/regulatory-compliance.md`.
@@ -392,8 +394,9 @@ wrong and nothing more specific matched", not a headline.
 | IGBT desaturation fault | `IGBT DESAT FAULT` | `STOP SAFELY` |
 | BMS fault (fallback) | `BMS FAULT` | `STOP SAFELY` |
 
-Every action is the same because Reg. 3.5 has a critical fault isolating the pack: the car
-is losing propulsion regardless, and the job is to get off the racing line. The field is
+Every action is the same because BWSC Reg. 2.5.5 requires the BMS to keep the cells inside
+their limits, so it will isolate the pack: the car is losing propulsion regardless, and the
+job is to get off the road safely. The field is
 per-fault so one wanting different advice does not need the structure changed.
 
 ### Warnings
@@ -415,13 +418,13 @@ per-fault so one wanting different advice does not need the structure changed.
 Faults the driver cannot act on say `TELL THE PITS` rather than inventing an instruction.
 
 Motor and bus conditions come from the motor controller's status message — see
-`WaveSculptor22_CAN_Protocol_Reference.md` for the bit definitions. The ESS rows come
+`docs/reference/WaveSculptor22_CAN_Protocol_Reference.md` for the bit definitions. The ESS rows come
 from the BMS, via `backend.essFlags`.
 
 > **The ESS rows cannot fire yet.** Their thresholds live in `src/BmsLimits.h` and are
-> unset until the cell datasheet figures are entered, so every ESS comparison is false.
+> unset until the BMS Operational Limits are exported, so every ESS comparison is false.
 > The five ESS warnings are listed above because the mapping is decided and wired, not
-> because they are live. See `docs/regulatory-compliance.md` §3.
+> because they are live. See `docs/regulatory-compliance.md` §2.
 
 ESS warnings are ordered ahead of the motor ones in the banner: the pack is what the
 driver can least afford to lose, and each ESS message names the action that recovers it.

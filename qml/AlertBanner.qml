@@ -6,7 +6,7 @@ import QtQuick
 // a top banner, which completely covered the blinker arrows and the hazard
 // triangle -- at the reference size the banner spanned y 0-68 and the indicators
 // 21-65, so the direction-indicator and hazard verification required by
-// Reg. 2.26.1 were not displayed at all while any warning was up.
+// BWSC Reg. 2.25.1 were not displayed at all while any warning was up.
 //
 // The footer is the right thing to cover instead: device dots and the odometer
 // are our own diagnostics, not regulated content.

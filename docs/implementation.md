@@ -104,7 +104,7 @@ File: `main.cpp`
 | `VehicleData.h/.cpp` | The `QObject` QML binds to. Holds all telemetry as `Q_PROPERTY`, computes derived values, runs the bus watchdog. |
 | `WaveSculptorDecoder.h/.cpp` | Pure function: CAN ID + 8 bytes → `DecodedFrame`. No Qt, no sockets. |
 | `BmsDecoder.h/.cpp` | The same for the Lithium Balance BMS. Extended 29-bit IDs, big-endian payloads. |
-| `BmsLimits.h` | ESS thresholds and alert bits, all unset until the cell datasheet exists. |
+| `BmsLimits.h` | ESS thresholds and alert bits, all unset until the BMS Operational Limits are exported. |
 | `SocketCanReader.h/.cpp` | Opens a raw CAN socket, installs a kernel filter, reads frames via `QSocketNotifier`. Linux only. |
 | `VehicleSimulator.h/.cpp` | Timer-driven synthetic drive cycle. Replaced the old `MockBackend.qml`. |
 
@@ -195,8 +195,9 @@ sized as a share of the card cannot overflow — the content just centres in wha
 given.
 
 ### ESS warnings
-Thresholds live in `src/BmsLimits.h`, **all unset (NaN)** until the cell datasheet
-exists. Every comparison against NaN is false, so no ESS alert can fire — an
+Thresholds live in `src/BmsLimits.h`, **all unset (NaN)** until the BMS
+Operational Limits export (`docs/reference/LithiumBalance_BMS_CAN_Reference.md` §5a). They will also need splitting into charge and discharge limits to match BWSC
+Reg. 2.5.5/2.5.6 — see `docs/regulatory-compliance.md` §2. Every comparison against NaN is false, so no ESS alert can fire — an
 unconfigured dashboard raises nothing rather than something wrong, and
 `essLimitsConfigured` exposes that state instead of letting it look safe.
 
@@ -256,7 +257,7 @@ and the UI dims all three letters.
 
 ### `qml/SpeedGauge.qml`
 - Large animated speed number + "km/h", D/N/R gear triplet, lap delta and
-  "LAP MODE" caption
+  "LAP MODE" caption (lap mode is slated for removal — no laps at BWSC)
 - Swaps the speed for the team logo via a QML state machine while in **Neutral and
   below 5 km/h**, hiding it again above 6 km/h. The 1 km/h gap is hysteresis: a single
   threshold would let a jittering speed reading flicker the logo against the speed
@@ -431,8 +432,8 @@ for testing, via `W` and `C`.
 ### Adding a decoded CAN message
 1. Add the ID constant to `src/WaveSculptorDecoder.h`.
 2. Add a `case` to `ws22::decode()` reading the fields at their byte offsets.
-   Check the layout against `docs/WaveSculptor22_CAN_Protocol_Reference.md`, not
-   against `reference/esp32-simulator/protocol.hpp`, whose struct field order is
+   Check the layout against `docs/reference/WaveSculptor22_CAN_Protocol_Reference.md`, not
+   against the ESP32 simulator project's `protocol.hpp`, whose struct field order is
    misleading.
 3. **Confirm the ID falls inside the kernel filter ranges, and that the frame format
    matches** — currently standard 11-bit `0x400`–`0x41F` and `0x500`–`0x51F`, plus
@@ -442,7 +443,7 @@ for testing, via `W` and `C`.
    See `docs/concepts.md` and `src/SocketCanReader.cpp`.
 
    A BMS message goes in `src/BmsDecoder.cpp` instead, and is **big endian** — see
-   `docs/LithiumBalance_BMS_CAN_Reference.md` §1 for the bit-to-byte mapping.
+   `docs/reference/LithiumBalance_BMS_CAN_Reference.md` §1 for the bit-to-byte mapping.
 4. Store it in `VehicleData::applyDecodedFrame()` and add a `Q_PROPERTY`.
 5. Add a decoder unit test.
 
@@ -450,8 +451,8 @@ for testing, via `W` and `C`.
 - **Gear** — blocked on the ECU/driver-controls protocol. The UI, the unknown
   state and the write-rejection rule are already in place; only decoding and an
   internal setter that bypasses the simulator guard are missing.
-- **BMS** — blocked on device selection. `packTemp`, `packDeltaV`, `netCurrent`
-  and `bmsFault` exist with `bmsValid` gating them; they need a real source.
+- **BMS** — decoded (`0x100`–`0x102`). `bmsFault` still has no source, and the
+  ESS thresholds are unset; see `docs/regulatory-compliance.md` §2.
 
 ### Replacing keyboard input with hardware
 Keys are handled in one place, `Main.qml`'s `Keys.onPressed`. GPIO or CAN inputs

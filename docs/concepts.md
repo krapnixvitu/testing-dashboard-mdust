@@ -2,7 +2,7 @@
 
 Explanations of the non-obvious ideas behind this project, written to be re-read
 later after the details have faded. This is the "why it works" companion to
-`implementation.md` (what the code does) and `pi-setup.md` (how to bring the
+`implementation.md` (what the code does) and `hardware/pi-setup.md` (how to bring the
 hardware up).
 
 Contents:
@@ -90,7 +90,7 @@ CAN_SFF_MASK = 0x7FF = 0111 1111 1111    (all 11 bits matter)
 So `CAN_SFF_MASK & ~0x1Fu` reads as: **keep the top 6 bits, ignore the bottom 5.**
 
 Ignoring the bottom 5 bits is not arbitrary. The WaveSculptor addressing scheme
-(see `WaveSculptor22_CAN_Protocol_Reference.md` §2) splits the 11-bit identifier
+(see `reference/WaveSculptor22_CAN_Protocol_Reference.md` §2) splits the 11-bit identifier
 into a 6-bit device identifier and a 5-bit message identifier:
 
 ```
@@ -315,7 +315,7 @@ and therefore 1200 W. It is the quickest end-to-end check that decoding works.
 
 ## The trap: struct field order is not byte order
 
-`reference/esp32-simulator/protocol.hpp` declares its message structs with the
+The ESP32 `CAN_MotorController_Simulator` project's `protocol.hpp` declares its message structs with the
 fields in the **opposite order to the wire**. For example `BusMeasurement`
 declares `bus_current` first, yet the packing code puts `bus_voltage` in bytes
 0–3.
@@ -335,14 +335,14 @@ warning. Only field-by-field copying at stated offsets is correct.
 
 In descending order of authority:
 
-1. **`docs/WaveSculptor22_CAN_Protocol_Reference.md`** — the spec as we
+1. **`docs/reference/WaveSculptor22_CAN_Protocol_Reference.md`** — the spec as we
    understand it. Consult this when in doubt.
 2. **`src/WaveSculptorDecoder.cpp`** — what the dashboard actually does. All six
    messages we decode have been checked against the reference and against the
    ESP32 simulator's packing functions.
-3. **`reference/esp32-simulator/protocol.hpp`** — a copy of the ESP32 project's
-   definitions, kept for reference only. Not compiled here, and liable to drift
-   out of sync with the ESP32 project. Treat as a hint, verify against 1.
+3. **`protocol.hpp` in the ESP32 `CAN_MotorController_Simulator` project** — that
+   project's definitions. Not compiled here, and liable to drift from the spec.
+   Treat as a hint, verify against 1.
 
 ---
 
@@ -509,5 +509,5 @@ impossible.
    `CAN_EFF_MASK`. Authoritative, and on the Pi already.
 2. **`src/SocketCanReader.cpp`** — the filters we actually install and the routing
    branch. The comments there mirror this section.
-3. **`docs/LithiumBalance_BMS_CAN_Reference.md`** — which BMS identifiers exist, and
+3. **`docs/reference/LithiumBalance_BMS_CAN_Reference.md`** — which BMS identifiers exist, and
    why they are extended.

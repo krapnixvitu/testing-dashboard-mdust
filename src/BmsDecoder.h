@@ -4,8 +4,8 @@
 
 // Lithium Balance n-BMS CAN decoding.
 //
-// Spec-of-record: docs/LithiumBalance_BMS_CAN_Reference.md, written from the
-// configuration export in docs/CAN-Database-(DBC)-BMS.xlsx.
+// Spec-of-record: docs/reference/LithiumBalance_BMS_CAN_Reference.md, written from the
+// configuration export in docs/reference/CAN-Database-(DBC)-BMS.xlsx.
 //
 // Two things differ from the WaveSculptor, and both fail silently if forgotten:
 //

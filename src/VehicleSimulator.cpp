@@ -10,7 +10,7 @@ namespace {
 // Matches the CAN high-frequency broadcast rate the real controller uses.
 constexpr int kSimIntervalMs = 200;
 constexpr qreal kSimDt = 0.2;
-// iESC Reg. 2.26.1 verifies an indicator flash rate of 90 +/- 30 per minute.
+// BWSC Reg. 2.23.11 requires an indicator flash rate of 90 +/- 30 per minute.
 // Aim for the middle, 90/min. One flash is an on-off pair, so the lamp state
 // toggles at twice that rate: 60000 / (2 * 90) = 333 ms per toggle.
 constexpr int kBlinkerFlashesPerMinute = 90;

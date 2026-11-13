@@ -1,161 +1,178 @@
-# Solar Dashboard Roadmap
+# Solar Dashboard Roadmap — BWSC 2027
 
 ## Project Overview
-- Driver Information Dashboard for a university solar car team.
-- Target hardware: Raspberry Pi 4 (Linux/EGLFS).
-- Development environment: Windows 11 with Qt 6.
+- Driver information dashboard for the MDU Solar Team's car.
+- **Target event: 2027 Bridgestone World Solar Challenge**, Darwin → Adelaide, about
+  3000 km, **22–29 August 2027**, Toyota **Challenger** class.
+- Target hardware: Raspberry Pi 4 (Linux/EGLFS). Development on Windows 11 with Qt 6.
 - Stack: Qt 6 (C++ backend + QML frontend).
-- Race focus: efficiency (watts), safety (temps), and legality (signals/BMS).
+- Priorities: efficiency (watts), safety (temperatures), legality (indicators, ESS
+  warnings).
 
-## Phase 1 (Complete) - QML Design & Mocking
-- Goal: a fully runnable UI on Windows for rapid iteration.
-- Method: QML-only mock backend using `QtObject` inside QML.
-- Constraints: avoid Linux-specific headers (e.g., SocketCAN) so Windows builds succeed.
-- ✅ **Completed**: Race/Debug mode switching architecture
-  - Split dashboard into two independent variants (`RaceDashboard.qml`, `DebugDashboard.qml`)
-  - Implemented mode controller in `Main.qml` with Loader-based architecture
-  - Added 'D' key toggle for mode switching (temporary, will be physical button in Phase 2)
+## Key dates
 
-## Phase 2 (Complete) - C++ Backend Integration
-- ✅ `VehicleData` (C++) replaced `MockBackend.qml` as the single backend.
-- ✅ WaveSculptor22 frame decoding, isolated in `WaveSculptorDecoder` with no Qt or socket dependencies so it is unit-testable on Windows.
-- ✅ `SocketCanReader` reads real CAN on Linux; `VehicleSimulator` drives a mock cycle everywhere.
-- Cross-platform strategy: only `SocketCanReader` is `#ifdef Q_OS_LINUX`. The simulator is plain cross-platform C++, not a Windows-only branch, so both platforms exercise the same backend code.
-- Values with no hardware behind them read as unknown rather than as plausible defaults: BMS readouts show `--`, the BMS health dot goes grey rather than green, and with no gear reported all three of D/N/R render dimmed.
+From Reg. 1.12 and 1.29.1 — see `docs/reference/BWSC2027_Regulations_Reference.md` §10.
 
-## Phase 3 (In Progress) - Hardware Bring-Up
+| Date | What | Why it matters here |
+| :--- | :--- | :--- |
+| **Fri 5 Mar 2027** | Group A & B documentation due | The **Electrical System Specification** has to describe the display, its supply, the Pi and the CAN wiring. Panel choice and power design must be settled by then. |
+| Sun 15 Aug 2027 | Group E — Roadworthiness Certificate | The certifying engineer has signed off the mount, vision and electrical install. |
+| **Mon 16 Aug 2027** | Static Scrutineering begins | **Hardware design freeze** (Reg. 3.15.1). Vision, lights/indicators and electrical compliance are inspected. |
+| Sat 21 Aug 2027 | Dynamic Scrutineering, closes 12:30 | No start without passing. |
+| Sun 22 Aug 2027 | Official start, Darwin, 08:00 | |
 
-Hardware on hand: Raspberry Pi 4 Model B (2 GB), MCP2515 SPI CAN module,
-SN65HVD230 transceiver.
+## Phase 1 (Complete) — QML design and mocking
+- A fully runnable UI on Windows; Race/Debug mode split with a Loader-based controller
+  in `Main.qml`.
 
-- ✅ **Transceiver swap complete.** TJA1050 desoldered, SN65HVD230 fitted, so the
-  whole CAN path now runs at the Pi's 3.3 V logic level.
-- Staged bring-up per `docs/pi-setup.md`:
-  - ✅ Stage 0 — Raspberry Pi OS installed and booting
-  - ⏳ Stage 1 — dashboard builds and displays on the Pi **(current step)**
-  - Stage 2 — `vcan0` loopback proves the decoder against injected frames
-  - Stage 3 — MCP2515 + SN65HVD230 recognised, real frames received
-  - Stage 4 — full two-node physical bus
+## Phase 2 (Complete) — C++ backend
+- ✅ `VehicleData` (C++) is the single backend; `MockBackend.qml` is gone.
+- ✅ WaveSculptor22 and Lithium Balance BMS decoding, each a pure function with no Qt or
+  socket dependency, so both are unit-tested on Windows.
+- ✅ `SocketCanReader` reads real CAN on Linux; `VehicleSimulator` drives a mock cycle
+  everywhere. Only `SocketCanReader` is `#ifdef Q_OS_LINUX`.
+- ✅ Values with no hardware behind them read as unknown (`--`, grey dots, dimmed gear),
+  never as plausible defaults.
 
-Stages 1 and 2 need no CAN hardware. Even though the board modification is
-already done, work through them first so any fault found in Stage 3 is
-definitely wiring and not software.
+## Phase 3 (In Progress) — Pi bring-up
 
-### Open decision — which display
+Hardware on hand: Raspberry Pi 4 Model B (2 GB), MCP2515 SPI CAN module modified to
+use an SN65HVD230 3.3 V transceiver (TJA1050 removed).
 
-Two Riverdi HDMI panels have been bought and neither has been committed to: a **5″ at
-800×480** and a **7″ at 1024×600**. The 7″ has internal backlight PWM and a metal
-mounting frame, both of which matter later; the 5″ has a wider input range and USB-C for
-bench work.
+Staged per `docs/hardware/pi-setup.md`:
+- ✅ Stage 0 — Raspberry Pi OS installed and booting
+- ⏳ Stage 1 — dashboard builds and displays on the Pi **(current step)**
+- Stage 2 — `vcan0` loopback proves the decoder against injected frames
+- Stage 3 — MCP2515 + SN65HVD230 recognised, real frames received
+- Stage 4 — full two-node physical bus
+- **Stage 5 (planned) — in-car hardening.** Read-only root filesystem (overlayfs),
+  kiosk autostart at boot, boot-to-display time measured, a 9-hour soak test, and a
+  thermal check inside the real enclosure. Why each one matters is in the compliance
+  list below.
 
-Comparison and layout impact are in `docs/display-hardware.md`.
+Stages 1 and 2 need no CAN hardware. Work through them first so any fault in Stage 3 is
+definitely wiring, not software.
 
-✅ **No longer blocks anything.** The layout is resolution-independent as of 2026-09-04 —
-an 800×480 reference design scaled by `RaceDashboard._uiScale`, so both panels render the
-same design at their own size. Race Mode UI work can proceed before the panel is picked.
+## Phase 4 (Next) — In-car installation
 
-### Regulatory compliance
+The physical side of the dashboard subsystem: getting the Pi and panel powered, wired
+and mounted in the car. Requirements, the hardware/software interface contract and the
+open decisions are in **`docs/hardware/wiring.md`**. Design files (ECAD harness,
+enclosure CAD, BOM, datasheets) live in the team's subsystem storage, not in this repo.
 
-Audited against the iESC display requirements on 2026-09-03; full per-item status in
-`docs/regulatory-compliance.md`.
+- Pi and panel supply, derived from the ESS, on the low-voltage bus that safe state
+  de-energises.
+- CAN drop to the Pi, with a termination plan agreed with the electrical team.
+- Connectors, mount and enclosure.
+- The dashboard's part of the Group B Electrical System Specification (**5 Mar 2027**).
 
-- ✅ **Hazard indicator added.** Red triangle centred between the blinker arrows;
-  both arrows flash together while engaged. UI complete, awaiting a live source.
-- ✅ **Rear-vision feed: out of scope.** Decision recorded — not this dashboard's
-  focus. Only applies at all if the car uses a camera instead of mirrors.
-- ✅ **ESS warning sources decoded (2026-09-05).** All five regulation triggers now
-  have real sources from the Lithium Balance BMS: cell under/over voltage, pack
-  current, and cell under/over temperature. The severity mapping is wired — over
-  temperature and over-voltage escalate warning to critical, under-voltage and
-  over-current warn first because the driver can recover them, under-temperature is
-  warning-only.
-- ⏸ **ESS thresholds still unset.** `src/BmsLimits.h` holds all nine limits as NaN, so
-  no ESS alert can fire yet. The figures are already in our BMS configuration, in the
-  **Operational Limits** view that is not part of the export we have — see
-  `docs/Notes.md`. Exporting that view finishes this item.
-- ⏸ **`bmsFault` has no source.** No frame in the BMS configuration carries a fault or
-  status signal. The error-frame block at `0x200` is the likely route and Data ID 34
-  would suit the footer dot; both are recorded in
-  `docs/LithiumBalance_BMS_CAN_Reference.md` §5.
-- ⚠ **Open question for the electrical team.** The dashboard must run off the main
-  pack (Reg. 2.26.2) while hazards run off the auxiliary battery (Reg. 2.30) — so
-  the screen dies during a main-battery cut-off while the hazards keep flashing,
-  making the on-screen hazard verification unavailable exactly when it matters.
+## BWSC compliance — what must change
 
-### Blocked on other teams
-- **Blinker and hazard state.** Neither has a live source: nothing decodes a
-  driver-controls message, so on a real bus the arrows and the hazard triangle never
-  light. Blocked on the lights owner, who has not yet confirmed a layout. Decide with
-  them whether the source sends actual lamp state or merely "indicator requested" —
-  the regulation asks for *verification*, which argues for mirroring the real lamp.
+Status per item is in `docs/regulatory-compliance.md`; the rules are in
+`docs/reference/BWSC2027_Regulations_Reference.md`.
+
+### Must — a scrutineering failure if not done
+
+**Screen content (Reg. 2.25.1)**
+- ⏸ **Blinker source.** Nothing decodes a blinker message, so on a live bus the arrows
+  never light. Blocked on the lights owner. An "indicator requested" signal is enough
+  under BWSC; mirroring lamp state is better but optional.
+- ⏸ **Hazard source.** Same owner, same message.
+- ⏸ **ESS warnings able to fire.** Two steps:
+  1. Export the BMS **Operational Limits** view and fill in `src/BmsLimits.h` — every
+     limit is `NaN` today, so no ESS warning can ever appear (`docs/Notes.md`,
+     `docs/reference/LithiumBalance_BMS_CAN_Reference.md` §5a).
+  2. **Restructure `BmsLimits.h` for charge vs discharge.** Reg. 2.5.5/2.5.6 names seven
+     limits: separate charge and discharge current, and separate maximum temperature while
+     charging and while discharging. We have one of each. Can be done before the export —
+     the new fields are `NaN` too.
+- ☐ **Debug mode unreachable while moving.** It has no arrows or hazard triangle, so it
+  hides two mandatory items. Retire it (it is also unreadable and duplicates the alert
+  logic — see Known Issues) or gate it on `vehicleStopped`. **Do this before any in-car
+  mode button exists**; the earlier plan to replace the `D` key with a physical input
+  must not reintroduce the problem.
+
+**Installation (Phase 4)** — detail and regulation references in `docs/hardware/wiring.md`
+- ☐ Supply from the ESS, not a separate battery (2.25.2).
+- ☐ Supply on the side of the LV bus that safe state de-energises, and drawn in the
+  safe-state diagram (2.28.1, 1.29.1) — **5 Mar 2027**.
+- ☐ Mount outside the driver's vision envelope (2.16), no injury or entrapment risk and
+  50 mm helmet clearance (2.11.2, 2.11.5), clear of the 15 s egress path (2.14.1) —
+  certifying engineer, Group E.
+- ☐ If any HV wiring reaches the driver compartment: IPXXD protection (2.27.2), proper
+  double insulation (2.27.4), HV symbol where applicable (2.27.6).
+- ☐ Any converter input capacitance downstream of the contactors discharges below 60 V
+  within 5 s of safe state (2.5.11) — electrical team, but it involves our supply.
+
+### Should — engineering, not regulation
+
+- ☐ **Read-only root filesystem.** Safe state cuts the Pi's power without warning, on
+  three separate paths. A read-write SD card will eventually fail to boot. (Stage 5)
+- ☐ **Dashboard up before the car can move.** After safe state the Pi cold-boots. Measure
+  boot-to-display and make sure the car's power-up sequence cannot outrun it — otherwise
+  speed and indicators are briefly missing while in motion. (Stage 5)
+- ☐ **Soak and thermal test.** About 9 hours a day (08:00–17:00) for five or more days,
+  under a canopy in Northern Territory sun. Check for memory growth and Pi throttling.
+  (Stage 5)
+- ☐ **Spares.** An identical, pre-flashed Pi and panel travel with the team. Reg. 3.15.2
+  only allows replacing parts with equivalent spares carried in support vehicles.
+- ☐ **Pick the panel before 5 Mar 2027.** The comparison is in
+  `docs/hardware/display-hardware.md`. The UI no longer depends on the choice.
+- ☐ **Decide on the CAN board for the car.** The hand-modified MCP2515 board is fine on
+  the bench; flying leads over 3000 km of road vibration are not. See
+  `docs/hardware/wiring.md`.
+- ☐ **Remove lap mode.** A circuit-racing feature (`L` key, lap delta, "LAP MODE"
+  caption, `lapModeActive` / `targetDeltaTime`). The BWSC route has no laps, and its only
+  source is the simulator.
+- ☐ **Measure the Pi + panel draw.** Likely 10–15 W, i.e. roughly 3–4 % of the 11 MJ
+  (≈ 3.06 kWh) Challenger energy limit over a 9-hour day.
+- ☐ **Ask about the isolation monitor.** Reg. 2.27.9 requires one, but says nothing
+  about it reporting anywhere. If it happens to talk on CAN it would make a meaningful
+  footer dot; if not, nothing is owed.
+
+## Blocked on other teams
+- **Blinker and hazard state** — the lights owner. See above.
 - **Pedal position.** `PedalBar.qml` draws accelerator travel against the three
-  one-pedal-drive zones, and `VehicleData::pedalPercent` is deliberately read-only so
-  nothing in the UI can invent a value. No driver-controls message carries pedal
-  position yet, so on a real bus the bar is **doubly blocked**: it needs gear as well,
-  and neither exists. Only the simulator drives it today. Settle it alongside the gear
-  and blinker protocol rather than as a separate conversation, since all three come
-  from the same owner. The zone percentages also need confirming against the VCU.
-- **Gear message.** Under active discussion with the ECU (ESP32) and
-  driver-controls (Arduino) owners. Agreed so far: the ECU should own gear state
-  and broadcast it periodically rather than the dashboard trusting a button
-  press. Byte layout not yet fixed, so nothing is decoded.
-- **BMS thresholds and fault source.** The Lithium Balance n-BMS is now decoded
-  (extended IDs `0x100`-`0x102`), so `packTemp`, `packTempMin`, `cellVoltageMin`,
-  `cellVoltageMax`, `packDeltaV` and `netCurrent` all have real sources. Two gaps
-  remain: the ESS thresholds in `src/BmsLimits.h` are **unset pending the cell
-  datasheet**, and **`bmsFault` has no source** — the configuration broadcasts no
-  status signal at all. Enabling **Data ID 34 (`STATUS`)** during the pack rebuild is
-  the fix; see `docs/LithiumBalance_BMS_CAN_Reference.md` §5.
+  one-pedal-drive zones; `VehicleData::pedalPercent` is read-only so nothing in the UI can
+  invent a value. No message carries it yet, and the bar also needs gear, so on a real bus
+  it is **doubly blocked**. Settle it with the gear and blinker protocol — same owners.
+  The zone percentages also need confirming against the VCU.
+- **Gear message.** Under discussion with the ECU (ESP32) and driver-controls (Arduino)
+  owners. Agreed so far: the ECU owns gear state and broadcasts it periodically. Byte
+  layout not fixed, so nothing is decoded.
+- **BMS.** Decoded (extended IDs `0x100`–`0x102`). Remaining: the Operational Limits
+  export (above), and **`bmsFault` has no source** — enable **Data ID 34 (`STATUS`)**
+  during the pack rebuild, or confirm the `0x200` error frames are transmitting. See
+  `docs/reference/LithiumBalance_BMS_CAN_Reference.md` §5.
+- **Motor current command scaling — raise with the ECU owner.** The ESP32 simulator
+  project's `protocol.hpp` documents `motor_current_percent` as 0–100 %, but the
+  WaveSculptor expects **0.0–1.0** (`docs/reference/WaveSculptor22_CAN_Protocol_Reference.md`
+  §4). Sending `100.0` where `1.0` was expected is a full-scale command. Confirm what the
+  ECU firmware actually sends.
 
-## Dashboard Priorities
-- Efficiency: net power (watts) and energy usage context.
-- Safety: motor/controller temperatures and fault overlays.
-- Legality: indicators and BMS fault visibility.
-- Visual design: high-contrast, outdoor-readable theme.
-
-## Near-Term Milestones
-- Finish the staged CAN bring-up on the Pi (`docs/pi-setup.md`), doing `vcan0`
-  before touching hardware so software faults are ruled out first.
-- Settle the gear protocol with the ECU and driver-controls owners, then decode
-  it and add the cross-check against measured motor direction.
-- ✅ **Driver-focus pass (2026-09-07).** Stripped engineer data off the screen: controller
-  temperature, pack ΔV, pack current and the controller limit summary are gone, their
-  warnings kept. Battery shows a percentage instead of a bar, POWER is a 10 s average, the
-  logo is gated on Neutral below 5 km/h, and the footer carries six liveness dots
-  (CAN/BMS/Motor/VCU/GPS/TELEM) in place of the limit text. VCU, GPS and telemetry have no
-  source yet and sit grey.
-- Continue refining Race Mode UI for driving (primary focus).
-- Replace the `D` key mode toggle with a physical input once the enclosure is
-  decided.
+## Near-term milestones
+- Finish Stage 1 on the Pi, then Stage 2 (`vcan0`) before touching hardware.
+- Restructure `BmsLimits.h` for charge/discharge limits.
+- Start the Phase 4 wiring design from `docs/hardware/wiring.md`.
+- Settle the gear / blinker / pedal protocol with the ECU and driver-controls owners.
+- ✅ **Driver-focus pass (2026-09-07).** Engineer data stripped off the screen (controller
+  temperature, pack ΔV, pack current, controller limit summary), warnings kept. Battery as
+  a percentage, POWER as a 10 s average, six liveness dots in the footer.
 
 ## Known Issues
 - **Debug Mode is unreadable.** It passes no colours to its child components, so they
-  fall back to a near-black default against a near-black background. Removing day mode
-  did not fix this: the problem is that Debug injects nothing, not that there were two
-  palettes. Decide whether to re-theme it or retire it; Race Mode
-  is the only maintained view. Details in `docs/implementation.md` §9.
-- **Alert logic is duplicated** between `RaceDashboard.qml` and
-  `DebugDashboard.qml`; threshold changes must be made in both. `RaceDashboard` now has
-  the cause/action tables and the alert background; `DebugDashboard` was ported only far
-  enough to keep building and has neither.
+  fall back to near-black on near-black. **Also a compliance problem** — see the Debug
+  item under Must. Retiring it is the simplest fix for both.
+- **Alert logic is duplicated** between `RaceDashboard.qml` and `DebugDashboard.qml`;
+  threshold changes must be made in both. Debug was ported only far enough to keep
+  building. Disappears if Debug mode is retired.
 - **`DebugDashboard`'s critical overlay is not speed-gated.** Race Mode only shows the
-  full-screen takeover when stopped; the frozen debug view still takes over at any speed.
-  It is a bench view, not something the car runs, so this was left alone.
-- **Dead plumbing.** DSP board temperature, bus current, amp-hours and motor RPM
-  are decoded and passed into components that no longer display them.
-- **The pedal bar's coast/drive boundary is dark-on-dark.** Since drive changed from
-  amber to teal, coast (`#454545`) and drive (`#007766`) differ by hue rather than
-  brightness. It reads fine on a desktop monitor; the test that matters is the real
-  panel in daylight.
+  full-screen takeover when stopped; the debug view takes over at any speed.
+- **Dead plumbing.** DSP board temperature, bus current, amp-hours and motor RPM are
+  decoded and passed into components that no longer display them.
+- **The pedal bar's coast/drive boundary is dark-on-dark.** Coast (`#454545`) and drive
+  (`#007766`) differ by hue rather than brightness. The real test is the panel in direct
+  outback sun.
 
-## Documentation Map
-- `ui-layout.md` — what is on screen and what it means
-- `implementation.md` — architecture, data flow, extension points
-- `implementation-tldr.md` — one-screen quick reference
-- `concepts.md` — CAN filters/masks and byte order, explained from scratch
-- `pi-setup.md` — staged Raspberry Pi and CAN bring-up guide
-- `display-hardware.md` — the two candidate Riverdi panels and their layout impact
-- `regulatory-compliance.md` — iESC display requirements and where we stand
-- `LithiumBalance_BMS_CAN_Reference.md` — BMS protocol, spec-of-record
-- `WaveSculptor22_CAN_Protocol_Reference.md` — motor controller protocol
-  spec-of-record
+## Documentation
+The documentation map lives in `CLAUDE.md`.

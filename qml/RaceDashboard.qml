@@ -66,7 +66,7 @@ Item {
     // BMS that is not reporting is not a fault, it is an absent measurement.
     readonly property bool _criticalBmsFault:        backend.bmsValid && backend.bmsFault
 
-    // ESS criticals (iESC Reg. 2.5 & 3.5). Bit values are bms::EssFlag in
+    // ESS criticals (BWSC Reg. 2.25.1; limits per Reg. 2.5.5-2.5.6). Bit values are bms::EssFlag in
     // src/BmsLimits.h. All stay clear until the cell datasheet limits are set.
     readonly property bool _criticalCellOverVoltage:  (backend.essFlags & 0x002) !== 0
     readonly property bool _criticalCellUnderVoltage: (backend.essFlags & 0x008) !== 0
@@ -89,10 +89,11 @@ Item {
     // One table rather than parallel cause/action functions, so the priority
     // order exists in exactly one place.
     //
-    // Every action is currently STOP SAFELY: Reg. 3.5 has a critical fault
-    // isolating the pack, so the car is losing propulsion regardless and the
-    // job is to get off the racing line. The per-fault field is kept so a fault
-    // wanting different advice does not need the structure changed.
+    // Every action is currently STOP SAFELY: BWSC Reg. 2.5.5 requires the BMS to
+    // keep the cells inside their limits, so it will isolate the pack and the car
+    // is losing propulsion regardless. The job is to get off the road safely. The
+    // per-fault field is kept so a fault wanting different advice does not need
+    // the structure changed.
     readonly property var _critical: {
         if (_criticalCellOverTemp)     return { cause: "ESS CELL OVER-TEMPERATURE", action: "STOP SAFELY" };
         if (_criticalCellOverVoltage)  return { cause: "ESS CELL OVER-VOLTAGE",     action: "STOP SAFELY" };

@@ -97,7 +97,7 @@ private:
     Q_PROPERTY(DeviceStatus gpsStatus READ gpsStatus NOTIFY gpsStatusChanged)
     Q_PROPERTY(DeviceStatus telemetryStatus READ telemetryStatus NOTIFY telemetryStatusChanged)
 
-    // ── ESS warnings (iESC Reg. 2.5 & 3.5) ──
+    // ── ESS warnings (BWSC Reg. 2.25.1; limits per Reg. 2.5.5-2.5.6) ──
     // Bitfield of bms::EssFlag, masked in QML the way errorFlags already is.
     // Stays zero while the limits in BmsLimits.h are unset, which is what
     // essLimitsConfigured reports.
@@ -107,8 +107,8 @@ private:
     // ── Driver inputs: keyboard for now, GPIO or CAN device later ──
     Q_PROPERTY(bool leftBlinker READ leftBlinker WRITE setLeftBlinker NOTIFY leftBlinkerChanged)
     Q_PROPERTY(bool rightBlinker READ rightBlinker WRITE setRightBlinker NOTIFY rightBlinkerChanged)
-    // Hazard: all indicators flashing together. Mandatory on-screen verification
-    // under iESC Reg. 2.26.1, so it is guarded like gear rather than freely
+    // Hazard: all indicators flashing together (BWSC Reg. 2.23.12). Mandatory on
+    // screen under BWSC Reg. 2.25.1, so it is guarded like gear rather than freely
     // writable -- see setHazardActive().
     Q_PROPERTY(bool hazardActive READ hazardActive WRITE setHazardActive NOTIFY hazardActiveChanged)
     Q_PROPERTY(QString driveMode READ driveMode WRITE setDriveMode NOTIFY driveModeChanged)

@@ -16,6 +16,7 @@ at once and hoping.
 | 2 | Our CAN software is correct | nothing extra |
 | 3 | The CAN chip and wiring work | + MCP2515, SN65HVD230 |
 | 4 | The full physical bus works | + a second CAN device |
+| 5 | Ready for the car *(planned)* | read-only root, kiosk autostart, boot time, soak and thermal tests — see `docs/roadmap.md` |
 
 Do not skip ahead to Stage 3. Stages 1 and 2 need no CAN hardware at all and
 rule out every software fault first.

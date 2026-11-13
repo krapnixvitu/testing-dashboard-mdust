@@ -2,28 +2,28 @@
 
 Driver information dashboard for the MDU Solar Team's solar car. Qt 6, C++ backend with
 a QML frontend. Runs on a Raspberry Pi 4 (Linux/EGLFS); developed on Windows 11.
-Competing in Belgium (iLumen European Solar Challenge, Circuit Zolder).
+Target event: the **2027 Bridgestone World Solar Challenge** (BWSC), Darwin → Adelaide,
+22–29 August 2027, Challenger class.
 
 The UI is **designed against an 800 × 480 reference and scaled**, so it fits either
 candidate panel (5″/800×480 and 7″/1024×600). `RaceDashboard._uiScale` is the single
 factor; every component takes `uiScale` and wraps its sizes in `px()`. **Write new sizes
 as `px(n)` against the 800 × 480 reference, never as bare pixels.** See
-`docs/display-hardware.md`.
+`docs/hardware/display-hardware.md`.
 
 Race priorities, in order: **efficiency** (watts), **safety** (temperatures),
 **legality** (indicators, BMS visibility).
 
 ## Regulations
 
-The competition rules governing what the driver's screen must show are summarised in
-**`iLumen European Solar Challenge Dashboard Design Standards.md`** at the repo root.
-Consult it before changing anything the driver sees — several on-screen elements are
-mandatory, not design choices, and removing one is a scrutineering failure rather than a
-UI regression.
+The governing rules are the **BWSC 2027 Event Regulations**, indexed for this project —
+with page numbers — in **`docs/reference/BWSC2027_Regulations_Reference.md`**. Our status
+against them is in `docs/regulatory-compliance.md`. Consult both before changing anything
+the driver sees: several on-screen elements are mandatory (Reg. 2.25.1), and removing or
+hiding one is a scrutineering failure rather than a UI regression.
 
-Two caveats on that file: it is a **secondary summary** of the 2024 regulations, not the
-regulation text, and the event is biennial — so the official current-year iESC
-regulations are the authority, and this file is the convenient index into them.
+The authority is the PDF itself (`docs/vendor/bwsc2027/`, untracked) **plus any Regulation
+Bulletins and Team Notices**, which amend it. The reference doc is an index, not the rule.
 
 ## Build, run, test
 
@@ -35,7 +35,7 @@ Qt 6.10.1 lives at `Z:\Qt\6.10.1\mingw_64` and MinGW 13.1.0 at
 cmake -B build -G "MinGW Makefiles" -DBUILD_TESTING=ON
 cmake --build build
 ./build/SolarDashboard.exe --simulate
-ctest --test-dir build --output-on-failure    # tests: decoder, vehicledata
+ctest --test-dir build --output-on-failure    # tests: decoder, vehicledata, bmsdecoder
 ```
 
 `build.ps1` is the fast inner loop: it kills any running instance, rebuilds, and
@@ -107,11 +107,15 @@ they are written down.
   endian, the BMS is big endian, so handing a frame to the wrong one yields plausible
   nonsense rather than an error. `SocketCanReader` routes on `CAN_EFF_FLAG`, not on the
   identifier alone — an extended and a standard frame can share the same low bits.
-- **The protocol spec-of-record is `docs/WaveSculptor22_CAN_Protocol_Reference.md`,
-  never `reference/esp32-simulator/protocol.hpp`.** That file declares struct fields in
-  the opposite order to the wire, systematically, so a whole-struct `memcpy` silently
-  swaps fields with no warning. `reference/` is not compiled and may drift out of sync
-  with the ESP32 project. See `docs/concepts.md` §2.
+- **The protocol spec-of-record is `docs/reference/WaveSculptor22_CAN_Protocol_Reference.md`,
+  never the ESP32 simulator project's `protocol.hpp`.** That file declares struct fields
+  in the opposite order to the wire, systematically, so a whole-struct `memcpy` silently
+  swaps fields with no warning. See `docs/concepts.md` §2.
+- **Nothing may hide a Reg. 2.25.1 item while the car is moving.** Speed, indicators,
+  hazard and ESS warnings must be "always visible … not behind menus" in motion. No mode,
+  page or overlay may cover or replace them unless gated on `backend.vehicleStopped`, the
+  way `CriticalOverlay` is. **Debug mode currently breaks this** (it has no arrows or
+  hazard triangle) — see `docs/roadmap.md` before adding any in-car mode input.
 - **QML must never branch on real-vs-simulated.** This is why `VehicleSimulator` is
   plain cross-platform C++ rather than a Windows-only mock: both platforms exercise the
   same backend path, so Windows testing means something. Only `SocketCanReader` is
@@ -170,21 +174,29 @@ changelog.
 ## Current state
 
 Phase 3, hardware bring-up, at **Stage 1** (dashboard building and displaying on the
-Pi). Staged plan and troubleshooting in `docs/pi-setup.md`.
+Pi). Staged plan and troubleshooting in `docs/hardware/pi-setup.md`.
+
+Two dates drive the work: **5 Mar 2027**, when the Electrical System Specification
+(panel, supply, Pi, CAN wiring) is due, and **16 Aug 2027**, Static Scrutineering, when the
+hardware design freezes. Next after Pi bring-up is Phase 4, the in-car installation —
+requirements in `docs/hardware/wiring.md`.
 
 Blocked on other teams, all already plumbed through the backend and gated so they
 light up as soon as a source exists:
 
+- **Blinker and hazard state** — no message decoded, so on a live bus the arrows and
+  hazard triangle never light. This is the largest compliance gap (Reg. 2.25.1). Blocked
+  on the lights owner; an "indicator requested" signal is sufficient.
 - **Gear message** — byte layout not yet agreed with the ECU (ESP32) and
   driver-controls (Arduino) owners.
 - **Pedal position** — `pedalPercent` feeds the one-pedal-drive bar in the centre
   card. Read-only by design, and doubly blocked: the bar needs gear too, so it is
   hidden on a real bus until both land.
-- **BMS** — the Lithium Balance n-BMS is decoded (`0x100`–`0x102`). Two things remain:
-  the **ESS thresholds in `src/BmsLimits.h` are unset** pending the cell datasheet, and
-  **`bmsFault` has no source** because the BMS configuration broadcasts no status signal.
-  Enabling Data ID 34 (`STATUS`) during the pack rebuild is the fix — see
-  `docs/LithiumBalance_BMS_CAN_Reference.md` §5.
+- **BMS** — the Lithium Balance n-BMS is decoded (`0x100`–`0x102`). Remaining: the **ESS
+  thresholds in `src/BmsLimits.h` are unset** until the BMS **Operational Limits** view is
+  exported (`docs/reference/LithiumBalance_BMS_CAN_Reference.md` §5a), and `BmsLimits.h`
+  needs separate charge and discharge limits to match Reg. 2.5.5/2.5.6. **`bmsFault` has
+  no source** — enabling Data ID 34 (`STATUS`) during the pack rebuild is the fix (§5).
 
 Known issues live in `docs/roadmap.md`. Do not restate them here; they will drift.
 
@@ -192,14 +204,21 @@ Known issues live in `docs/roadmap.md`. Do not restate them here; they will drif
 
 | File | Contents |
 | :--- | :--- |
-| `docs/roadmap.md` | Phase status, blockers, known issues |
+| `docs/roadmap.md` | Key dates, phase status, BWSC must/should list, blockers, known issues |
+| `docs/regulatory-compliance.md` | BWSC Reg. 2.25 requirements, per-item status, deferred work |
 | `docs/ui-layout.md` | What is on screen and what it means |
 | `docs/implementation.md` | Architecture, data flow, extension points |
 | `docs/implementation-tldr.md` | One-screen quick reference |
 | `docs/Notes.md` | Quick-reference notes and things to raise with the team |
 | `docs/concepts.md` | CAN filters/masks and byte order, from scratch |
-| `docs/pi-setup.md` | Staged Raspberry Pi and CAN bring-up |
-| `docs/display-hardware.md` | The two candidate Riverdi panels, and what each costs in layout work |
-| `docs/regulatory-compliance.md` | iESC display requirements, per-item status, deferred work |
-| `docs/LithiumBalance_BMS_CAN_Reference.md` | BMS protocol, spec-of-record |
-| `docs/WaveSculptor22_CAN_Protocol_Reference.md` | Motor controller protocol, spec-of-record |
+| `docs/hardware/pi-setup.md` | Staged Raspberry Pi and CAN bring-up |
+| `docs/hardware/display-hardware.md` | The two candidate Riverdi panels, and what each costs in layout work |
+| `docs/hardware/wiring.md` | In-car installation: requirements, hardware/software interface contract, open decisions |
+| `docs/reference/BWSC2027_Regulations_Reference.md` | The BWSC 2027 rules that touch the dashboard, with page numbers |
+| `docs/reference/LithiumBalance_BMS_CAN_Reference.md` | BMS protocol, spec-of-record |
+| `docs/reference/WaveSculptor22_CAN_Protocol_Reference.md` | Motor controller protocol, spec-of-record |
+| `docs/reference/CAN-Database-(DBC)-BMS.xlsx` | The BMS CAN configuration export |
+| `docs/vendor/` | Untracked third-party PDFs: n-BMS manual, BWSC regulations, Solar Wombat |
+
+Hardware design files (ECAD, CAD, BOM, datasheets) live in the team's subsystem storage,
+not in this repo — see `docs/hardware/wiring.md` §1.
