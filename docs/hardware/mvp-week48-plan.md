@@ -79,10 +79,12 @@ fallback screen. **Fit the VSEL jumper**: open gives 3.3 V, shorted gives 5 V. C
 output with a multimeter before the Pi is connected. The module ships with its screw
 terminals unsoldered.
 
-A USB-C-to-open-end cable connects it to the Pi. Electrokit's is rated **2 A**, not 3 A.
-That is enough for the Pi 4 with nothing on its USB ports (typically under 1.5 A), but
-**cut it to 20–30 cm** to keep the voltage drop small, and run the under-voltage check
-below. If it fails, a thicker or shorter lead is the fix.
+A **3 A-rated USB-C lead** connects it to the Pi: Electrokit's "USB-C to 5.5×2.1 mm DC
+plug, 5 V 3 A" adapter cable, with the DC plug cut off and the two wires screwed into the
+buck, shortened to about 30 cm. The page's warning that it is limited to 500 mA applies
+only to USB-PD chargers, which need resistors to negotiate; a buck converter just
+supplies 5 V and the Pi draws what it needs. (Electrokit's open-end USB-C cables are
+rated 2 A, so they are not used.)
 
 The **under-voltage check**: after a few minutes under load, run `vcgencmd get_throttled`.
 `throttled=0x0` is good. Anything else means the supply sags and must be fixed before
@@ -199,20 +201,22 @@ have stores, so their items can be picked up the same day.
 
 ### Order now (Electrokit, one order)
 
+Every link below has been checked against what the plan needs.
+
 | # | Item | Qty | Price | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | 1 | [RS485 CAN HAT for Raspberry Pi](https://www.electrokit.com/en/rs485-can-bus-hat-for-raspberry-pi) (Waveshare) | 1 | 179 SEK | The CAN board for the MVP (§4). |
 | 2 | [DC/DC step-down 3.3 V/5 V 5 A](https://www.electrokit.com/en/dcdc-omvandlare-step-down-3.3v/5v-5a) (EKM006) | 2 | 2 × 142 SEK | 12 V → 5 V for the Pi; one spare. Fit the 5 V jumper (§2). |
 | 3 | [HDMI cable, HDMI to micro-HDMI, 1 m](https://www.electrokit.com/hdmi-kabel-hane-micro-hane-1m-svart) | 1 | 69 SEK | Micro-HDMI (type D) to full-size HDMI, correct for the Pi 4. |
-| 4 | [DC cable 2.1/5.5 mm male to open end, 2 m, red/black](https://www.electrokit.com/dc-kabel-2.1/5.5mm-hane-till-open-end-2m-svart/rod) | 1 | 22 SEK | Panel power from 12 V. 3 A max. Cut to length. **Check polarity with a multimeter**: centre should be + (datasheet pin 1 VDD). |
-| 5 | [USB-C power cable, open end, 1 m](https://www.electrokit.com/stromkabel-usb-c-oppen-anda-1m) | 2 | 2 × 39 SEK | Buck → Pi. Rated 2 A: cut to 20–30 cm (§2). One spare. |
+| 4 | [DC cable 2.1/5.5 mm male to open end, 2 m, red/black](https://www.electrokit.com/dc-kabel-2.1/5.5mm-hane-till-open-end-2m-svart/rod) | 1 | 22 SEK | Panel power from 12 V. 3 A max. Coil the spare length for now; cut it for the car. **Check polarity with a multimeter**: centre should be + (datasheet pin 1 VDD). The [0.3 m version](https://www.electrokit.com/dc-kabel-2.1/5.5mm-30cm-oppen-anda) is equally fine if in stock. |
+| 5 | [Adapter cable USB-C to 5.5×2.1 mm DC plug, 5 V 3 A](https://www.electrokit.com/adapterkabel-usb-c-till-5.5x2.1mm-dc-plugg-5v-3a) | 2 | 2 × 55 SEK | Buck → Pi. Cut the DC plug off, screw the wires into the buck, shorten to ~30 cm (§2). Centre pin is +, so the wire to the centre is +. One spare. |
 | 6 | [WAGO 221-413, 3-pole](https://www.electrokit.com/en/skarvdon-3-pos-0.2-4mm2-wago) | 6 | 6 × ~8 SEK | Split 12 V + and GND to panel and buck; spares. 0.2–4 mm², 32 A. |
 | 7 | [WAGO 221-415, 5-pole](https://www.electrokit.com/en/skarvdon-5-pos-0.2-4mm2-wago) | 2 | 2 × 15 SEK | A common ground point. |
-| 8 | 120 Ω resistors | a few | ~10 SEK | Bench termination. |
-| 9 | 40-pin GPIO ribbon cable | 1 | ~60 SEK | Only if the HAT cannot sit on the Joy-it case (§2). |
+| 8 | [Inline fuse holder, MINI/ATM blade, 10 A, with leads](https://www.electrokit.com/mini-atm-flatsakringshallare-med-kabel-10a) | 2 | 2 × 29 SEK | First thing after the 12 V tap. 1.31 mm² leads, IP54, no fuse included. One spare. |
+| 9 | 120 Ω resistors | a few | ~10 SEK | Bench termination. |
+| 10 | 40-pin GPIO ribbon cable | 1 | ~60 SEK | Only if the HAT cannot sit on the Joy-it case (§2). |
 
-About 750 SEK in all. The 0.3 m DC cable was out of stock on 13 Nov, which is why item 4
-is the 2 m one.
+About 850 SEK in all.
 
 WAGO lever connectors are fine for the bench and the MVP. For the competition car,
 crimped and locking connectors are the better choice (vibration, `wiring.md` §4).
@@ -221,17 +225,17 @@ crimped and locking connectors are the better choice (vibration, `wiring.md` §4
 
 | # | Item | Why |
 | :--- | :--- | :--- |
-| 10 | Inline blade fuse holder + 3 A fuses | First thing after the 12 V tap |
-| 11 | Automotive wire, 0.75–1 mm², red and black | 12 V runs to the WAGOs |
-| 12 | Heat shrink, cable ties | Securing and strain relief |
-| 13 | 12 V bench supply or 12 V ≥ 2 A adapter | Only if the team room has no lab supply |
-| 14 | Spare microSD card, 32 GB | Pre-flashed spare; SD cards die on power cuts |
+| 11 | **MINI (ATM)** blade fuses, **3 A** (violet) | For the holder in item 8. Must be the MINI size. Electrokit also sells them ([3 A MINI](https://www.electrokit.com/flatsakring-3a-32vdc-mini-atm-violett), ~3 SEK) |
+| 12 | Automotive wire, 0.75–1 mm², red and black | 12 V runs to the WAGOs |
+| 13 | Heat shrink, cable ties | Securing and strain relief |
+
+Already in the team room: a 12 V bench supply, and spare microSD cards.
 
 ### Order Monday, once the connector is identified (Mouser / DigiKey / Farnell)
 
 | # | Item | Why | Before week 48? |
 | :--- | :--- | :--- | :--- |
-| 15 | Housings and crimp pins for the team's 2×3 CAN connector | Plugging into the car the way the other PCBs do | Yes: these distributors typically deliver to Sweden in 2–3 working days |
+| 14 | Housings and crimp pins for the team's 2×3 CAN connector | Plugging into the car the way the other PCBs do | Yes: these distributors typically deliver to Sweden in 2–3 working days |
 
 If it is the common Molex Micro-Fit 3.0 2×3 (an educated guess, not confirmed), that is
 a receptacle housing, a matching plug housing and loose crimp terminals. **Confirm the
@@ -281,19 +285,18 @@ unreliable crimps.
     battery? (For the MVP either works. For BWSC it must be from the pack, Reg. 2.25.2.)
 12. How much current is available on it, and is there a free fused output or a
     connector to tap into?
-13. Is there a 12 V bench supply in the room for testing the harness?
 
 **On the bench**
-14. Is the micro-HDMI cable still there? Are both Riverdi panels there?
-15. Read the part-number label on the back of each Riverdi panel and confirm it matches
+13. Is the micro-HDMI cable still there? Are both Riverdi panels there?
+14. Read the part-number label on the back of each Riverdi panel and confirm it matches
     `display-hardware.md` (frameless, 7″ `RVT70HSHNWN00`, 5″ `RVT50HQHNWN00`). The 7″
     jack should be 5.5 × 2.1 mm.
-16. Can a HAT plug on to the Pi with the Joy-it case closed, or is the header covered?
-17. Is the ESP32 simulator in the room with a working transceiver (second node for
+15. Can a HAT plug on to the Pi with the Joy-it case closed, or is the header covered?
+16. Is the ESP32 simulator in the room with a working transceiver (second node for
     §4.2 step 3)?
 
 **Using the dashboard in the car**
-18. How will someone switch between the driver screen and the debug screen in the car,
+17. How will someone switch between the driver screen and the debug screen in the car,
     with no keyboard? Options: a small USB keypad, a push button on a GPIO pin, or simply
     starting the Pi in a chosen mode. Decide before building the switch, because of the
     rule in §7.
@@ -343,7 +346,7 @@ need no hardware and can run in parallel.
 ### Should, if time allows
 
 - Read-only root filesystem, because the Pi loses power abruptly at every key-off.
-  Until then, expect an occasional corrupted SD card and keep a pre-flashed spare (item 14).
+  Until then, expect an occasional corrupted SD card and keep a pre-flashed spare microSD card.
 - Measure the Pi + panel power draw on the 12 V side.
 
 ### Not for the MVP
@@ -359,8 +362,8 @@ mount design, read-only root. All stay on `roadmap.md`.
 | :--- | :--- |
 | **Fri 13 Nov** | Place the Electrokit order (§5 items 1–5). |
 | **Sat 14 Nov** | Team room: answer §6. Photograph the connector and cable. |
-| Sun 15 Nov | Pick up Kjell/Biltema items (10–14) if stores are open; otherwise Monday. |
-| **Mon 16 Nov** | Order connector housings/pins (item 15). Pi: finish Stage 1 and Stage 2 (`vcan0`). |
+| Sun 15 Nov | Pick up Kjell/Biltema items (11–13) if stores are open; otherwise Monday. |
+| **Mon 16 Nov** | Order connector housings/pins (item 14). Pi: finish Stage 1 and Stage 2 (`vcan0`). |
 | Tue 17 – Wed 18 Nov | Electrokit order arrives. Bench: 12 V → buck → Pi, `vcgencmd get_throttled`. Riverdi panel on 12 V. HAT bring-up (§4.2). |
 | Thu 19 – Sun 22 Nov (wk 47) | Debug dashboard. Kiosk autostart. Remove lap mode. Build the harness with the real connector. Mechanics: simple bezel and bracket for the panel. |
 | Mon 23 – Wed 25 Nov (wk 48) | In the car: listen-only on the real bus, `candump`, then the dashboard. Note every ID seen. |
