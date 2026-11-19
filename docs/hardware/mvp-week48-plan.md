@@ -23,7 +23,7 @@ competition dashboard is a separate design.
 | People | Juan Garcia (lead), Sara Zrno. |
 | Display | **Riverdi 7″ `RVT70HSHNWN00`.** The 5″ `RVT50HQHNWN00` is a spare, with no frame planned for it. |
 | Display frame and bracket | **3D printed**, no other material. Size not known yet. |
-| Pi and CAN HAT | The HAT connects to the Pi by the 40-pin flat cable (§5 items 9–10), and **both sit in one 3D-printed case** that holds them mounted and steady. Case design and size not known yet. |
+| Pi and CAN HAT | The HAT connects to the Pi by the 40-pin flat cable (§5 items 9–10), and **both sit in one 3D-printed case** that holds them mounted and steady. The Pi stays in its Joy-it aluminium case with the fans, inside the 3D-printed one. Case design and size not known yet. |
 | Parts | Electrokit order and the local parts (fuses, wire, heat shrink, cable ties) all received. |
 | Spares | No spare Pi. |
 | Where it is | Built at home until the week 48 delivery, then kept in ST Studio. |
@@ -85,7 +85,7 @@ or with jumper wires).
 > fine for the MVP.
 >
 > **Decided (19 Nov):** the HAT goes on the ribbon, and the Pi and HAT share one
-> 3D-printed case so the HAT is held in place.
+> 3D-printed case so the HAT is held in place. The Pi keeps its Joy-it case inside it.
 
 ### Powering the Pi
 
