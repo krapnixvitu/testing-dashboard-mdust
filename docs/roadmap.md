@@ -28,7 +28,8 @@ with a driver screen and a **debug screen**, which is the car's only telemetry f
 Hardware first, because parts have lead times. Plan, shopping list, CAN board test
 procedure and open questions: **`docs/hardware/mvp-week48-plan.md`**.
 
-- ☐ Order parts (CAN HAT backup, 12 V → 5 V buck, bench parts) — Fri 13 Nov
+- ✅ Order parts (CAN HAT, 12 V → 5 V buck, bench parts) — all received by 19 Nov
+- ☐ 3D-printed frame for the 7″ panel, and one case holding the Pi and CAN HAT
 - ☐ Bench rig: 12 V → buck → Pi, Riverdi 7″ on 12 V, Waveshare CAN HAT up (plan §4)
 - ☐ Debug dashboard rebuilt, keeping speed, indicators, hazard and ESS warnings visible
 - ☐ Kiosk autostart at boot (pulled forward from Stage 5)
