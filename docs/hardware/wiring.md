@@ -28,7 +28,7 @@ Written 2026-11-13, ahead of the Phase 4 installation work in `docs/roadmap.md`.
 | Kind | Where |
 | :--- | :--- |
 | Software, and the written docs for this subsystem (this file, `pi-setup.md`, `display-hardware.md`) | This repo |
-| ECAD harness, schematics, enclosure and mount CAD, BOM, datasheets | Team subsystem storage — **link: TBD** |
+| ECAD harness, schematics, enclosure and mount CAD, BOM, datasheets | Team subsystem storage on Teams: [Juan Production System / Dashboard](https://studentmdh.sharepoint.com/:f:/r/sites/MDUSolarTeam/Delade%20dokument/Juan%20Production%20System/Dashboard?d=wf01a78ed6836411080dc312dc58c9ecc&csf=1&web=1&e=c9A8Z6) |
 
 Git suits text that changes together with code; it cannot diff, merge or lock SolidWorks
 files. The reason this file *does* live here is §2: those hardware facts are encoded in
@@ -156,4 +156,3 @@ supply to the dashboard.
   match.
 - **Mount concept** — position against the vision envelope, energy-absorbing or
   frangible bracket, enclosure.
-- **Where the design files live** — fill in the link in §1.

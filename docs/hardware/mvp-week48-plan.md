@@ -13,6 +13,23 @@ This is a plan for a bench-and-car prototype, not the competition installation. 
 competition requirements (`wiring.md`) still apply later; where the MVP takes a shortcut,
 it says so.
 
+### Status and decisions (updated Thu 19 Nov 2026)
+
+These apply to the MVP only and supersede the options discussed further down. The
+competition dashboard is a separate design.
+
+| Topic | Decided / current state |
+| :--- | :--- |
+| People | Juan Garcia (lead), Sara Zrno. |
+| Display | **Riverdi 7″ `RVT70HSHNWN00`.** The 5″ `RVT50HQHNWN00` is a spare, with no frame planned for it. |
+| Display frame and bracket | **3D printed**, no other material. Size not known yet. |
+| Pi and CAN HAT | The HAT connects to the Pi by the 40-pin flat cable (§5 items 9–10), and **both sit in one 3D-printed case** that holds them mounted and steady. Case design and size not known yet. |
+| Parts | Electrokit order and the local parts (fuses, wire, heat shrink, cable ties) all received. |
+| Spares | No spare Pi. |
+| Where it is | Built at home until the week 48 delivery, then kept in ST Studio. |
+| Subsystem folder | Teams: [Juan Production System / Dashboard](https://studentmdh.sharepoint.com/:f:/r/sites/MDUSolarTeam/Delade%20dokument/Juan%20Production%20System/Dashboard?d=wf01a78ed6836411080dc312dc58c9ecc&csf=1&web=1&e=c9A8Z6), holding the JuanPaper. |
+| Meetings | None during the MVP; progress tracked in ClickUp. |
+
 ---
 
 ## 1 What is on hand today
@@ -22,7 +39,7 @@ it says so.
 | Raspberry Pi 4 Model B (2 GB) | Boots Raspberry Pi OS. Dashboard bring-up at Stage 1 (`pi-setup.md`). |
 | Joy-it aluminium "armor" case, two fans | Fitted. Fans take **5 V and GND from the GPIO header**; nothing else uses GPIO. |
 | MCP2515 module, TJA1050 swapped for an SN65HVD23x | Hand-modified, **never tested**. **Not on the MVP path**: the Waveshare HAT is used instead (§4). Test it later (Appendix A). |
-| Riverdi 7″ `RVT70HSHNWN00` and 5″ `RVT50HQHNWN00`, **frameless** | Bought (`display-hardware.md`). Confirm both are in the team room. |
+| Riverdi 7″ `RVT70HSHNWN00` and 5″ `RVT50HQHNWN00`, **frameless** | Bought (`display-hardware.md`). The 7″ is the MVP display; the 5″ is a spare. |
 | AliExpress HDMI screen | Used for testing. Micro-USB power, HDMI, on/off switch, no touch. |
 | Purple shielded CAN cable, 2×3 connectors | In the team room, details unconfirmed (§6). |
 
@@ -66,6 +83,9 @@ or with jumper wires).
 > team room whether the GPIO header is reachable with the case closed (§6). If a HAT
 > cannot sit on it, the HAT goes outside the case on a 40-pin GPIO ribbon cable, which is
 > fine for the MVP.
+>
+> **Decided (19 Nov):** the HAT goes on the ribbon, and the Pi and HAT share one
+> 3D-printed case so the HAT is held in place.
 
 ### Powering the Pi
 
@@ -107,7 +127,7 @@ the car.
 | Power | DC jack 5.5 × 2.1 mm, **7–30 V, straight from 12 V** | DC jack 7–36 V **or USB-C** | Micro-USB 5 V, needs the buck's 5 V |
 | Brightness | 1000 cd/m², readable in sun | 1000 cd/m² | Unknown, probably ~250–400 cd/m² |
 | Resolution | 1024×600 (`--panel 7in`) | 800×480 (`--panel 5in`) | Check (`--panel` or plain fullscreen) |
-| Mounting | No frame: bezel with mechanics | No frame | Bare PCB |
+| Mounting | No frame: 3D-printed frame (decided) | No frame | Bare PCB |
 | Brightness control | OSD menu, no software needed | External PWM only | Switch only |
 | Connectors in a car | DC jack: locking-ish, can be swapped for a pigtail | DC jack or USB-C | Micro-USB: fragile under vibration |
 | On hand | Yes | Yes | Yes |
@@ -118,8 +138,8 @@ plus a DC jack, and the DC jack takes 12 V directly, which is exactly the "conne
 our 12 V" setup wanted for the car. It is also readable in daylight, which the
 AliExpress screen probably is not.
 
-**Mounting for the MVP.** Both Riverdi panels are frameless, so the mount comes from the
-mechanics team. For week 48, a simple 3D-printed or laser-cut bezel and bracket is enough:
+**Mounting for the MVP.** Both Riverdi panels are frameless. **Decided (19 Nov): the frame
+and bracket are 3D printed.** They have to
 it must hold the panel by its edges or mounting points rather than by the glass, leave
 the HDMI and DC connectors reachable with strain relief, and leave air around the back.
 **Do not let the frame block the MVP**: bench testing and the first in-car test can run
@@ -193,6 +213,8 @@ the remaining risk is the wiring and the bitrate, which step 3 settles.
 ---
 
 ## 5 Shopping list
+
+> **Status (19 Nov):** everything below except item 14 has been received.
 
 Prices from Electrokit on 13 Nov 2026, incl. VAT. Electrokit states 1–3 weekdays
 delivery: **an order placed tonight or this weekend ships Monday 16 Nov and should
@@ -423,7 +445,7 @@ check is fixed before moving on, because each later step depends on the earlier 
 | Sun 15 Nov | Pick up Kjell/Biltema items (11–13) if stores are open; otherwise Monday. |
 | **Mon 16 Nov** | Order connector housings/pins (item 14). Pi: finish Stage 1 and Stage 2 (`vcan0`). |
 | Tue 17 – Wed 18 Nov | Electrokit order arrives. Bench: 12 V → buck → Pi, `vcgencmd get_throttled`. Riverdi panel on 12 V. HAT bring-up (§4.2). |
-| Thu 19 – Sun 22 Nov (wk 47) | Debug dashboard. Kiosk autostart. Remove lap mode. Build the harness with the real connector. Mechanics: simple bezel and bracket for the panel. |
+| Thu 19 – Sun 22 Nov (wk 47) | Debug dashboard. Kiosk autostart. Remove lap mode. Build the harness with the real connector. 3D-print the panel frame and bracket, and the Pi + HAT case. |
 | Mon 23 – Wed 25 Nov (wk 48) | In the car: listen-only on the real bus, `candump`, then the dashboard. Note every ID seen. |
 | Thu 26 – Sun 29 Nov (wk 48) | Fix what the real bus showed. Drive test. Buffer. |
 
