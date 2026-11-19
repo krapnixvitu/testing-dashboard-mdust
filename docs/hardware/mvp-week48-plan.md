@@ -139,8 +139,7 @@ our 12 V" setup wanted for the car. It is also readable in daylight, which the
 AliExpress screen probably is not.
 
 **Mounting for the MVP.** Both Riverdi panels are frameless. **Decided (19 Nov): the frame
-and bracket are 3D printed.** They have to
-it must hold the panel by its edges or mounting points rather than by the glass, leave
+and bracket are 3D printed.** They must hold the panel by its edges or mounting points rather than by the glass, leave
 the HDMI and DC connectors reachable with strain relief, and leave air around the back.
 **Do not let the frame block the MVP**: bench testing and the first in-car test can run
 with the panel temporarily secured. The competition mount is a separate design (crash
