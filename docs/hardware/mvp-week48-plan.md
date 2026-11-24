@@ -32,7 +32,7 @@ competition dashboard is a separate design.
 | CAN topology (24 Nov) | **Daisy chain:** every device has a CAN **in** and a CAN **out** connector, and the bus passes through each device. There are no stubs to a backbone. See §4.3. |
 | CAN connector (24 Nov) | **Würth WR-MPC3**, 2×3, 3.00 mm pitch. The cable side uses receptacle housing `662006113322` with WR-MPC3 crimp contacts. Housings, male and female contacts are in ST Studio. |
 | CAN cable (24 Nov) | **LAPP UNITRONIC BUS PB FD P `2170222`**, violet: one twisted pair (red, green), 0.25 mm² (24 AWG), aluminium foil plus tinned-copper braid. **No ground core.** It is a Profibus cable rated 150 Ω; CAN expects 120 Ω, which is acceptable over car-length runs at 500 kbit/s. Keep the terminators at 120 Ω. |
-| CAN pinout | **Open.** It is set by the subsystems the dashboard sits between in the chain, which are not decided yet. Tracked in ClickUp. |
+| CAN pinout (24 Nov) | The team's chart from Ludwig (VCU / telemetry), revised 20 Nov: §4.4. The dashboard follows the **VCU v2 ("rätt")** layout. Where the dashboard sits in the chain, and the questions in §4.4, are still open (ClickUp). |
 | 12 V feed (24 Nov) | From the car's **fuse box** (about 8 fused outputs), not the inline holder. The inline holder stays for the bench supply. |
 
 ---
@@ -246,6 +246,58 @@ splice.
   sudo ip link set can0 type can bitrate 500000 listen-only on
   ```
   Then `candump -ta can0`. Only switch listen-only off once frames arrive cleanly.
+
+### 4.4 The team's CAN pinout (WR-MPC3 2×3)
+
+Source: Ludwig's crimp chart "Krimpning av kablage", revised 2026-11-20, saved as
+[`can-crimp-chart.png`](can-crimp-chart.png). It is drawn **from the cable side** (where
+the crimp contacts are pushed in), **latch up**; the small numbers are the board's pin
+numbers.
+
+**Correct layout ("rätt", VCU v2, Prohelion)**, cable side, latch up:
+
+| | left | middle | right |
+| :--- | :--- | :--- | :--- |
+| **Top row (latch side)** | 6 · Shield earth, tied to net GND (bare) | 5 · **CAN-L** (blue) | 4 · **CAN-H** (white) |
+| **Bottom row** | 3 · Shield (bare) | 2 · **GND** (black) | 1 · **+12 V** (red) |
+
+A variant **without +12 V / GND** leaves pins 1 and 2 empty.
+
+**The telemetry and logger boards (printed) are mirrored left–right**, a design error on
+those boards: there, pin 6 is CAN-H, pin 4 is shield earth, pin 3 is +12 V and pin 1 is
+shield. A cable crimped the same at both ends would therefore put **+12 V onto a shield
+pin** and swap CAN-H with shield earth. **A cable end that plugs into a telemetry or
+logger board must be crimped mirrored**, following the "speglad" panels of the chart.
+Their 2-pin 12 V connector is reversed the same way.
+
+**What this means for the dashboard:**
+
+- Lay out the pass-through board to the **"rätt" (VCU v2)** pinout on both the in and the
+  out header. Then a cable to the VCU is straight, and only a cable end that goes into a
+  telemetry or logger board is crimped mirrored, as for every other device.
+- Join **all six pins** straight across, in ↔ out, so +12 V, GND and both shield pins
+  pass through to the next device even though the dashboard taps only CAN-H, CAN-L and
+  GND. The dashboard is powered from the fuse box, not from pin 1.
+- Take the board's header **pin 1 from Würth's PCB footprint**, never from looking at the
+  cable side. The chart is the cable-side view, and a footprint read from it comes out
+  mirrored: exactly the telemetry boards' mistake.
+- Before the first plug-in, check with a multimeter that pin 1 (+12 V) has no
+  continuity to any other pin, and that CAN-H/CAN-L land on the HAT's CAN_H/CAN_L.
+
+**Open, for Ludwig** (ClickUp task "CAN pinout"):
+
+1. Pins 3 and 6 are both shield. Which one ties to GND on a board, and is the other
+   only carried through (drain continuity)? What should the dashboard board do with each?
+2. Pins 1–2: which cable segments carry +12 V/GND and which use the variant without?
+   What feeds it and how is it fused? Should the dashboard pass it through?
+3. Colours: the chart uses white CAN-H and blue CAN-L, but the LAPP `2170222` cable has
+   **red and green** cores. Which cable is used, and if it is the LAPP one, which core is
+   CAN-H? (Profibus convention would make red the "+" line, so red = CAN-H, green =
+   CAN-L, but confirm.)
+4. Gender: male headers on the boards and female housings on the cables?
+5. Is the telemetry/logger mirroring kept (mirrored cable ends from now on) or fixed in a
+   board respin?
+6. Which two devices are the chain ends, with the 120 Ω terminators? Bitrate 500 kbit/s?
 
 ---
 
