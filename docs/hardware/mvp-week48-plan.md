@@ -68,6 +68,33 @@ competition dashboard is a separate design.
                                                                stub to the car's CAN backbone
 ```
 
+### Connection list (24 Nov)
+
+Every physical joint in the car installation, from the source outward. "Have" means the
+part is on hand (Electrokit order, local pick-up or ST Studio); **"Need"** means it still
+has to be found or bought.
+
+| # | From | Joint / connector | Wire | To | Parts |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| P1 | Fuse box output tab (3 A fuse) | **Female flat receptacle** (insulated, crimped) on the tab | Red, 0.75–1 mm² | + WAGO 221-413 (12 V split) | **Need:** receptacles sized to the tab (measure it, likely 6.3 mm), crimp pliers for insulated terminals |
+| P2 | Car LV ground point | Per the harness (ring terminal, ground bus, or the fuse box's GND, ask Valentina) | Black, 0.75–1 mm² | GND WAGO 221-415 (common ground) | **Need:** whatever the ground point takes |
+| P3 | + WAGO | Lever | DC pigtail red | Riverdi 7″ DC jack (5.5 × 2.1, centre +) | Have: DC cable 2.1/5.5 to open end. Check the centre is + |
+| P4 | GND WAGO | Lever | DC pigtail black | Riverdi 7″ DC jack | Same cable |
+| P5 | + WAGO / GND WAGO | Lever → buck screw terminals VIN / GND | Red / black, 0.75–1 mm² | EKM006 buck input | Have. Ferrules on the screw-terminal end are better |
+| P6 | Buck VOUT / GND (5 V, VSEL jumper fitted) | Screw terminals | USB-C adapter lead, cut to ~30 cm | Pi 4 USB-C | Have: USB-C → 5.5×2.1 cable, DC plug cut off |
+| P7 | Pi micro-HDMI 0 | Plug | HDMI cable 1 m | Riverdi HDMI | Have. Strain relief at both ends |
+| P8 | Pi GPIO header | 40-pin IDC ribbon + 2×20 male pin header | Ribbon 200 mm | CAN HAT | Have. Check pin 1 before fitting the HAT (§8) |
+| P9 | Pi GPIO pins 4 / 6 | Existing jumpers | — | Case fans | Already fitted |
+| C1 | HAT CAN_H / CAN_L screw terminal | **Screwed, with ferrules**, not soldered, so it can be removed | Short twisted pair, < 0.3 m | Pass-through board pins 4 (CAN-H) / 5 (CAN-L) | **Need:** ferrules 0.25–0.5 mm² |
+| C2 | Pass-through board pin 2 (GND) | Solder / lever | Black | GND WAGO | — |
+| C3 | Pass-through IN / OUT headers | WR-MPC3 2×3 (§4.4) | LAPP 2170222 | Neighbouring devices | **Last step**, once Valentina says where the dashboard connects |
+
+If the fuse box has two free slots, P1 becomes two runs, one to the panel and one to the
+buck, each with its own 3 A fuse, and the + WAGO is not needed. **The fuse type** in the
+box (MINI or standard blade) also decides whether our 3 A MINI fuses fit.
+
+On the bench, P1–P2 are the bench supply through the inline fuse holder instead.
+
 ### GPIO pin budget
 
 The fans and the CAN HAT share the header without conflict. The HAT takes these pins
@@ -205,7 +232,9 @@ continuous bus, electrically the same as a backbone, so the termination rule doe
 change.
 
 **Proposed build: a small pass-through board** (perfboard / stripboard), not a cable
-splice.
+splice. **Scheduled as one of the last hardware steps (24 Nov):** it waits on Valentina
+deciding where the dashboard connects in the chain, and it is quick to build once she has
+(pick connectors from the team's box, solder them on, twisted pair to the HAT).
 
 ```
   previous device ──► [WR-MPC3 IN] ══ CANH / CANL / GND ══ [WR-MPC3 OUT] ──► next device
@@ -220,8 +249,9 @@ splice.
   pins joined by short solder bridges or wire links. The car's cables plug into them with
   crimped receptacle housings, like the other subsystems. Match the board connectors'
   gender to what the other subsystems use, so any cable fits any device.
-- One short twisted pair from the board to the HAT's **CAN_H / CAN_L** screw terminal
-  (ferrules on the wire ends; not the RS485 A/B terminals). The HAT has no CAN ground
+- One short twisted pair from the board to the HAT's **CAN_H / CAN_L** screw terminal,
+  **screwed in with ferrules, not soldered**, so the HAT can be removed (not the RS485 A/B
+  terminals). The HAT has no CAN ground
   terminal, as far as is known: take the bus GND to the Pi's ground (common GND WAGO, or
   a GND pin on the ribbon's pin header). Check the HAT's terminal labels.
 - Why a board rather than splicing: the in/out connectors are held mechanically instead
@@ -232,8 +262,10 @@ splice.
   end only unless that convention says otherwise. **Ask Valentina.**
 - **Polarity:** CANH to CANH all the way. A swapped pair gives no frames and no error.
 
-- **Termination.** Exactly two 120 Ω on the whole bus, one at each end of the chain. The
-  dashboard is a chain end only if nothing plugs into its out connector. If it is not an
+- **Termination.** Exactly two 120 Ω on the whole bus, one at each end of the chain. Every
+  device, ours included, has a switchable 120 Ω, so any device can be an end: just switch
+  it on at the two ends and off everywhere else. The dashboard is a chain end only if
+  nothing plugs into its out connector. If it is not an
   end, **turn the HAT's terminator off** (DIP switch).
   Check ≈ 60 Ω across CANH–CANL with the car's LV off.
 - **Stub.** The only stub is the lead from the pass-through board to the HAT: keep it
@@ -300,8 +332,9 @@ centimetres of twisted wire.
 2. WR-MPC3 PCB headers (2×3) and a crimp tool, both expected to be in ST Studio.
 3. Which LAPP core is CAN-H. The chart's white/blue come from another cable. (Profibus
    convention makes red the "+" line, suggesting red = CAN-H, green = CAN-L; confirm.)
-4. Where the dashboard sits in the chain, which two devices are the ends with the 120 Ω
-   terminators, and the bitrate (500 kbit/s expected). Ask Valentina and Ludwig.
+4. **Where the dashboard sits in the chain (Valentina decides; this sets the next CAN
+   steps).** Every device has a switchable 120 Ω, so whichever two end up as the ends
+   switch theirs on. Bitrate 500 kbit/s expected.
 
 ---
 
