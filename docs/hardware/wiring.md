@@ -131,8 +131,10 @@ supply to the dashboard.
 - **CAN termination:** exactly **two** 120 Ω terminators, one at each physical end of the
   backbone — measure ≈ 60 Ω across CANH/CANL with the bus unpowered. The Pi's CAN module
   has an onboard 120 Ω; **remove or disable it unless the Pi is an end node.**
-- **CAN cabling:** twisted pair for CANH/CANL, a ground reference shared with the bus,
-  short stub from the backbone to the Pi.
+- **CAN cabling:** twisted pair for CANH/CANL, a ground reference shared with the bus.
+  The car's bus is **daisy-chained** (in and out connector on every device), so the only
+  stub is the short lead from the dashboard's pass-through point to the CAN board
+  (`mvp-week48-plan.md` §4.3).
 - **Vibration:** about 3000 km of highway. Locking connectors throughout; strain relief on
   HDMI, which is the weakest connector in the stack.
 - **Heat:** under a canopy in Northern Territory sun for about 9 hours a day. Check Pi
@@ -146,8 +148,11 @@ supply to the dashboard.
   **5 Mar 2027**.
 - **LV bus voltage and connection point** — from the electrical team.
 - **Pi 5 V converter** — part and placement.
-- **Connector family** for power, CAN and the shell separation point.
-- **Is the Pi a CAN bus end?** Decides the onboard terminator.
+- **Connector family** for power and the shell separation point. CAN uses **Würth
+  WR-MPC3** 2×3 (decided for the MVP, 24 Nov; `mvp-week48-plan.md`). The CAN pinout is
+  still open.
+- **Is the dashboard a CAN chain end?** Decides the onboard terminator. With the daisy
+  chain it is an end only if nothing plugs into its out connector.
 - **CAN board for the car.** The MVP uses a Waveshare RS485 CAN HAT (12 MHz crystal;
   `mvp-week48-plan.md` §4). For the competition car: keep the hand-modified MCP2515 + SN65HVD230 module, or use a
   purpose-built 3.3 V MCP2515 CAN HAT. A HAT uses the same driver and overlay, so the
