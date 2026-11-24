@@ -33,7 +33,7 @@ competition dashboard is a separate design.
 | CAN connector (24 Nov) | **Würth WR-MPC3**, 2×3, 3.00 mm pitch. The cable side uses receptacle housing `662006113322` with WR-MPC3 crimp contacts. Housings, male and female contacts are in ST Studio. |
 | CAN cable (24 Nov) | **LAPP UNITRONIC BUS PB FD P `2170222`**, violet: one twisted pair (red, green), 0.25 mm² (24 AWG), aluminium foil plus tinned-copper braid. **No ground core.** It is a Profibus cable rated 150 Ω; CAN expects 120 Ω, which is acceptable over car-length runs at 500 kbit/s. Keep the terminators at 120 Ω. |
 | CAN pinout (24 Nov) | The team's chart from Ludwig (VCU / telemetry), revised 20 Nov: §4.4. The dashboard follows the **VCU v2 ("rätt")** layout. Where the dashboard sits in the chain, and the questions in §4.4, are still open (ClickUp). |
-| 12 V feed (24 Nov) | From the car's **fuse box** (about 8 fused outputs), not the inline holder. The inline holder stays for the bench supply. |
+| 12 V feed (24 Nov) | From the car's **fuse box** (about 8 fused outputs), not the inline holder. The inline holder stays for the bench supply. One 3 A slot feeding a WAGO split works; two (panel and buck separately) is better if slots are free. Asked of Valentina. |
 
 ---
 
@@ -284,20 +284,24 @@ Their 2-pin 12 V connector is reversed the same way.
 - Before the first plug-in, check with a multimeter that pin 1 (+12 V) has no
   continuity to any other pin, and that CAN-H/CAN-L land on the HAT's CAN_H/CAN_L.
 
-**Open, for Ludwig** (ClickUp task "CAN pinout"):
+**Pins 1–2 (+12 V, GND)** carry the chain's 12 V to the devices that need it (most likely
+the WaveSculptor 22, which takes its 12 V supply through its CAN connector). The dashboard
+passes them through untouched and does not draw from them.
 
-1. Pins 3 and 6 are both shield. Which one ties to GND on a board, and is the other
-   only carried through (drain continuity)? What should the dashboard board do with each?
-2. Pins 1–2: which cable segments carry +12 V/GND and which use the variant without?
-   What feeds it and how is it fused? Should the dashboard pass it through?
-3. Colours: the chart uses white CAN-H and blue CAN-L, but the LAPP `2170222` cable has
-   **red and green** cores. Which cable is used, and if it is the LAPP one, which core is
-   CAN-H? (Profibus convention would make red the "+" line, so red = CAN-H, green =
-   CAN-L, but confirm.)
-4. Gender: male headers on the boards and female housings on the cables?
-5. Is the telemetry/logger mirroring kept (mirrored cable ends from now on) or fixed in a
-   board respin?
-6. Which two devices are the chain ends, with the 120 Ω terminators? Bitrate 500 kbit/s?
+**The cable is unchanged.** The shielded LAPP cable still runs between devices
+(previous device → dashboard IN, dashboard OUT → next device). The board only replaces
+the joint inside the dashboard, and the lead from the board to the HAT is a few
+centimetres of twisted wire.
+
+**Still open** (ClickUp task "CAN pinout"):
+
+1. Board gender: look at what is soldered on the VCU board (pins or sockets) and use the
+   same on the dashboard board.
+2. WR-MPC3 PCB headers (2×3) and a crimp tool, both expected to be in ST Studio.
+3. Which LAPP core is CAN-H. The chart's white/blue come from another cable. (Profibus
+   convention makes red the "+" line, suggesting red = CAN-H, green = CAN-L; confirm.)
+4. Where the dashboard sits in the chain, which two devices are the ends with the 120 Ω
+   terminators, and the bitrate (500 kbit/s expected). Ask Valentina and Ludwig.
 
 ---
 
@@ -365,9 +369,9 @@ PCB-mount WR-MPC3 headers.
 
 ## 6 Open questions for the team room (Sat 14 Nov)
 
-> **Answered 24 Nov:** 1–4 (cable and connector, see the status table), 11–12 (12 V from
-> the fuse box), 14 (panel labels match). Questions 10 and 17 are handled in the
-> software work. **Still open:** 5 (pinout), 6 (crimp tool), 7–9 (chain ends, where the
+> **Answered 24 Nov:** 1–5 (cable, connector and pinout, see the status table and §4.4),
+> 11–12 (12 V from the fuse box), 14 (panel labels match). Questions 10 and 17 are handled in the
+> software work. **Still open:** 6 (crimp tool), 7–9 (chain ends, where the
 > dashboard sits in the chain, bitrate), 13, 15–16.
 
 **CAN cable**
