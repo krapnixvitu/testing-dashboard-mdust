@@ -13,7 +13,7 @@ This is a plan for a bench-and-car prototype, not the competition installation. 
 competition requirements (`wiring.md`) still apply later; where the MVP takes a shortcut,
 it says so.
 
-### Status and decisions (updated Thu 19 Nov 2026)
+### Status and decisions (updated Tue 24 Nov 2026)
 
 These apply to the MVP only and supersede the options discussed further down. The
 competition dashboard is a separate design.
@@ -29,6 +29,11 @@ competition dashboard is a separate design.
 | Where it is | Built at home until the week 48 delivery, then kept in ST Studio. |
 | Subsystem folder | Teams: [Juan Production System / Dashboard](https://studentmdh.sharepoint.com/:f:/r/sites/MDUSolarTeam/Delade%20dokument/Juan%20Production%20System/Dashboard?d=wf01a78ed6836411080dc312dc58c9ecc&csf=1&web=1&e=c9A8Z6), holding the JuanPaper. |
 | Meetings | None during the MVP; progress tracked in ClickUp. |
+| CAN topology (24 Nov) | **Daisy chain:** every device has a CAN **in** and a CAN **out** connector, and the bus passes through each device. There are no stubs to a backbone. See §4.3. |
+| CAN connector (24 Nov) | **Würth WR-MPC3**, 2×3, 3.00 mm pitch. The cable side uses receptacle housing `662006113322` with WR-MPC3 crimp contacts. Housings, male and female contacts are in ST Studio. |
+| CAN cable (24 Nov) | **LAPP UNITRONIC BUS PB FD P `2170222`**, violet: one twisted pair (red, green), 0.25 mm² (24 AWG), aluminium foil plus tinned-copper braid. **No ground core.** It is a Profibus cable rated 150 Ω; CAN expects 120 Ω, which is acceptable over car-length runs at 500 kbit/s. Keep the terminators at 120 Ω. |
+| CAN pinout | **Open.** It is set by the subsystems the dashboard sits between in the chain, which are not decided yet. Tracked in ClickUp. |
+| 12 V feed (24 Nov) | From the car's **fuse box** (about 8 fused outputs), not the inline holder. The inline holder stays for the bench supply. |
 
 ---
 
@@ -193,13 +198,46 @@ the remaining risk is the wiring and the bitrate, which step 3 settles.
 
 ### 4.3 Connecting to the car's bus
 
-- **Termination.** Exactly two 120 Ω on the whole bus, one at each physical end. Find out
-  where the ends are (§6). If the dashboard is not an end, **turn its terminator off**
-  (DIP switch on the HAT).
+**The bus is daisy-chained (decided 24 Nov).** Each device has an **in** and an **out**
+connector with the same pinout, wired straight through: CANH in ↔ CANH out, CANL in ↔
+CANL out, GND in ↔ GND out. The device taps the bus at that point. This is still one
+continuous bus, electrically the same as a backbone, so the termination rule does not
+change.
+
+**Proposed build: a small pass-through board** (perfboard / stripboard), not a cable
+splice.
+
+```
+  previous device ──► [WR-MPC3 IN] ══ CANH / CANL / GND ══ [WR-MPC3 OUT] ──► next device
+                      └──────────── pass-through board ────────────┘
+                                           │
+                                           │  short twisted pair + GND, < ~0.3 m
+                                           ▼
+                         Waveshare HAT screw terminal (CAN_H, CAN_L); GND to the Pi
+```
+
+- Two **PCB-mount WR-MPC3 headers** (the in and out) soldered to the board, matching
+  pins joined by short solder bridges or wire links. The car's cables plug into them with
+  crimped receptacle housings, like the other subsystems. Match the board connectors'
+  gender to what the other subsystems use, so any cable fits any device.
+- One short twisted pair from the board to the HAT's **CAN_H / CAN_L** screw terminal
+  (ferrules on the wire ends; not the RS485 A/B terminals). The HAT has no CAN ground
+  terminal, as far as is known: take the bus GND to the Pi's ground (common GND WAGO, or
+  a GND pin on the ribbon's pin header). Check the HAT's terminal labels.
+- Why a board rather than splicing: the in/out connectors are held mechanically instead
+  of hanging on wires, the pass-through stays intact if the dashboard lead is unplugged,
+  and a terminator jumper can live on the board if the dashboard ever becomes a chain end.
+- **Shield:** the cable has no ground core, so CAN ground goes either through the shield
+  or a separate wire. Follow the harness team's convention, and ground the shield at one
+  end only unless that convention says otherwise. **Ask Valentina.**
+- **Polarity:** CANH to CANH all the way. A swapped pair gives no frames and no error.
+
+- **Termination.** Exactly two 120 Ω on the whole bus, one at each end of the chain. The
+  dashboard is a chain end only if nothing plugs into its out connector. If it is not an
+  end, **turn the HAT's terminator off** (DIP switch).
   Check ≈ 60 Ω across CANH–CANL with the car's LV off.
-- **Stub.** Keep the drop from the backbone to the Pi short (under ~0.3 m at 500 kbit/s).
-- **Ground.** Run the CAN ground (or the shield, per the team's convention) alongside
-  CANH/CANL so the Pi and the bus share a reference.
+- **Stub.** The only stub is the lead from the pass-through board to the HAT: keep it
+  short (under ~0.3 m at 500 kbit/s).
 - **Bitrate.** 500 kbit/s, same as every node. Confirm with the motor-controller and BMS
   owners.
 - **Listen before you speak.** Bring the interface up in listen-only mode first, so a
@@ -252,16 +290,15 @@ crimped and locking connectors are the better choice (vibration, `wiring.md` §4
 
 Already on hand: a 12 V bench supply and spare microSD cards (team room), 120 Ω resistors (Arduino kit).
 
-### Order Monday, once the connector is identified (Mouser / DigiKey / Farnell)
+### CAN connector (resolved 24 Nov)
 
 | # | Item | Why | Before week 48? |
 | :--- | :--- | :--- | :--- |
-| 14 | Housings and crimp pins for the team's 2×3 CAN connector | Plugging into the car the way the other PCBs do | Yes: these distributors typically deliver to Sweden in 2–3 working days |
+| 14 | Housings and crimp pins for the team's 2×3 CAN connector | Plugging into the car the way the other PCBs do | **Not needed (24 Nov):** the connector is Würth WR-MPC3, and housings plus male and female contacts are in ST Studio |
 
-If it is the common Molex Micro-Fit 3.0 2×3 (an educated guess, not confirmed), that is
-a receptacle housing, a matching plug housing and loose crimp terminals. **Confirm the
-team has the matching crimp tool**; the genuine one is expensive, and a wrong tool makes
-unreliable crimps.
+**Confirm the team has a crimp tool for WR-MPC3 / 3.0 mm contacts**; pliers or a generic
+tool make crimps that fail under vibration. The pass-through board (§4.3) also needs two
+PCB-mount WR-MPC3 headers.
 
 ### Not ordering
 
@@ -275,6 +312,11 @@ unreliable crimps.
 ---
 
 ## 6 Open questions for the team room (Sat 14 Nov)
+
+> **Answered 24 Nov:** 1–4 (cable and connector, see the status table), 11–12 (12 V from
+> the fuse box), 14 (panel labels match). Questions 10 and 17 are handled in the
+> software work. **Still open:** 5 (pinout), 6 (crimp tool), 7–9 (chain ends, where the
+> dashboard sits in the chain, bitrate), 13, 15–16.
 
 **CAN cable**
 1. The purple cable: how many cores, and which colours? Is it CANH + CANL only, or does
@@ -393,8 +435,9 @@ check is fixed before moving on, because each later step depends on the earlier 
   shell for GND is enough).
 - [ ] **Panel pigtail polarity.** On the DC pigtail, find which wire goes to the centre
   pin (continuity). Centre = **+12 V** (datasheet: pin 1 VDD). Mark it.
-- [ ] **Fuse.** 3 A MINI blade fuse in the inline holder, holder on the + lead, first
-  thing after the 12 V source.
+- [ ] **Fuse.** On the bench: 3 A MINI blade fuse in the inline holder, holder on the +
+  lead, first thing after the 12 V source. In the car, the fuse box replaces the inline
+  holder (status table).
 - [ ] **120 Ω resistors** (only if building a bench bus). Measure one: anything from about
   114 to 126 Ω is fine. Ordinary ¼ W resistors are plenty: across a CAN bus they dissipate
   well under 0.1 W.
@@ -427,8 +470,10 @@ check is fixed before moving on, because each later step depends on the earlier 
 
 ### On the car's bus
 
+- [ ] Pass-through board (§4.3): continuity CANH in ↔ CANH out ↔ HAT CAN_H, same for
+  CANL and GND, and **no** continuity between CANH and CANL.
 - [ ] Car LV off: **≈ 60 Ω across CANH–CANL**. The HAT's terminator DIP switch **off**
-  unless the dashboard is a bus end.
+  unless the dashboard is a chain end.
 - [ ] `listen-only on` first (§4.3), then `candump -ta can0` shows frames.
 - [ ] Every ID seen written down (finds the missing gear / blinker / pedal IDs).
 - [ ] Listen-only off; dashboard shows live values and a green CAN dot.
