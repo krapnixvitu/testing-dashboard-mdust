@@ -601,6 +601,9 @@ check is fixed before moving on, because each later step depends on the earlier 
 
 ### On the car's bus
 
+- [ ] Pass-through board (§4.4): PCB-mount male WR-MPC3 legs bent to the 2.54 mm holes and
+  soldered, **then epoxy or hot glue under each connector body** so plugging in does not
+  load the solder joints. No bent leg touching its neighbour.
 - [ ] Pass-through board (§4.3): continuity CANH in ↔ CANH out ↔ HAT CAN_H, same for
   CANL and GND, and **no** continuity between CANH and CANL.
 - [ ] Car LV off: **≈ 60 Ω across CANH–CANL**. The HAT's terminator DIP switch **off**
