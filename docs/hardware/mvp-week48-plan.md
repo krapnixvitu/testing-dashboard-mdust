@@ -311,6 +311,21 @@ pin** and swap CAN-H with shield earth. **A cable end that plugs into a telemetr
 logger board must be crimped mirrored**, following the "speglad" panels of the chart.
 Their 2-pin 12 V connector is reversed the same way.
 
+**Checked against the WaveSculptor 22 (25 Nov).** The "rätt" layout matches the
+WaveSculptor 22's CAN connector position for position, in the same view (wire side,
+latch up): Tritium WS22 User's Manual TRI88.004 v4 §8.3–8.5, and Prohelion's "CAN Bus and
+Low Voltage" page. The WaveSculptor uses a 6-way Molex Micro-Fit 3.0 with a CAN IN and a
+CAN OUT, and +12 V / GND on the connector is its only low-voltage supply (9–15 V). The pin
+numbers 1–6 are the team's own; Tritium prints none. Two consequences:
+
+- **The WaveSculptor has no built-in terminator.** If it is a chain end, it needs a plug
+  in its spare CAN socket with a 120 Ω resistor crimped between CAN-H and CAN-L (power,
+  ground and shield pins left unconnected). The "every device has a switchable 120 Ω"
+  rule holds for the team's own boards, not for the WaveSculptor.
+- **The shield is earthed at one device only.** Tritium's rule: the shield goes to SHIELD
+  (pin 3) on every device, and to SHIELD GROUND (pin 6) on one device only, so the
+  network has a single earth point. The dashboard passes both through and earths neither.
+
 **What this means for the dashboard:**
 
 - Lay out the pass-through board to the **"rätt" (VCU v2)** pinout on both the in and the
@@ -319,7 +334,12 @@ Their 2-pin 12 V connector is reversed the same way.
 - Join **all six pins** straight across, in ↔ out, so +12 V, GND and both shield pins
   pass through to the next device even though the dashboard taps only CAN-H, CAN-L and
   GND. The dashboard is powered from the fuse box, not from pin 1.
-- Take the board's header **pin 1 from Würth's PCB footprint**, never from looking at the
+- **Pitch.** WR-MPC3 is 3.00 mm pitch, so a PCB header does not fit a standard 2.54 mm
+  perfboard. Recommended: make the board a **junction board**, with IN and OUT as short
+  pigtails in cable-mount **male** WR-MPC3 housings (male crimp contacts, on hand), their
+  wires soldered into the perfboard and joined pin for pin there, plus the branch to the
+  HAT. The alternative is drilling the perfboard at 3.0 mm for a real PCB header.
+- If a PCB header is used, take its **pin 1 from Würth's PCB footprint**, never from looking at the
   cable side. The chart is the cable-side view, and a footprint read from it comes out
   mirrored: exactly the telemetry boards' mistake.
 - Before the first plug-in, check with a multimeter that pin 1 (+12 V) has no
