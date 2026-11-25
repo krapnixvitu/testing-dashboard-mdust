@@ -33,7 +33,8 @@ competition dashboard is a separate design.
 | CAN connector (24 Nov) | **Würth WR-MPC3**, 2×3, 3.00 mm pitch. The cable side uses receptacle housing `662006113322` with WR-MPC3 crimp contacts. Housings, male and female contacts are in ST Studio. |
 | CAN cable (24 Nov) | **LAPP UNITRONIC BUS PB FD P `2170222`**, violet: one twisted pair (red, green), 0.25 mm² (24 AWG), aluminium foil plus tinned-copper braid. **No ground core.** It is a Profibus cable rated 150 Ω; CAN expects 120 Ω, which is acceptable over car-length runs at 500 kbit/s. Keep the terminators at 120 Ω. |
 | CAN pinout (24 Nov) | The team's chart from Ludwig (VCU / telemetry), revised 20 Nov: §4.4. The dashboard follows the **VCU v2 ("rätt")** layout. Where the dashboard sits in the chain, and the questions in §4.4, are still open (ClickUp). |
-| 12 V feed (24 Nov) | From the car's **fuse box** (about 8 fused outputs), not the inline holder. The inline holder stays for the bench supply. One 3 A slot feeding a WAGO split works; two (panel and buck separately) is better if slots are free. Asked of Valentina. |
+| 12 V feed (24 Nov) | From the car's **fuse box** (about 8 fused outputs), not the inline holder. The inline holder stays for the bench supply. One 3 A slot feeding a WAGO split works; two (panel and buck separately) is better if slots are free. Number of slots asked of Valentina. **The fuse holder takes standard ("Midi") blade fuses** (3–40 A, flat-pin terminals, 153 × 52 × 42.5 mm), so the car needs **standard-size 3 A fuses**; our 3 A MINI fuses fit only the bench inline holder. |
+| Ground (25 Nov) | Where the dashboard's GND connects in the car, and with what terminal: **asked of Valentina**, answer pending. |
 
 ---
 
@@ -76,8 +77,8 @@ has to be found or bought.
 
 | # | From | Joint / connector | Wire | To | Parts |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| P1 | Fuse box output tab (3 A fuse) | **Female flat receptacle** (insulated, crimped) on the tab | Red, 0.75–1 mm² | + WAGO 221-413 (12 V split) | **Need:** receptacles sized to the tab (measure it, likely 6.3 mm), crimp pliers for insulated terminals |
-| P2 | Car LV ground point | Per the harness (ring terminal, ground bus, or the fuse box's GND, ask Valentina) | Black, 0.75–1 mm² | GND WAGO 221-415 (common ground) | **Need:** whatever the ground point takes |
+| P1 | Fuse box output tab (3 A **standard** blade fuse) | **Female flat receptacle** (insulated, crimped) on the holder's flat-pin terminal | Red, 0.75–1 mm² | + WAGO 221-413 (12 V split) | **Need:** receptacles sized to the tab (measure it, likely 6.3 mm), crimp pliers for insulated terminals, **standard-size 3 A blade fuses** |
+| P2 | Car LV ground point | Per the harness (ring terminal, ground bus, …); **asked of Valentina 25 Nov, pending** | Black, 0.75–1 mm² | GND WAGO 221-415 (common ground) | **Need:** whatever the ground point takes |
 | P3 | + WAGO | Lever | DC pigtail red | Riverdi 7″ DC jack (5.5 × 2.1, centre +) | Have: DC cable 2.1/5.5 to open end. Check the centre is + |
 | P4 | GND WAGO | Lever | DC pigtail black | Riverdi 7″ DC jack | Same cable |
 | P5 | + WAGO / GND WAGO | Lever → buck screw terminals VIN / GND | Red / black, 0.75–1 mm² | EKM006 buck input | Have. Ferrules on the screw-terminal end are better |
@@ -86,12 +87,20 @@ has to be found or bought.
 | P8 | Pi GPIO header | 40-pin IDC ribbon + 2×20 male pin header | Ribbon 200 mm | CAN HAT | Have. Check pin 1 before fitting the HAT (§8) |
 | P9 | Pi GPIO pins 4 / 6 | Existing jumpers | — | Case fans | Already fitted |
 | C1 | HAT CAN_H / CAN_L screw terminal | **Screwed, with ferrules**, not soldered, so it can be removed | Short twisted pair, < 0.3 m | Pass-through board pins 4 (CAN-H) / 5 (CAN-L) | **Need:** ferrules 0.25–0.5 mm² |
-| C2 | Pass-through board pin 2 (GND) | Solder / lever | Black | GND WAGO | — |
+| C2 | Pass-through board pin 2 (GND) | Solder / lever | Black | GND WAGO | **Optional.** P2 already gives the dashboard the same LV ground. Fit only if Valentina says CAN pin 2 is not the same LV ground |
 | C3 | Pass-through IN / OUT headers | WR-MPC3 2×3 (§4.4) | LAPP 2170222 | Neighbouring devices | **Last step**, once Valentina says where the dashboard connects |
 
 If the fuse box has two free slots, P1 becomes two runs, one to the panel and one to the
-buck, each with its own 3 A fuse, and the + WAGO is not needed. **The fuse type** in the
-box (MINI or standard blade) also decides whether our 3 A MINI fuses fit.
+buck, each with its own 3 A fuse, and the + WAGO is not needed. The car's fuse holder
+takes **standard ("Midi") blade fuses**, so buy standard-size 3 A fuses; the MINI ones
+are for the bench inline holder only.
+
+**Why C2 is optional.** The CAN transceiver needs its ground within a few volts of the
+bus's ground. Every LV device, the dashboard included through P2, already shares the car's
+one LV ground, and pin 2 on the CAN connector is that same ground (the return of the
+chain's +12 V on pin 1). So the reference exists without C2. Without any shared ground,
+the dashboard would have no power either, so C2 adds nothing unless pin 2 turns out to be
+a separate ground.
 
 On the bench, P1–P2 are the bench supply through the inline fuse holder instead.
 
