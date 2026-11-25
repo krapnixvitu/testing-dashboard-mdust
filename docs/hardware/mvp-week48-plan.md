@@ -332,8 +332,9 @@ numbers 1–6 are the team's own; Tritium prints none. Two consequences:
   network has a single earth point. The dashboard passes both through and earths neither.
   The shield is the LAPP cable's foil and braid (there is no separate shield core): at
   each cable end the braid is twisted into a bare tail and crimped, the "bare" wire in the
-  chart. Which device is the single earth point is a harness decision (ask Valentina or
-  Ludwig).
+  chart. **Ludwig (25 Nov): the earth point is not decided yet, and not every cable in the
+  car has a shield**; shielding is currently half done. Nothing changes for the dashboard,
+  which passes pins 3 and 6 through either way.
 
 **What this means for the dashboard:**
 
@@ -343,11 +344,14 @@ numbers 1–6 are the team's own; Tritium prints none. Two consequences:
 - Join **all six pins** straight across, in ↔ out, so +12 V, GND and both shield pins
   pass through to the next device even though the dashboard taps only CAN-H, CAN-L and
   GND. The dashboard is powered from the fuse box, not from pin 1.
-- **Pitch (open, to discuss).** WR-MPC3 is 3.00 mm pitch, so a PCB-mount connector does
-  not drop into a standard 2.54 mm perfboard. Options: PCB-mount connectors with solder
-  legs (preferred by Juan: no crimping on the dashboard side) on a board drilled at 3.0 mm,
-  or a **junction board** with IN and OUT as short pigtails in cable-mount male WR-MPC3
-  housings, their wires soldered into the perfboard and joined pin for pin.
+- **Pitch.** WR-MPC3 is 3.00 mm pitch and a standard perfboard is 2.54 mm, so the legs of
+  a PCB-mount (male, with legs) WR-MPC3 sit about 0.46 mm off the holes at the outer
+  columns and between the rows. **Preferred (Juan): PCB-mount male connectors, legs bent
+  slightly to the nearest holes and soldered.** Centre the middle column on a hole, nudge
+  the outer legs, clip off any plastic board-lock pegs that need large holes, and add a
+  dab of epoxy or hot glue under the body, since the solder joints alone take the
+  plug-in force. The fallback is a junction board with crimped male cable-housing
+  pigtails.
 - If a PCB header is used, take its **pin 1 from Würth's PCB footprint**, never from looking at the
   cable side. The chart is the cable-side view, and a footprint read from it comes out
   mirrored: exactly the telemetry boards' mistake.
