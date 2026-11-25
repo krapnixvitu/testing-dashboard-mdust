@@ -22,8 +22,9 @@ competition dashboard is a separate design.
 | :--- | :--- |
 | People | Juan Garcia (lead), Sara Zrno. |
 | Display | **Riverdi 7″ `RVT70HSHNWN00`.** The 5″ `RVT50HQHNWN00` is a spare, with no frame planned for it. |
-| Display frame and bracket | **3D printed**, no other material. Size not known yet. |
-| Pi and CAN HAT | The HAT connects to the Pi by the 40-pin flat cable (§5 items 9–10), and **both sit in one 3D-printed case** that holds them mounted and steady. The Pi stays in its Joy-it aluminium case with the fans, inside the 3D-printed one. Case design and size not known yet. |
+| Display frame and bracket | **3D printed**, no other material. **Mousa** (mechanics) is designing it (25 Nov). A taped-down panel is not acceptable in the car, so the frame is needed before the in-car test. |
+| Pi box (25 Nov) | **One 3D-printed box holds the whole Pi side:** the buck converter, the Pi 4 (still in its Joy-it case with the fans), the CAN HAT on the 40-pin flat cable (§5 items 9–10), the CAN pass-through perfboard, and the CAN IN and OUT connectors. **Juan and Sara design the inside** (layout, connections, ease of work), taking that over from Mousa. **Mousa designs the outside** (how it mounts in the car) from their inside design. Mousa already has an inside design; Juan has asked where it is, to continue from it or start over. |
+| Wiring split (25 Nov) | **Juan** wires everything inside the dashboard that does not connect to the car or other subsystems (GND WAGO, buck → Pi, panel pigtail, HDMI, ribbon → HAT, the CAN board and its HAT lead). **Valentina** wires everything that connects to the car: the two fuse slots with their fuses and flat receptacles, the ground connection, and the CAN cables between devices. She has the Dashboard MVP Wiring diagram. |
 | Parts | Electrokit order and the local parts (fuses, wire, heat shrink, cable ties) all received. |
 | Spares | No spare Pi. |
 | Where it is | Built at home until the week 48 delivery, then kept in ST Studio. |
@@ -78,9 +79,9 @@ has to be found or bought.
 
 | # | From | Joint / connector | Wire | To | Parts |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| P1a | Fuse slot 1 (3 A **standard** blade fuse) | **Female flat receptacle** (insulated, crimped) on the holder's flat-pin terminal | DC pigtail red | Riverdi 7″ DC jack + (5.5 × 2.1, centre +) | Have: DC cable 2.1/5.5 to open end. **Need:** receptacles sized to the tab (measure it, likely 6.3 mm), crimp pliers for insulated terminals, **standard-size 3 A blade fuses** |
-| P1b | Fuse slot 2 (3 A standard blade fuse) | Female flat receptacle, as P1a | Red, 0.75–1 mm² | EKM006 buck VIN screw terminal | Have: wire. Need: as P1a, plus a ferrule at the buck end |
-| P2 | Car LV ground point | Per the harness (ring terminal, ground bus, …); **asked of Valentina 25 Nov, pending** | Black, 0.75–1 mm² | GND WAGO 221-415 (common ground) | **Need:** whatever the ground point takes |
+| P1a | Fuse slot 1 (3 A **standard** blade fuse) | **Female flat receptacle** (insulated, crimped) on the holder's flat-pin terminal | DC pigtail red | Riverdi 7″ DC jack + (5.5 × 2.1, centre +) | Have: DC cable 2.1/5.5 to open end. **Valentina:** standard-size 3 A blade fuse and flat receptacle (car side) |
+| P1b | Fuse slot 2 (3 A standard blade fuse) | Female flat receptacle, as P1a | Red, 0.75–1 mm² | EKM006 buck VIN screw terminal | Have: wire. Valentina: fuse and receptacle. Ours: a ferrule at the buck end |
+| P2 | Car LV ground point | Per the harness (ring terminal, ground bus, …); **asked of Valentina 25 Nov, pending** | Black, 0.75–1 mm² | GND WAGO 221-415 (common ground) | **Valentina** (car side) |
 | P4 | GND WAGO | Lever | DC pigtail black | Riverdi 7″ DC jack − | Same cable as P1a. Check the centre is + |
 | P5 | GND WAGO | Lever → buck GND screw terminal | Black, 0.75–1 mm² | EKM006 buck input GND | Have. Ferrule on the screw-terminal end |
 | P6 | Buck VOUT / GND (5 V, VSEL jumper fitted) | Screw terminals | USB-C adapter lead, cut to ~30 cm | Pi 4 USB-C | Have: USB-C → 5.5×2.1 cable, DC plug cut off |
@@ -184,8 +185,8 @@ AliExpress screen probably is not.
 **Mounting for the MVP.** Both Riverdi panels are frameless. **Decided (19 Nov): the frame
 and bracket are 3D printed.** They must hold the panel by its edges or mounting points rather than by the glass, leave
 the HDMI and DC connectors reachable with strain relief, and leave air around the back.
-**Do not let the frame block the MVP**: bench testing and the first in-car test can run
-with the panel temporarily secured. The competition mount is a separate design (crash
+Bench testing can run without the frame, but **the in-car test needs it: a taped-down
+panel is not acceptable** (25 Nov). Mousa is designing the frame. The competition mount is a separate design (crash
 and vision rules, `wiring.md` §3) and benefits from the MVP showing where the panel
 actually has to sit.
 
