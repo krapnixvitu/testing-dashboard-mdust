@@ -311,6 +311,11 @@ pin** and swap CAN-H with shield earth. **A cable end that plugs into a telemetr
 logger board must be crimped mirrored**, following the "speglad" panels of the chart.
 Their 2-pin 12 V connector is reversed the same way.
 
+**Reading the chart.** "Wire side, latch up" is the back of the cable plug, where the
+crimps are pushed in, held with the latch on top. That is the view while crimping, so a
+cable is crimped exactly as drawn. Seen from the front (the mating face), the same plug is
+the mirror image; that view is only a trap when drawing a PCB footprint.
+
 **Checked against the WaveSculptor 22 (25 Nov).** The "rätt" layout matches the
 WaveSculptor 22's CAN connector position for position, in the same view (wire side,
 latch up): Tritium WS22 User's Manual TRI88.004 v4 §8.3–8.5, and Prohelion's "CAN Bus and
@@ -325,6 +330,10 @@ numbers 1–6 are the team's own; Tritium prints none. Two consequences:
 - **The shield is earthed at one device only.** Tritium's rule: the shield goes to SHIELD
   (pin 3) on every device, and to SHIELD GROUND (pin 6) on one device only, so the
   network has a single earth point. The dashboard passes both through and earths neither.
+  The shield is the LAPP cable's foil and braid (there is no separate shield core): at
+  each cable end the braid is twisted into a bare tail and crimped, the "bare" wire in the
+  chart. Which device is the single earth point is a harness decision (ask Valentina or
+  Ludwig).
 
 **What this means for the dashboard:**
 
@@ -334,11 +343,11 @@ numbers 1–6 are the team's own; Tritium prints none. Two consequences:
 - Join **all six pins** straight across, in ↔ out, so +12 V, GND and both shield pins
   pass through to the next device even though the dashboard taps only CAN-H, CAN-L and
   GND. The dashboard is powered from the fuse box, not from pin 1.
-- **Pitch.** WR-MPC3 is 3.00 mm pitch, so a PCB header does not fit a standard 2.54 mm
-  perfboard. Recommended: make the board a **junction board**, with IN and OUT as short
-  pigtails in cable-mount **male** WR-MPC3 housings (male crimp contacts, on hand), their
-  wires soldered into the perfboard and joined pin for pin there, plus the branch to the
-  HAT. The alternative is drilling the perfboard at 3.0 mm for a real PCB header.
+- **Pitch (open, to discuss).** WR-MPC3 is 3.00 mm pitch, so a PCB-mount connector does
+  not drop into a standard 2.54 mm perfboard. Options: PCB-mount connectors with solder
+  legs (preferred by Juan: no crimping on the dashboard side) on a board drilled at 3.0 mm,
+  or a **junction board** with IN and OUT as short pigtails in cable-mount male WR-MPC3
+  housings, their wires soldered into the perfboard and joined pin for pin.
 - If a PCB header is used, take its **pin 1 from Würth's PCB footprint**, never from looking at the
   cable side. The chart is the cable-side view, and a footprint read from it comes out
   mirrored: exactly the telemetry boards' mistake.
