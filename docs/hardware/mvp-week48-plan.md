@@ -349,7 +349,7 @@ numbers 1–6 are the team's own; Tritium prints none. Two consequences:
   GND. The dashboard is powered from the fuse box, not from pin 1.
 - **Pitch.** WR-MPC3 is 3.00 mm pitch and a standard perfboard is 2.54 mm, so the legs of
   a PCB-mount (male, with legs) WR-MPC3 sit about 0.46 mm off the holes at the outer
-  columns and between the rows. **Preferred (Juan): PCB-mount male connectors, legs bent
+  columns and between the rows. **Decided (25 Nov): PCB-mount male connectors, legs bent
   slightly to the nearest holes and soldered.** Centre the middle column on a hole, nudge
   the outer legs, clip off any plastic board-lock pegs that need large holes, and add a
   dab of epoxy or hot glue under the body, since the solder joints alone take the
