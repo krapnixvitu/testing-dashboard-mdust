@@ -165,6 +165,9 @@ changelog.
 - Prefer standalone `.qml` files over inline components — inline ones cause runtime
   resolution issues.
 - Keep layout and visual logic separate from data logic.
+- **Record every design decision in `docs/decisions.md`** (hardware, wiring, CAD, and
+  software that affects the hardware or the driver): date, who, why, what else was
+  considered. Never delete an entry; mark it replaced by the new one.
 - After a major UI or architecture change, update `docs/ui-layout.md`,
   `docs/implementation.md` and `docs/implementation-tldr.md`. Update `docs/roadmap.md`
   when a phase or bring-up stage changes status.
@@ -205,6 +208,7 @@ Known issues live in `docs/roadmap.md`. Do not restate them here; they will drif
 | File | Contents |
 | :--- | :--- |
 | `docs/roadmap.md` | Key dates, phase status, BWSC must/should list, blockers, known issues |
+| `docs/decisions.md` | Decision log: every hardware, wiring and enclosure decision, with date, who and why. Source for the first-version documentation |
 | `docs/regulatory-compliance.md` | BWSC Reg. 2.25 requirements, per-item status, deferred work |
 | `docs/ui-layout.md` | What is on screen and what it means |
 | `docs/implementation.md` | Architecture, data flow, extension points |

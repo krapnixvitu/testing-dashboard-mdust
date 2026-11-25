@@ -144,13 +144,17 @@ supply to the dashboard.
 
 ## 5 Open decisions
 
+Decisions already made, for the MVP and team-wide, are logged in
+[`../decisions.md`](../decisions.md). Move an item from here into that log once it is
+decided.
+
 - **Which panel** — 5″ or 7″. Comparison in `display-hardware.md`. Needed before
   **5 Mar 2027**.
 - **LV bus voltage and connection point** — from the electrical team.
 - **Pi 5 V converter** — part and placement.
 - **Connector family** for power and the shell separation point. CAN uses **Würth
-  WR-MPC3** 2×3 (decided for the MVP, 24 Nov; `mvp-week48-plan.md`). The CAN pinout is
-  still open.
+  WR-MPC3** 2×3 (decided for the MVP, 24 Nov; `mvp-week48-plan.md`). The CAN pinout
+  follows the team's "rätt" (VCU v2) chart (decided 25 Nov; `decisions.md` D12).
 - **Is the dashboard a CAN chain end?** Decides the onboard terminator. With the daisy
   chain it is an end only if nothing plugs into its out connector.
 - **CAN board for the car.** The MVP uses a Waveshare RS485 CAN HAT (12 MHz crystal;
