@@ -32,9 +32,10 @@ competition dashboard is a separate design.
 | CAN topology (24 Nov) | **Daisy chain:** every device has a CAN **in** and a CAN **out** connector, and the bus passes through each device. There are no stubs to a backbone. See §4.3. |
 | CAN connector (24 Nov) | **Würth WR-MPC3**, 2×3, 3.00 mm pitch. The cable side uses receptacle housing `662006113322` with WR-MPC3 crimp contacts. Housings, male and female contacts are in ST Studio. |
 | CAN cable (24 Nov) | **LAPP UNITRONIC BUS PB FD P `2170222`**, violet: one twisted pair (red, green), 0.25 mm² (24 AWG), aluminium foil plus tinned-copper braid. **No ground core.** It is a Profibus cable rated 150 Ω; CAN expects 120 Ω, which is acceptable over car-length runs at 500 kbit/s. Keep the terminators at 120 Ω. |
-| CAN pinout (24 Nov) | The team's chart from Ludwig (VCU / telemetry), revised 20 Nov: §4.4. The dashboard follows the **VCU v2 ("rätt")** layout. Where the dashboard sits in the chain, and the questions in §4.4, are still open (ClickUp). |
-| 12 V feed (24 Nov) | From the car's **fuse box** (about 8 fused outputs), not the inline holder. The inline holder stays for the bench supply. One 3 A slot feeding a WAGO split works; two (panel and buck separately) is better if slots are free. Number of slots asked of Valentina. **The fuse holder takes standard ("Midi") blade fuses** (3–40 A, flat-pin terminals, 153 × 52 × 42.5 mm), so the car needs **standard-size 3 A fuses**; our 3 A MINI fuses fit only the bench inline holder. |
-| Ground (25 Nov) | Where the dashboard's GND connects in the car, and with what terminal: **asked of Valentina**, answer pending. |
+| CAN pinout (24 Nov) | The team's chart from Ludwig (VCU / telemetry), revised 20 Nov: §4.4. The dashboard follows the **VCU v2 ("rätt")** layout. Checked against the WaveSculptor 22. **The dashboard works at any position in the chain** (Valentina, 25 Nov); only the HAT's 120 Ω switch depends on it. |
+| 12 V feed (24 Nov) | From the car's **fuse box** (about 8 fused outputs), not the inline holder. The inline holder stays for the bench supply. **Two slots (Valentina, 25 Nov):** one 3 A slot for the panel, one 3 A slot for the buck, so no + WAGO split. **The fuse holder takes standard ("Midi") blade fuses** (3–40 A, flat-pin terminals, 153 × 52 × 42.5 mm), so the car needs **standard-size 3 A fuses**; our 3 A MINI fuses fit only the bench inline holder. |
+| Ground (25 Nov) | Where the dashboard's GND connects in the car, and with what terminal: **open.** Valentina has not got to it yet and will come back. |
+| CAN-H colour (25 Nov) | No team standard yet for which LAPP core (red/green) is CAN-H. Juan is asking Vilma (group leader). |
 
 ---
 
@@ -77,21 +78,22 @@ has to be found or bought.
 
 | # | From | Joint / connector | Wire | To | Parts |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| P1 | Fuse box output tab (3 A **standard** blade fuse) | **Female flat receptacle** (insulated, crimped) on the holder's flat-pin terminal | Red, 0.75–1 mm² | + WAGO 221-413 (12 V split) | **Need:** receptacles sized to the tab (measure it, likely 6.3 mm), crimp pliers for insulated terminals, **standard-size 3 A blade fuses** |
+| P1a | Fuse slot 1 (3 A **standard** blade fuse) | **Female flat receptacle** (insulated, crimped) on the holder's flat-pin terminal | DC pigtail red | Riverdi 7″ DC jack + (5.5 × 2.1, centre +) | Have: DC cable 2.1/5.5 to open end. **Need:** receptacles sized to the tab (measure it, likely 6.3 mm), crimp pliers for insulated terminals, **standard-size 3 A blade fuses** |
+| P1b | Fuse slot 2 (3 A standard blade fuse) | Female flat receptacle, as P1a | Red, 0.75–1 mm² | EKM006 buck VIN screw terminal | Have: wire. Need: as P1a, plus a ferrule at the buck end |
 | P2 | Car LV ground point | Per the harness (ring terminal, ground bus, …); **asked of Valentina 25 Nov, pending** | Black, 0.75–1 mm² | GND WAGO 221-415 (common ground) | **Need:** whatever the ground point takes |
-| P3 | + WAGO | Lever | DC pigtail red | Riverdi 7″ DC jack (5.5 × 2.1, centre +) | Have: DC cable 2.1/5.5 to open end. Check the centre is + |
-| P4 | GND WAGO | Lever | DC pigtail black | Riverdi 7″ DC jack | Same cable |
-| P5 | + WAGO / GND WAGO | Lever → buck screw terminals VIN / GND | Red / black, 0.75–1 mm² | EKM006 buck input | Have. Ferrules on the screw-terminal end are better |
+| P4 | GND WAGO | Lever | DC pigtail black | Riverdi 7″ DC jack − | Same cable as P1a. Check the centre is + |
+| P5 | GND WAGO | Lever → buck GND screw terminal | Black, 0.75–1 mm² | EKM006 buck input GND | Have. Ferrule on the screw-terminal end |
 | P6 | Buck VOUT / GND (5 V, VSEL jumper fitted) | Screw terminals | USB-C adapter lead, cut to ~30 cm | Pi 4 USB-C | Have: USB-C → 5.5×2.1 cable, DC plug cut off |
 | P7 | Pi micro-HDMI 0 | Plug | HDMI cable 1 m | Riverdi HDMI | Have. Strain relief at both ends |
 | P8 | Pi GPIO header | 40-pin IDC ribbon + 2×20 male pin header | Ribbon 200 mm | CAN HAT | Have. Check pin 1 before fitting the HAT (§8) |
 | P9 | Pi GPIO pins 4 / 6 | Existing jumpers | — | Case fans | Already fitted |
 | C1 | HAT CAN_H / CAN_L screw terminal | **Screwed, with ferrules**, not soldered, so it can be removed | Short twisted pair, < 0.3 m | Pass-through board pins 4 (CAN-H) / 5 (CAN-L) | **Need:** ferrules 0.25–0.5 mm² |
 | C2 | Pass-through board pin 2 (GND) | Solder / lever | Black | GND WAGO | **Optional.** P2 already gives the dashboard the same LV ground. Fit only if Valentina says CAN pin 2 is not the same LV ground |
-| C3 | Pass-through IN / OUT headers | WR-MPC3 2×3 (§4.4) | LAPP 2170222 | Neighbouring devices | **Last step**, once Valentina says where the dashboard connects |
+| C3 | Pass-through IN / OUT connectors | WR-MPC3 2×3 (§4.4) | LAPP 2170222 | Neighbouring devices | **Last hardware step.** Works at any position in the chain |
 
-If the fuse box has two free slots, P1 becomes two runs, one to the panel and one to the
-buck, each with its own 3 A fuse, and the + WAGO is not needed. The car's fuse holder
+**Two fuse slots (Valentina, 25 Nov)**, so the panel and the buck each get their own 3 A
+fuse (P1a, P1b) and there is no + WAGO; a short in one does not cut the other. The GND
+WAGO still joins the grounds (P2, P4, P5, optional C2). The car's fuse holder
 takes **standard ("Midi") blade fuses**, so buy standard-size 3 A fuses; the MINI ones
 are for the bench inline holder only.
 
@@ -241,9 +243,10 @@ continuous bus, electrically the same as a backbone, so the termination rule doe
 change.
 
 **Proposed build: a small pass-through board** (perfboard / stripboard), not a cable
-splice. **Scheduled as one of the last hardware steps (24 Nov):** it waits on Valentina
-deciding where the dashboard connects in the chain, and it is quick to build once she has
-(pick connectors from the team's box, solder them on, twisted pair to the HAT).
+splice. **Scheduled as one of the last hardware steps (24 Nov).** It no longer waits on
+anyone: Valentina confirmed on 25 Nov that the dashboard works at any position in the
+chain, so the board is the same wherever it ends up. Only the HAT's 120 Ω switch is set
+at installation (on only if nothing plugs into the dashboard's OUT).
 
 ```
   previous device ──► [WR-MPC3 IN] ══ CANH / CANL / GND ══ [WR-MPC3 OUT] ──► next device
@@ -367,16 +370,15 @@ passes them through untouched and does not draw from them.
 the joint inside the dashboard, and the lead from the board to the HAT is a few
 centimetres of twisted wire.
 
+**Settled 25 Nov:** board connectors are PCB-mount male WR-MPC3 (legs bent, glued; see
+above). The dashboard works at any position in the chain (Valentina).
+
 **Still open** (ClickUp task "CAN pinout"):
 
-1. Board gender: look at what is soldered on the VCU board (pins or sockets) and use the
-   same on the dashboard board.
-2. WR-MPC3 PCB headers (2×3) and a crimp tool, both expected to be in ST Studio.
-3. Which LAPP core is CAN-H. The chart's white/blue come from another cable. (Profibus
-   convention makes red the "+" line, suggesting red = CAN-H, green = CAN-L; confirm.)
-4. **Where the dashboard sits in the chain (Valentina decides; this sets the next CAN
-   steps).** Every device has a switchable 120 Ω, so whichever two end up as the ends
-   switch theirs on. Bitrate 500 kbit/s expected.
+1. Which LAPP core is CAN-H. There is no team standard yet; Juan is asking Vilma (group
+   leader). The colour itself does not matter, only that every cable uses the same rule.
+2. Where the chain's ends are, so the right two devices switch on their 120 Ω (the
+   WaveSculptor 22 needs a resistor plug instead). Bitrate 500 kbit/s expected.
 
 ---
 
