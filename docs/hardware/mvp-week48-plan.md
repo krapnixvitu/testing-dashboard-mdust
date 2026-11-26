@@ -36,7 +36,7 @@ competition dashboard is a separate design.
 | CAN pinout (24 Nov) | The team's chart from Ludwig (VCU / telemetry), revised 20 Nov: §4.4. The dashboard follows the **VCU v2 ("rätt")** layout. Checked against the WaveSculptor 22. **The dashboard works at any position in the chain** (Valentina, 25 Nov); only the HAT's 120 Ω switch depends on it. |
 | 12 V feed (24 Nov) | From the car's **fuse box** (about 8 fused outputs), not the inline holder. The inline holder stays for the bench supply. **Two slots (Valentina, 25 Nov):** one 3 A slot for the panel, one 3 A slot for the buck, so no + WAGO split. **The fuse holder takes standard ("Midi") blade fuses** (3–40 A, flat-pin terminals, 153 × 52 × 42.5 mm), so the car needs **standard-size 3 A fuses**; our 3 A MINI fuses fit only the bench inline holder. |
 | Ground (25 Nov) | Where the dashboard's GND connects in the car, and with what terminal: **open.** Valentina has not got to it yet and will come back. |
-| CAN-H colour (25 Nov) | No team standard yet for which LAPP core (red/green) is CAN-H. Juan is asking Vilma (group leader). |
+| CAN-H colour (26 Nov) | **Red = CAN-H, green = CAN-L** on the LAPP cable (Vilma, group leader). Probably not a team-wide standard, but every dashboard cable follows it, and so does the short lead from the pass-through board to the HAT. |
 
 ---
 
@@ -88,7 +88,7 @@ has to be found or bought.
 | P7 | Pi micro-HDMI 0 | Plug | HDMI cable 1 m | Riverdi HDMI | Have. Strain relief at both ends |
 | P8 | Pi GPIO header | 40-pin IDC ribbon + 2×20 male pin header | Ribbon 200 mm | CAN HAT | Have. Check pin 1 before fitting the HAT (§8) |
 | P9 | Pi GPIO pins 4 / 6 | Existing jumpers | — | Case fans | Already fitted |
-| C1 | HAT CAN_H / CAN_L screw terminal | **Screwed, with ferrules**, not soldered, so it can be removed | Short twisted pair, < 0.3 m | Pass-through board pins 4 (CAN-H) / 5 (CAN-L) | **Need:** ferrules 0.25–0.5 mm² |
+| C1 | HAT CAN_H / CAN_L screw terminal | **Screwed, with ferrules**, not soldered, so it can be removed | Short twisted pair, < 0.3 m: red CAN-H, green CAN-L | Pass-through board pins 4 (CAN-H) / 5 (CAN-L) | **Need:** ferrules 0.25–0.5 mm² |
 | C2 | Pass-through board pin 2 (GND) | Solder / lever | Black | GND WAGO | **Optional.** P2 already gives the dashboard the same LV ground. Fit only if Valentina says CAN pin 2 is not the same LV ground |
 | C3 | Pass-through IN / OUT connectors | WR-MPC3 2×3 (§4.4) | LAPP 2170222 | Neighbouring devices | **Last hardware step.** Works at any position in the chain |
 
@@ -308,6 +308,9 @@ numbers.
 
 A variant **without +12 V / GND** leaves pins 1 and 2 empty.
 
+The chart's white and blue are not the LAPP cable's colours. On LAPP `2170222`, the **red
+core is CAN-H (pin 4) and the green core is CAN-L (pin 5)** (Vilma, 26 Nov).
+
 **The telemetry and logger boards (printed) are mirrored left–right**, a design error on
 those boards: there, pin 6 is CAN-H, pin 4 is shield earth, pin 3 is +12 V and pin 1 is
 shield. A cable crimped the same at both ends would therefore put **+12 V onto a shield
@@ -375,12 +378,13 @@ centimetres of twisted wire.
 **Settled 25 Nov:** board connectors are PCB-mount male WR-MPC3 (legs bent, glued; see
 above). The dashboard works at any position in the chain (Valentina).
 
-**Still open** (ClickUp task "CAN pinout"):
+**Settled 26 Nov:** on the LAPP cable, red is CAN-H and green is CAN-L (Vilma, group
+leader). It is probably not a team-wide standard, but every cable the dashboard makes
+uses it. The colour itself does not matter, only that every cable uses the same rule.
 
-1. Which LAPP core is CAN-H. There is no team standard yet; Juan is asking Vilma (group
-   leader). The colour itself does not matter, only that every cable uses the same rule.
-2. Where the chain's ends are, so the right two devices switch on their 120 Ω (the
-   WaveSculptor 22 needs a resistor plug instead). Bitrate 500 kbit/s expected.
+**Still open** (ClickUp task "CAN pinout"): where the chain's ends are, so the right two
+devices switch on their 120 Ω (the WaveSculptor 22 needs a resistor plug instead).
+Bitrate 500 kbit/s expected.
 
 ---
 
