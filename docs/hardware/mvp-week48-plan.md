@@ -16,7 +16,8 @@ it says so.
 ### Status and decisions (updated Thu 26 Nov 2026)
 
 These apply to the MVP only and supersede the options discussed further down. The
-competition dashboard is a separate design.
+competition dashboard is a separate design. Every decision here is also logged, with who
+made it and why, in [`../decisions.md`](../decisions.md); add new ones there too.
 
 | Topic | Decided / current state |
 | :--- | :--- |

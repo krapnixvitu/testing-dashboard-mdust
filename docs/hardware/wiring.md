@@ -28,7 +28,8 @@ Written 2026-11-13, ahead of the Phase 4 installation work in `docs/roadmap.md`.
 | Kind | Where |
 | :--- | :--- |
 | Software, and the written docs for this subsystem (this file, `pi-setup.md`, `display-hardware.md`) | This repo |
-| ECAD harness, schematics, enclosure and mount CAD, BOM, datasheets | Team subsystem storage on Teams: [Juan Production System / Dashboard](https://studentmdh.sharepoint.com/:f:/r/sites/MDUSolarTeam/Delade%20dokument/Juan%20Production%20System/Dashboard?d=wf01a78ed6836411080dc312dc58c9ecc&csf=1&web=1&e=c9A8Z6) |
+| Enclosure and mount CAD | Designed as code in the **mdust-cad** repo (master copy), e.g. `projects/dashboard-pi-box`; released files are copied to Teams |
+| ECAD harness, schematics, BOM, datasheets, released CAD | Team subsystem storage on Teams: [Juan Production System / Dashboard](https://studentmdh.sharepoint.com/:f:/r/sites/MDUSolarTeam/Delade%20dokument/Juan%20Production%20System/Dashboard?d=wf01a78ed6836411080dc312dc58c9ecc&csf=1&web=1&e=c9A8Z6) |
 
 Git suits text that changes together with code; it cannot diff, merge or lock SolidWorks
 files. The reason this file *does* live here is §2: those hardware facts are encoded in
@@ -145,13 +146,17 @@ supply to the dashboard.
 
 ## 5 Open decisions
 
+Decisions already made, for the MVP and team-wide, are logged in
+[`../decisions.md`](../decisions.md). Move an item from here into that log once it is
+decided.
+
 - **Which panel** — 5″ or 7″. Comparison in `display-hardware.md`. Needed before
   **5 Mar 2027**.
 - **LV bus voltage and connection point** — from the electrical team.
 - **Pi 5 V converter** — part and placement.
 - **Connector family** for power and the shell separation point. CAN uses **Würth
-  WR-MPC3** 2×3 (decided for the MVP, 24 Nov; `mvp-week48-plan.md`). The CAN pinout is
-  still open.
+  WR-MPC3** 2×3 (decided for the MVP, 24 Nov; `mvp-week48-plan.md`). The CAN pinout
+  follows the team's "rätt" (VCU v2) chart (decided 25 Nov; `decisions.md` D12).
 - **Is the dashboard a CAN chain end?** Decides the onboard terminator. With the daisy
   chain it is an end only if nothing plugs into its out connector.
 - **CAN board for the car.** The MVP uses a Waveshare RS485 CAN HAT (12 MHz crystal;
