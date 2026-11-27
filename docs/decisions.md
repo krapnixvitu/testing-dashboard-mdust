@@ -1,7 +1,7 @@
 # Decision Log
 
-Every design decision for the dashboard hardware, its wiring and its enclosure, with the
-date, who made or confirmed it, and why. This is the source for the "first version"
+Every system-level design decision for the dashboard (power, display, CAN, wiring, and
+who does what), with the date, who made or confirmed it, and why. This is the source for the "first version"
 documentation: write that from here, not from the plans.
 
 Started 25 Nov 2026 and backfilled from `hardware/mvp-week48-plan.md`,
@@ -21,9 +21,13 @@ entry links to it.
   and Sara.
 - Questions that are **not decided yet** go in [Open](#open-not-decided-yet) at the
   bottom, and move up into an entry once they are answered.
-- **CAD and other design files** stay in the team's subsystem storage
+- **CAD lives in the mdust-cad repo**, designed as code. That repo is the master copy;
+  only released files are copied to the team's subsystem storage
   ([Teams: Juan Production System / Dashboard](https://studentmdh.sharepoint.com/:f:/r/sites/MDUSolarTeam/Delade%20dokument/Juan%20Production%20System/Dashboard?d=wf01a78ed6836411080dc312dc58c9ecc&csf=1&web=1&e=c9A8Z6)).
-  This log records the decisions behind them and links to the file.
+  **A part's own design decisions** (layout, material, wall thickness, cable openings…)
+  go in that project's `decisions.md` in mdust-cad, for example
+  `projects/dashboard-pi-box/decisions.md`. This log keeps only what the rest of the
+  system depends on, and points there for the rest. Do not repeat a decision in both.
 - **Software** decisions live in `CLAUDE.md` (Invariants) and `implementation.md`. Add one
   here only when it affects the hardware or what the driver sees.
 
@@ -38,7 +42,7 @@ entry links to it.
 | [D05](#d05-3d-printed-panel-frame-by-mousa-no-taped-panel-in-the-car) | 3D-printed panel frame by Mousa; no taped panel in the car | 19 + 25 Nov | MVP | Current |
 | [D06](#d06-hand-modified-mcp2515-board-tja1050-replaced-by-sn65hvd230) | Hand-modified MCP2515 board: TJA1050 → SN65HVD230 | Before 13 Nov | — | Set aside by D07 |
 | [D07](#d07-waveshare-rs485-can-hat-is-the-mvps-can-board) | Waveshare RS485 CAN HAT is the MVP's CAN board | 13 Nov | MVP | Current |
-| [D08](#d08-can-hat-on-a-40-pin-ribbon-outside-the-pis-case) | CAN HAT on a 40-pin ribbon, outside the Pi's case | 19 Nov | MVP | Current |
+| [D08](#d08-can-hat-on-a-40-pin-ribbon-outside-the-pis-case) | CAN HAT on a 40-pin ribbon, outside the Pi's case | 19 Nov | MVP | Replaced by D20 |
 | [D09](#d09-can-bus-is-daisy-chained) | CAN bus is daisy-chained | 24 Nov | Team-wide | Current |
 | [D10](#d10-can-connector-würth-wr-mpc3-23) | CAN connector: Würth WR-MPC3 2×3 | 24 Nov | Team-wide | Current |
 | [D11](#d11-can-cable-lapp-2170222) | CAN cable: LAPP 2170222 | 24 Nov | Team-wide | Current |
@@ -50,6 +54,8 @@ entry links to it.
 | [D17](#d17-pi-and-can-hat-share-one-3d-printed-case) | Pi and CAN HAT share one 3D-printed case | 19 Nov | MVP | Replaced by D18 |
 | [D18](#d18-one-pi-box-for-the-whole-pi-side-juan--sara-inside-mousa-outside) | One Pi box for the whole Pi side; Juan + Sara inside, Mousa outside | 25 Nov | MVP | Current |
 | [D19](#d19-wiring-split-juan-inside-the-dashboard-valentina-car-side) | Wiring split: Juan inside the dashboard, Valentina car side | 25 Nov | MVP | Current |
+| [D20](#d20-can-hat-wired-to-the-pi-by-eight-jumper-wires) | CAN HAT wired to the Pi by eight jumper wires | 26 Nov | MVP | Current |
+| [D21](#d21-can-wire-colours-red-can-h-green-can-l) | CAN wire colours: red CAN-H, green CAN-L | 26 Nov | MVP | Current |
 
 All dates are 2026.
 
@@ -62,7 +68,8 @@ All dates are 2026.
 - **Date:** 13 Nov · **Decided by:** Dashboard team · **Scope:** MVP · **Status:** Current
 - **Decision:** The Pi 4 takes 5 V through its **USB-C** input, from an Electrokit
   **EKM006** buck (TI LMR14050, 4–40 V in, 5 A out, VSEL jumper fitted for 5 V), via a
-  3 A-rated USB-C lead cut to about 30 cm.
+  3 A-rated USB-C lead cut to about 10 cm (26 Nov: the Pi box layout puts the buck next to
+  the Pi; first planned at about 30 cm).
 - **Why:** USB-C goes through the Pi's own input fuse and protection; the GPIO 5 V pins
   bypass both. The EKM006 has headroom for the Pi, the case fans and a fallback screen.
 - **Considered:** Feeding the GPIO 5 V pins (no protection). Electrokit's open-end USB-C
@@ -155,12 +162,29 @@ All dates are 2026.
 
 ### D08: CAN HAT on a 40-pin ribbon, outside the Pi's case
 
-- **Date:** 19 Nov · **Decided by:** Dashboard team · **Scope:** MVP · **Status:** Current
+- **Date:** 19 Nov · **Decided by:** Dashboard team · **Scope:** MVP · **Status:**
+  **Replaced by D20** (26 Nov): the ribbon's plug does not fit the Joy-it case
 - **Decision:** The HAT connects by a **40-pin IDC ribbon** with a 2×20 header. The Pi
   stays in its Joy-it case with the two fans on GPIO pins 4 and 6.
 - **Why:** The Joy-it case covers the header, and the fans already use pins 4 and 6. The
   HAT's pins do not conflict with them.
 - **Details:** `hardware/mvp-week48-plan.md` §2 "GPIO pin budget".
+
+### D20: CAN HAT wired to the Pi by eight jumper wires
+
+- **Date:** 26 Nov · **Decided by:** Dashboard team · **Scope:** MVP · **Status:** Current
+- **Decision:** Eight **Dupont jumper wires**, each from Pi pin N to HAT pin N on pins
+  17–26: 17 3V3, 19 MOSI, 20 GND, 21 MISO, 22 INT (GPIO25), 23 SCLK, 24 CE0, 25 GND. Pins
+  18 and 26 stay empty, and there is **no 5 V wire** (the HAT runs on 3.3 V). The wires are
+  tied into one block with the pin 17 end marked, and the HAT sits on the Pi box floor,
+  held by all four holes. The fans keep pins 4 and 6.
+- **Why:** The GPIO header sits down in an opening in the Joy-it heatsink. Dupont housings
+  fit in it, but the ribbon's 40-way plug is too wide.
+- **Considered:** The ribbon (D08). A stacking header (Electrokit 41013127) on top of the
+  case, kept as the **fallback** if the wires fail a shake test: the box gets about 9 mm
+  taller, the HAT covers part of each fan, and the fans move to the buck's 5 V.
+- **Replaces:** D08.
+- **Details:** `hardware/mvp-week48-plan.md` §2 "How the HAT is wired", connection list P8.
 
 ### D09: CAN bus is daisy-chained
 
@@ -189,6 +213,17 @@ All dates are 2026.
 - **Why:** It is the team's stock cable. Its 150 Ω impedance (Profibus) is acceptable for
   CAN over car-length runs at 500 kbit/s.
 - **Details:** `hardware/mvp-week48-plan.md` status table.
+
+### D21: CAN wire colours: red CAN-H, green CAN-L
+
+- **Date:** 26 Nov · **Decided by:** Vilma (group leader) · **Scope:** MVP (every
+  dashboard cable) · **Status:** Current
+- **Decision:** On the LAPP cable, **red is CAN-H** (pin 4) and **green is CAN-L**
+  (pin 5). The short lead from the pass-through board to the HAT uses the same colours.
+- **Why:** The colour itself does not matter, only that every cable follows the same
+  rule. It is probably not a team-wide standard, so check other subsystems' cables
+  before assuming it.
+- **Details:** `hardware/mvp-week48-plan.md` §4.4.
 
 ### D12: CAN pinout: "rätt" (VCU v2) from Ludwig's chart
 
@@ -266,14 +301,17 @@ All dates are 2026.
 - **Date:** 25 Nov · **Decided by:** Juan, Sara, Mousa · **Scope:** MVP · **Status:**
   Current
 - **Decision:** One **3D-printed box** holds the buck, the Pi 4 in its Joy-it case, the
-  CAN HAT on its ribbon, the pass-through perfboard and the CAN IN/OUT connectors.
+  CAN HAT (on jumper wires, D20), the pass-through perfboard and the CAN IN/OUT connectors.
   **Juan and Sara design the inside** (layout, connections, ease of work), taking that
   over from Mousa. **Mousa designs the outside** and how it mounts in the car.
 - **Why:** Everything on the Pi side is held in one place, and the IN/OUT connectors are
   mounted on the box instead of hanging on cables.
 - **Replaces:** D17, which held only the Pi and the HAT.
-- **Details:** `hardware/mvp-week48-plan.md` status table. CAD: Mousa has an earlier
-  inside design (see Open).
+- **Box design:** The box is designed as code in the **mdust-cad** repo, project
+  `dashboard-pi-box`, which holds the brief, the model and the box's own decisions
+  (`projects/dashboard-pi-box/decisions.md`): layout, print material, and the single wall
+  every cable leaves through. Look there for those, not here.
+- **Details:** `hardware/mvp-week48-plan.md` status table.
 
 ---
 
@@ -300,10 +338,8 @@ Move each one into an entry above once it is answered.
 | Question | Who | Needed by |
 | :--- | :--- | :--- |
 | Where the dashboard's ground connects in the car, and with what terminal (P2) | Valentina | In-car test, week 48 |
-| Which LAPP core (red or green) is CAN-H. No team standard yet | Vilma (group leader) | Before crimping CAN cables |
 | Where the CAN chain's two ends are, so the right devices terminate (the WaveSculptor needs a resistor plug) | Team | In-car test |
 | Which one device earths the CAN shield (pin 6) | Team (Ludwig) | Not blocking the dashboard (D15) |
-| The Pi box's inside layout; where Mousa's earlier design is, to continue from it or start over | Juan, Sara, Mousa | Week 48 |
 | Competition panel: 5″ or 7″ | Dashboard team | Electrical System Specification, **5 Mar 2027** |
 | Competition CAN board: Waveshare HAT, hand-modified board, or another HAT | Dashboard team | 5 Mar 2027 |
 | LV bus voltage and connection point for the competition car | Electrical team | 5 Mar 2027 |
@@ -311,6 +347,9 @@ Move each one into an entry above once it is answered.
 | Mount concept: position against the vision envelope, bracket, enclosure | Dashboard team, mechanics | Before Static Scrutineering, 16 Aug 2027 |
 
 The competition questions come from `hardware/wiring.md` §5.
+
+**Answered since the log started:** the CAN-H colour (D21, 26 Nov). The Pi box's inside
+layout now exists in mdust-cad, `projects/dashboard-pi-box` (D18).
 
 ---
 
