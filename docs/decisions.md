@@ -47,7 +47,7 @@ entry links to it.
 | [D10](#d10-can-connector-würth-wr-mpc3-23) | CAN connector: Würth WR-MPC3 2×3 | 24 Nov | Team-wide | Current |
 | [D11](#d11-can-cable-lapp-2170222) | CAN cable: LAPP 2170222 | 24 Nov | Team-wide | Current |
 | [D12](#d12-can-pinout-rätt-vcu-v2-from-ludwigs-chart) | CAN pinout: "rätt" (VCU v2) from Ludwig's chart | 24–25 Nov | Team-wide | Current |
-| [D13](#d13-pass-through-board-with-bent-leg-male-wr-mpc3-connectors) | Pass-through board with bent-leg male WR-MPC3 connectors | 25 Nov | MVP | Current |
+| [D13](#d13-pass-through-board-with-bent-leg-male-wr-mpc3-connectors) | Pass-through board with bent-leg male WR-MPC3 connectors | 25 Nov | MVP | Replaced by D22 |
 | [D14](#d14-hat-lead-screwed-in-with-ferrules-not-soldered) | HAT lead screwed in with ferrules, not soldered | 24 Nov | MVP | Current |
 | [D15](#d15-dashboard-passes-the-shield-through-and-earths-neither-pin) | Dashboard passes the shield through and earths neither pin | 25 Nov | MVP | Current |
 | [D16](#d16-any-chain-position-hat-terminator-on-only-at-a-chain-end) | Any chain position; HAT terminator on only at a chain end | 25 Nov | MVP | Current |
@@ -56,6 +56,7 @@ entry links to it.
 | [D19](#d19-wiring-split-juan-inside-the-dashboard-valentina-car-side) | Wiring split: Juan inside the dashboard, Valentina car side | 25 Nov | MVP | Current |
 | [D20](#d20-can-hat-wired-to-the-pi-by-eight-jumper-wires) | CAN HAT wired to the Pi by eight jumper wires | 26 Nov | MVP | Current |
 | [D21](#d21-can-wire-colours-red-can-h-green-can-l) | CAN wire colours: red CAN-H, green CAN-L | 26 Nov | MVP | Current |
+| [D22](#d22-pass-through-board-connectors-not-glued) | Pass-through board connectors not glued | 27 Nov | MVP | Current |
 
 All dates are 2026.
 
@@ -241,7 +242,7 @@ All dates are 2026.
 
 ### D13: Pass-through board with bent-leg male WR-MPC3 connectors
 
-- **Date:** 25 Nov · **Decided by:** Juan · **Scope:** MVP · **Status:** Current
+- **Date:** 25 Nov · **Decided by:** Juan · **Scope:** MVP · **Status:** Replaced by D22
 - **Decision:** A **perfboard** (2.54 mm) carries the IN and OUT connectors as
   **PCB-mount male WR-MPC3**. The legs are bent about 0.5 mm to the nearest holes, any
   board-lock pegs are clipped, the legs are soldered, and **epoxy or hot glue** goes under
@@ -254,6 +255,24 @@ All dates are 2026.
 - **Considered:** Splicing the cables (no mechanical hold). A junction board with crimped
   male housing pigtails, which is kept as the fallback.
 - **Details:** `hardware/mvp-week48-plan.md` §4.3, §4.4.
+
+### D22: Pass-through board connectors not glued
+
+- **Date:** 27 Nov · **Decided by:** Juan · **Scope:** MVP · **Status:** Current
+- **Decision:** D13 without the glue. A **perfboard** (2.54 mm) carries the IN and OUT
+  connectors as **PCB-mount male WR-MPC3**. The legs are bent about 0.5 mm to the nearest
+  holes, any board-lock pegs are clipped, and the legs are soldered. **Nothing goes under
+  the bodies.** All six pins are joined straight across, IN to OUT, and pin 1 is taken
+  from Würth's PCB footprint.
+- **Why:** In the Pi box the connectors take the plug-in and pull-out force through the
+  box, not through the board, and every part is screwed or clamped (mdust-cad
+  `projects/dashboard-pi-box/brief.md`, requirements 3 and 6). So the glue no longer
+  carries anything. The connectors are rated for only 25 mating cycles and are rarely
+  unplugged, and the perfboard is replaced by a proper PCB in a month or two.
+- **Considered:** Keeping the glue (D13). It only helps before the box exists. Until
+  then, hold a connector's body while plugging or unplugging, so the solder joints don't
+  take the force.
+- **Details:** `hardware/mvp-week48-plan.md` §4.4.
 
 ### D14: HAT lead screwed in with ferrules, not soldered
 

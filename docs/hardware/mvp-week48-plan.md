@@ -394,9 +394,9 @@ numbers 1–6 are the team's own; Tritium prints none. Two consequences:
   columns and between the rows. **Decided (25 Nov): PCB-mount male connectors (none in the MDU ST room; Juan has two
   at home from an earlier board), legs bent
   slightly to the nearest holes and soldered.** Centre the middle column on a hole, nudge
-  the outer legs, clip off any plastic board-lock pegs that need large holes, and add a
-  dab of epoxy or hot glue under the body, since the solder joints alone take the
-  plug-in force. The fallback is a junction board with crimped male cable-housing
+  the outer legs, and clip off any plastic board-lock pegs that need large holes. **No
+  glue (27 Nov, D22):** in the Pi box the plug force goes into the box, not the solder
+  joints. Until the box exists, hold the connector's body while plugging in or out. The fallback is a junction board with crimped male cable-housing
   pigtails.
 - If a PCB header is used, take its **pin 1 from Würth's PCB footprint**, never from looking at the
   cable side. The chart is the cable-side view, and a footprint read from it comes out
@@ -413,8 +413,8 @@ passes them through untouched and does not draw from them.
 the joint inside the dashboard, and the lead from the board to the HAT is a few
 centimetres of twisted wire.
 
-**Settled 25 Nov:** board connectors are PCB-mount male WR-MPC3 (legs bent, glued; see
-above). The dashboard works at any position in the chain (Valentina).
+**Settled 25 Nov:** board connectors are PCB-mount male WR-MPC3 (legs bent and soldered, not
+glued since 27 Nov; see above). The dashboard works at any position in the chain (Valentina).
 
 **Settled 26 Nov:** on the LAPP cable, red is CAN-H and green is CAN-L (Vilma, group
 leader). It is probably not a team-wide standard, but every cable the dashboard makes
@@ -655,8 +655,8 @@ check is fixed before moving on, because each later step depends on the earlier 
 ### On the car's bus
 
 - [ ] Pass-through board (§4.4): PCB-mount male WR-MPC3 legs bent to the 2.54 mm holes and
-  soldered, **then epoxy or hot glue under each connector body** so plugging in does not
-  load the solder joints. No bent leg touching its neighbour.
+  soldered, no glue (D22). Until the Pi box holds them, hold the connector's body when
+  plugging in or out. No bent leg touching its neighbour.
 - [ ] Pass-through board (§4.3): continuity CANH in ↔ CANH out ↔ HAT CAN_H, same for
   CANL and GND, and **no** continuity between CANH and CANL.
 - [ ] Car LV off: **≈ 60 Ω across CANH–CANL**. The HAT's terminator DIP switch **off**
