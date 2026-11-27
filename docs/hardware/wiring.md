@@ -132,6 +132,7 @@ supply to the dashboard.
   backbone — measure ≈ 60 Ω across CANH/CANL with the bus unpowered. The Pi's CAN module
   has an onboard 120 Ω; **remove or disable it unless the Pi is an end node.**
 - **CAN cabling:** twisted pair for CANH/CANL, a ground reference shared with the bus.
+  Colours: red CAN-H, green CAN-L, as on the LAPP cable (Vilma, 26 Nov).
   The car's bus is **daisy-chained** (in and out connector on every device), so the only
   stub is the short lead from the dashboard's pass-through point to the CAN board
   (`mvp-week48-plan.md` §4.3).

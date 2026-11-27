@@ -13,7 +13,7 @@ This is a plan for a bench-and-car prototype, not the competition installation. 
 competition requirements (`wiring.md`) still apply later; where the MVP takes a shortcut,
 it says so.
 
-### Status and decisions (updated Tue 24 Nov 2026)
+### Status and decisions (updated Thu 26 Nov 2026)
 
 These apply to the MVP only and supersede the options discussed further down. The
 competition dashboard is a separate design. Every decision here is also logged, with who
@@ -24,8 +24,10 @@ made it and why, in [`../decisions.md`](../decisions.md); add new ones there too
 | People | Juan Garcia (lead), Sara Zrno. |
 | Display | **Riverdi 7″ `RVT70HSHNWN00`.** The 5″ `RVT50HQHNWN00` is a spare, with no frame planned for it. |
 | Display frame and bracket | **3D printed**, no other material. **Mousa** (mechanics) is designing it (25 Nov). A taped-down panel is not acceptable in the car, so the frame is needed before the in-car test. |
-| Pi box (25 Nov) | **One 3D-printed box holds the whole Pi side:** the buck converter, the Pi 4 (still in its Joy-it case with the fans), the CAN HAT on the 40-pin flat cable (§5 items 9–10), the CAN pass-through perfboard, and the CAN IN and OUT connectors. **Juan and Sara design the inside** (layout, connections, ease of work), taking that over from Mousa. **Mousa designs the outside** (how it mounts in the car) from their inside design. Mousa already has an inside design; Juan has asked where it is, to continue from it or start over. |
-| Wiring split (25 Nov) | **Juan** wires everything inside the dashboard that does not connect to the car or other subsystems (GND WAGO, buck → Pi, panel pigtail, HDMI, ribbon → HAT, the CAN board and its HAT lead). **Valentina** wires everything that connects to the car: the two fuse slots with their fuses and flat receptacles, the ground connection, and the CAN cables between devices. She has the Dashboard MVP Wiring diagram. |
+| Pi box (25 Nov) | **One 3D-printed box holds the whole Pi side:** the buck converter, the Pi 4 (still in its Joy-it case with the fans), the CAN HAT (on the box floor, wired by jumpers since 26 Nov), the CAN pass-through perfboard, and the CAN IN and OUT connectors. **Juan and Sara design the inside** (layout, connections, ease of work), taking that over from Mousa. **Mousa designs the outside** (how it mounts in the car) from their inside design. Mousa already has an inside design; Juan has asked where it is, to continue from it or start over. |
+| Pi box design (26 Nov) | Designed as code in the **mdust-cad** repo, project `dashboard-pi-box`: brief, decisions and model. Printed on Juan's Creality K2 Plus: PLA for fit tests, **ASA for the car** (PLA softens at 55–60 °C). **Every cable leaves through one wall** (CAN IN and OUT, HDMI, 12 V, ground, panel ground), so where the box sits in the car can be decided later. Design done Fri 27 Nov, fitted by Sun 29 Nov, Tue 1 Dec at the latest. |
+| HAT connection (26 Nov) | **No ribbon.** The 40-way ribbon's plug is wider than the opening in the Joy-it heatsink over the GPIO header. **Eight jumper wires** go from Pi pins 17–26 to the same pins on the HAT, which sits on the box floor (§2, "GPIO pin budget"). |
+| Wiring split (25 Nov) | **Juan** wires everything inside the dashboard that does not connect to the car or other subsystems (GND WAGO, buck → Pi, panel pigtail, HDMI, jumper wires → HAT, the CAN board and its HAT lead). **Valentina** wires everything that connects to the car: the two fuse slots with their fuses and flat receptacles, the ground connection, and the CAN cables between devices. She has the Dashboard MVP Wiring diagram. |
 | Parts | Electrokit order and the local parts (fuses, wire, heat shrink, cable ties) all received. |
 | Spares | No spare Pi. |
 | Where it is | Built at home until the week 48 delivery, then kept in ST Studio. |
@@ -37,7 +39,7 @@ made it and why, in [`../decisions.md`](../decisions.md); add new ones there too
 | CAN pinout (24 Nov) | The team's chart from Ludwig (VCU / telemetry), revised 20 Nov: §4.4. The dashboard follows the **VCU v2 ("rätt")** layout. Checked against the WaveSculptor 22. **The dashboard works at any position in the chain** (Valentina, 25 Nov); only the HAT's 120 Ω switch depends on it. |
 | 12 V feed (24 Nov) | From the car's **fuse box** (about 8 fused outputs), not the inline holder. The inline holder stays for the bench supply. **Two slots (Valentina, 25 Nov):** one 3 A slot for the panel, one 3 A slot for the buck, so no + WAGO split. **The fuse holder takes standard ("Midi") blade fuses** (3–40 A, flat-pin terminals, 153 × 52 × 42.5 mm), so the car needs **standard-size 3 A fuses**; our 3 A MINI fuses fit only the bench inline holder. |
 | Ground (25 Nov) | Where the dashboard's GND connects in the car, and with what terminal: **open.** Valentina has not got to it yet and will come back. |
-| CAN-H colour (25 Nov) | No team standard yet for which LAPP core (red/green) is CAN-H. Juan is asking Vilma (group leader). |
+| CAN-H colour (26 Nov) | **Red = CAN-H, green = CAN-L** on the LAPP cable (Vilma, group leader). Probably not a team-wide standard, but every dashboard cable follows it, and so does the short lead from the pass-through board to the HAT. |
 
 ---
 
@@ -85,11 +87,11 @@ has to be found or bought.
 | P2 | Car LV ground point | Per the harness (ring terminal, ground bus, …); **asked of Valentina 25 Nov, pending** | Black, 0.75–1 mm² | GND WAGO 221-415 (common ground) | **Valentina** (car side) |
 | P4 | GND WAGO | Lever | DC pigtail black | Riverdi 7″ DC jack − | Same cable as P1a. Check the centre is + |
 | P5 | GND WAGO | Lever → buck GND screw terminal | Black, 0.75–1 mm² | EKM006 buck input GND | Have. Ferrule on the screw-terminal end |
-| P6 | Buck VOUT / GND (5 V, VSEL jumper fitted) | Screw terminals | USB-C adapter lead, cut to ~30 cm | Pi 4 USB-C | Have: USB-C → 5.5×2.1 cable, DC plug cut off |
+| P6 | Buck VOUT / GND (5 V: VSEL bridged or jumpered) | Screw terminals | USB-C adapter lead, cut to about 10 cm (the box layout sets the length) | Pi 4 USB-C | Have: USB-C → 5.5×2.1 cable, DC plug cut off. Ferrules on the screw-terminal ends |
 | P7 | Pi micro-HDMI 0 | Plug | HDMI cable 1 m | Riverdi HDMI | Have. Strain relief at both ends |
-| P8 | Pi GPIO header | 40-pin IDC ribbon + 2×20 male pin header | Ribbon 200 mm | CAN HAT | Have. Check pin 1 before fitting the HAT (§8) |
+| P8 | Pi GPIO pins 17–26 | Dupont jumper housings, pushed onto the pins | 8 single jumper wires, 10–15 cm, tied together as one block | CAN HAT pins 17–26, plugged on from above | Have: jumper wires. Pi pin N to HAT pin N (§2). Mark the pin 17 end; check before fitting the HAT (§8) |
 | P9 | Pi GPIO pins 4 / 6 | Existing jumpers | — | Case fans | Already fitted |
-| C1 | HAT CAN_H / CAN_L screw terminal | **Screwed, with ferrules**, not soldered, so it can be removed | Short twisted pair, < 0.3 m | Pass-through board pins 4 (CAN-H) / 5 (CAN-L) | **Need:** ferrules 0.25–0.5 mm² |
+| C1 | HAT CAN_H / CAN_L screw terminal | **Screwed, with ferrules**, not soldered, so it can be removed | Short twisted pair, < 0.3 m: red CAN-H, green CAN-L | Pass-through board pins 4 (CAN-H) / 5 (CAN-L) | **Need:** ferrules 0.25–0.5 mm² |
 | C2 | Pass-through board pin 2 (GND) | Solder / lever | Black | GND WAGO | **Optional.** P2 already gives the dashboard the same LV ground. Fit only if Valentina says CAN pin 2 is not the same LV ground |
 | C3 | Pass-through IN / OUT connectors | WR-MPC3 2×3 (§4.4) | LAPP 2170222 | Neighbouring devices | **Last hardware step.** Works at any position in the chain |
 
@@ -98,6 +100,12 @@ fuse (P1a, P1b) and there is no + WAGO; a short in one does not cut the other. T
 WAGO still joins the grounds (P2, P4, P5, optional C2). The car's fuse holder
 takes **standard ("Midi") blade fuses**, so buy standard-size 3 A fuses; the MINI ones
 are for the bench inline holder only.
+
+**The GND WAGO is inside the Pi box (26 Nov).** So two things run between the box and the
+panel: the HDMI cable (P7) and the DC pigtail's black core (P4). The pigtail's red core
+(P1a) goes straight from fuse slot 1 to the panel and never enters the box. If only HDMI
+should leave the box, the panel's ground could go to the car's ground point instead, but
+that is a wiring change to agree with Valentina.
 
 **Why C2 is optional.** The CAN transceiver needs its ground within a few volts of the
 bus's ground. Every LV device, the dashboard included through P2, already shares the car's
@@ -110,9 +118,8 @@ On the bench, P1–P2 are the bench supply through the inline fuse holder instea
 
 ### GPIO pin budget
 
-The fans and the CAN HAT share the header without conflict. The HAT takes these pins
-through its own header; the table is what to check if it is wired by hand (on a ribbon
-or with jumper wires).
+The fans and the CAN HAT share the header without conflict. Since 26 Nov the HAT is wired
+by hand with jumper wires (below), so the table is also the wiring list.
 
 | Pin | Used by | Notes |
 | :--- | :--- | :--- |
@@ -124,6 +131,24 @@ or with jumper wires).
 | 24 | CS (CE0) | |
 | 22 | INT (GPIO25) | Matches `interrupt=25` in the overlay |
 
+**How the HAT is wired (26 Nov).** Eight Dupont jumper wires, each from Pi pin N to HAT
+pin N, on pins 17 to 26:
+
+| Pin | Signal | Pin | Signal |
+| :--- | :--- | :--- | :--- |
+| 17 | 3V3 | 18 | empty |
+| 19 | MOSI | 20 | GND |
+| 21 | MISO | 22 | INT (GPIO25) |
+| 23 | SCLK | 24 | CE0 |
+| 25 | GND | 26 | empty |
+
+There is no 5 V wire: the HAT runs on 3.3 V. Use single jumpers for now, tied or taped
+together so they come off as one block and cannot go back one pin over, and mark the
+pin 17 end. A 2×5 housing can replace them later: lift each contact's latch with a
+needle to move it across. The HAT's header pins stand about 8 mm above its top (Juan;
+Waveshare's model says 8.4), so the wires plug in from above and the HAT sits low on the
+floor of the Pi box, held by all four holes. The fans keep pins 4 and 6.
+
 > **The case and a HAT.** The Joy-it armor case covers the top of the board. Check in the
 > team room whether the GPIO header is reachable with the case closed (§6). If a HAT
 > cannot sit on it, the HAT goes outside the case on a 40-pin GPIO ribbon cable, which is
@@ -131,6 +156,13 @@ or with jumper wires).
 >
 > **Decided (19 Nov):** the HAT goes on the ribbon, and the Pi and HAT share one
 > 3D-printed case so the HAT is held in place. The Pi keeps its Joy-it case inside it.
+>
+> **Changed (26 Nov): no ribbon.** The GPIO header sits down in an opening in the Joy-it
+> heatsink. Dupont housings and the HAT's own socket fit in it, but the ribbon's 40-way
+> plug is too wide. The HAT is wired with eight jumper wires instead (above). Fallback if
+> the wires fail a shake test: a stacking header (Electrokit 41013127) puts the HAT on top
+> of the case. The box then gets about 9 mm taller, the HAT covers part of each fan, and
+> the fans move to the buck's 5 V.
 
 ### Powering the Pi
 
@@ -140,13 +172,17 @@ The USB-C input has the Pi's own fuse and protection; the GPIO pins bypass both.
 The buck must deliver **≥ 3 A at 5.0–5.2 V**. The recommended part is Electrokit's
 **EKM006** module (TI LMR14050, 4–40 V in, 5 A out, 5 V by jumper, measured 5.15 V,
 149 SEK, in stock). It has headroom for the Pi plus the fans plus a micro-USB-powered
-fallback screen. **Fit the VSEL jumper**: open gives 3.3 V, shorted gives 5 V. Check the
-output with a multimeter before the Pi is connected. The module ships with its screw
-terminals unsoldered.
+fallback screen. **Set VSEL for 5 V** with a solder bridge or a jumper, either works:
+open gives 3.3 V, shorted gives 5 V. Check the output with a multimeter before the Pi is
+connected. The module ships with its screw terminals unsoldered: **solder both on**, one
+at each end, wire entries facing outward, and put ferrules on the wires (26 Nov). The
+long pin strip is not needed, except the two VSEL pins if a jumper is used.
 
 A **3 A-rated USB-C lead** connects it to the Pi: Electrokit's "USB-C to 5.5×2.1 mm DC
 plug, 5 V 3 A" adapter cable, with the DC plug cut off and the two wires screwed into the
-buck, shortened to about 30 cm. The page's warning that it is limited to 500 mA applies
+buck. **Shorten it to about 10 cm** (26 Nov): in the Pi box the buck sits next to the Pi,
+so a 30 cm lead would have to be coiled up inside. Cut it to the length the box layout
+gives, not before. The page's warning that it is limited to 500 mA applies
 only to USB-PD chargers, which need resistors to negotiate; a buck converter just
 supplies 5 V and the Pi draws what it needs. (Electrokit's open-end USB-C cables are
 rated 2 A, so they are not used.)
@@ -266,8 +302,9 @@ at installation (on only if nothing plugs into the dashboard's OUT).
 - One short twisted pair from the board to the HAT's **CAN_H / CAN_L** screw terminal,
   **screwed in with ferrules, not soldered**, so the HAT can be removed (not the RS485 A/B
   terminals). The HAT has no CAN ground
-  terminal, as far as is known: take the bus GND to the Pi's ground (common GND WAGO, or
-  a GND pin on the ribbon's pin header). Check the HAT's terminal labels.
+  terminal, as far as is known: take the bus GND to the Pi's ground (the common GND WAGO,
+  C2). The jumper wires' GND on pins 20 and 25 already join the HAT's ground to the
+  Pi's. Check the HAT's terminal labels.
 - Why a board rather than splicing: the in/out connectors are held mechanically instead
   of hanging on wires, the pass-through stays intact if the dashboard lead is unplugged,
   and a terminator jumper can live on the board if the dashboard ever becomes a chain end.
@@ -308,6 +345,9 @@ numbers.
 | **Bottom row** | 3 · Shield (bare) | 2 · **GND** (black) | 1 · **+12 V** (red) |
 
 A variant **without +12 V / GND** leaves pins 1 and 2 empty.
+
+The chart's white and blue are not the LAPP cable's colours. On LAPP `2170222`, the **red
+core is CAN-H (pin 4) and the green core is CAN-L (pin 5)** (Vilma, 26 Nov).
 
 **The telemetry and logger boards (printed) are mirrored left–right**, a design error on
 those boards: there, pin 6 is CAN-H, pin 4 is shield earth, pin 3 is +12 V and pin 1 is
@@ -376,12 +416,13 @@ centimetres of twisted wire.
 **Settled 25 Nov:** board connectors are PCB-mount male WR-MPC3 (legs bent, glued; see
 above). The dashboard works at any position in the chain (Valentina).
 
-**Still open** (ClickUp task "CAN pinout"):
+**Settled 26 Nov:** on the LAPP cable, red is CAN-H and green is CAN-L (Vilma, group
+leader). It is probably not a team-wide standard, but every cable the dashboard makes
+uses it. The colour itself does not matter, only that every cable uses the same rule.
 
-1. Which LAPP core is CAN-H. There is no team standard yet; Juan is asking Vilma (group
-   leader). The colour itself does not matter, only that every cable uses the same rule.
-2. Where the chain's ends are, so the right two devices switch on their 120 Ω (the
-   WaveSculptor 22 needs a resistor plug instead). Bitrate 500 kbit/s expected.
+**Still open** (ClickUp task "CAN pinout"): where the chain's ends are, so the right two
+devices switch on their 120 Ω (the WaveSculptor 22 needs a resistor plug instead).
+Bitrate 500 kbit/s expected.
 
 ---
 
@@ -401,15 +442,15 @@ Every link below has been checked against what the plan needs.
 | # | Item | Qty | Price | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | 1 | [RS485 CAN HAT for Raspberry Pi](https://www.electrokit.com/en/rs485-can-bus-hat-for-raspberry-pi) (Waveshare) | 1 | 179 SEK | The CAN board for the MVP (§4). |
-| 2 | [DC/DC step-down 3.3 V/5 V 5 A](https://www.electrokit.com/en/dcdc-omvandlare-step-down-3.3v/5v-5a) (EKM006) | 2 | 2 × 142 SEK | 12 V → 5 V for the Pi; one spare. Fit the 5 V jumper (§2). |
+| 2 | [DC/DC step-down 3.3 V/5 V 5 A](https://www.electrokit.com/en/dcdc-omvandlare-step-down-3.3v/5v-5a) (EKM006) | 2 | 2 × 142 SEK | 12 V → 5 V for the Pi; one spare. Set 5 V with a solder bridge or jumper (§2). |
 | 3 | [HDMI cable, HDMI to micro-HDMI, 1 m](https://www.electrokit.com/hdmi-kabel-hane-micro-hane-1m-svart) | 1 | 69 SEK | Micro-HDMI (type D) to full-size HDMI, correct for the Pi 4. |
 | 4 | [DC cable 2.1/5.5 mm male to open end, 2 m, red/black](https://www.electrokit.com/dc-kabel-2.1/5.5mm-hane-till-open-end-2m-svart/rod) | 1 | 22 SEK | Panel power from 12 V. 3 A max. Coil the spare length for now; cut it for the car. **Check polarity with a multimeter**: centre should be + (datasheet pin 1 VDD). The [0.3 m version](https://www.electrokit.com/dc-kabel-2.1/5.5mm-30cm-oppen-anda) is equally fine if in stock. |
-| 5 | [Adapter cable USB-C to 5.5×2.1 mm DC plug, 5 V 3 A](https://www.electrokit.com/adapterkabel-usb-c-till-5.5x2.1mm-dc-plugg-5v-3a) | 2 | 2 × 55 SEK | Buck → Pi. Cut the DC plug off, screw the wires into the buck, shorten to ~30 cm (§2). Centre pin is +, so the wire to the centre is +. One spare. |
+| 5 | [Adapter cable USB-C to 5.5×2.1 mm DC plug, 5 V 3 A](https://www.electrokit.com/adapterkabel-usb-c-till-5.5x2.1mm-dc-plugg-5v-3a) | 2 | 2 × 55 SEK | Buck → Pi. Cut the DC plug off, screw the wires into the buck, shorten to about 10 cm, to the box layout (§2). Centre pin is +, so the wire to the centre is +. One spare. |
 | 6 | [WAGO 221-413, 3-pole](https://www.electrokit.com/en/skarvdon-3-pos-0.2-4mm2-wago) | 6 | 6 × ~8 SEK | Split 12 V + and GND to panel and buck; spares. 0.2–4 mm², 32 A. |
 | 7 | [WAGO 221-415, 5-pole](https://www.electrokit.com/en/skarvdon-5-pos-0.2-4mm2-wago) | 2 | 2 × 15 SEK | A common ground point. |
 | 8 | [Inline fuse holder, MINI/ATM blade, 10 A, with leads](https://www.electrokit.com/mini-atm-flatsakringshallare-med-kabel-10a) | 2 | 2 × 29 SEK | First thing after the 12 V tap. 1.31 mm² leads, IP54, no fuse included. One spare. |
-| 9 | [Flat cable IDC 40-pin for Raspberry Pi GPIO, 200 mm](https://www.electrokit.com/flatkabel-40p-for-raspberry-pi-gpio-200mm) | 1 | 28 SEK | Only needed if the HAT cannot sit on the Joy-it case (§2), but cheap enough to order now. **Both ends are female**, so it needs item 10 to take the HAT. |
-| 10 | [Pin header 2.54 mm 2×20, male](https://www.electrokit.com/stiftlist-2.54mm-2x20p) | 1 | 15 SEK | Plugs into the ribbon's far end so the HAT's female header has pins to sit on. Check pin 1 before fitting the HAT (§8). |
+| 9 | [Flat cable IDC 40-pin for Raspberry Pi GPIO, 200 mm](https://www.electrokit.com/flatkabel-40p-for-raspberry-pi-gpio-200mm) | 1 | 28 SEK | Only needed if the HAT cannot sit on the Joy-it case (§2), but cheap enough to order now. **Both ends are female**, so it needs item 10 to take the HAT. **Not used (26 Nov):** its plug does not fit the Joy-it case's opening, so the HAT is on jumper wires (§2). |
+| 10 | [Pin header 2.54 mm 2×20, male](https://www.electrokit.com/stiftlist-2.54mm-2x20p) | 1 | 15 SEK | Plugs into the ribbon's far end so the HAT's female header has pins to sit on. Check pin 1 before fitting the HAT (§8). **Not used (26 Nov)**, with item 9. |
 
 About 900 SEK in all. 120 Ω resistors are not on the list: the ones from an Arduino kit are fine (§8).
 
@@ -453,6 +494,9 @@ PCB-mount WR-MPC3 headers.
 > 11–12 (12 V from the fuse box), 14 (panel labels match). Questions 10 and 17 are handled in the
 > software work. **Still open:** 6 (crimp tool), 7–9 (chain ends, where the
 > dashboard sits in the chain, bitrate), 13, 15–16.
+>
+> **Answered 26 Nov:** 15. The header sits down in an opening in the Joy-it heatsink, too
+> narrow for the ribbon's plug, so the HAT is wired with jumper wires (§2).
 
 **CAN cable**
 1. The purple cable: how many cores, and which colours? Is it CANH + CANL only, or does
@@ -562,13 +606,15 @@ check is fixed before moving on, because each later step depends on the earlier 
 
 ### Before anything is connected
 
-- [ ] **Buck output.** Fit the EKM006's VSEL jumper (open = 3.3 V, shorted = 5 V). Feed it
-  12 V from the bench supply with nothing on its output: multimeter reads **5.0–5.2 V**.
+- [ ] **Buck output.** Solder on the EKM006's two screw terminals, then set VSEL for 5 V
+  with a solder bridge or jumper (open = 3.3 V, shorted = 5 V). Feed it 12 V from the
+  bench supply with nothing on its output: multimeter reads **5.0–5.2 V**.
 - [ ] **USB-C lead.** Cut the DC plug off the adapter cable, find + with continuity (the
-  wire to the plug's centre pin), screw it into the buck, shorten to ~30 cm. With 12 V on
-  the buck, measure **5.0–5.2 V between VBUS and GND at the USB-C plug** (outer contacts of
-  the plug are awkward; measuring at the buck end and checking continuity to the plug's
-  shell for GND is enough).
+  wire to the plug's centre pin), shorten it to the box layout's length (about 10 cm), put
+  ferrules on and screw it into the buck. With 12 V on the buck, measure **5.0–5.2 V
+  between VBUS and GND at the USB-C plug** (outer contacts of the plug are awkward;
+  measuring at the buck end and checking continuity to the plug's shell for GND is
+  enough).
 - [ ] **Panel pigtail polarity.** On the DC pigtail, find which wire goes to the centre
   pin (continuity). Centre = **+12 V** (datasheet: pin 1 VDD). Mark it.
 - [ ] **Fuse.** On the bench: 3 A MINI blade fuse in the inline holder, holder on the +
@@ -594,14 +640,16 @@ check is fixed before moving on, because each later step depends on the earlier 
 
 ### CAN HAT
 
-- [ ] **If using the ribbon:** plug the ribbon on the Pi and the 2×20 pin header into its
-  far end, **without the HAT**. Power the Pi and measure at the far end: **3.3 V at the
-  position where the HAT's pin 1 lands, 5 V at pin 2**. Only then fit the HAT. Reversed,
-  the HAT would get 5 V on its 3.3 V pin.
+- [ ] **Jumper wires** (§2): push the eight wires onto Pi pins 17–26, **without the HAT**.
+  Power the Pi and measure at the free ends: **3.3 V on the pin 17 wire**, continuity to
+  GND on the pin 20 and 25 wires, and no wire on 5 V. Only then push them onto the HAT,
+  pin N to pin N. One pin over would put the wrong signal on every wire.
 - [ ] Read the HAT's crystal: `12.000` → `oscillator=12000000`, `8.000` → `8000000`.
 - [ ] `config.txt` overlay added (§4.1), reboot, `dmesg | grep -i mcp` shows
   `MCP2515 successfully initialized`.
-- [ ] Loopback test passes (`pi-setup.md` Stage 3).
+- [ ] Loopback test passes (`pi-setup.md` Stage 3), and keeps passing while you shake the
+  jumper wires. Do this before the box's fit test: the stacking-header fallback (§2)
+  takes a few days to arrive.
 - [ ] Case fans still spin with the HAT fitted (pins 4 and 6).
 
 ### On the car's bus
@@ -630,7 +678,7 @@ check is fixed before moving on, because each later step depends on the earlier 
 | Tue 17 – Wed 18 Nov | Electrokit order arrives. Bench: 12 V → buck → Pi, `vcgencmd get_throttled`. Riverdi panel on 12 V. HAT bring-up (§4.2). |
 | Thu 19 – Sun 22 Nov (wk 47) | Debug dashboard. Kiosk autostart. Remove lap mode. Build the harness with the real connector. 3D-print the panel frame and bracket, and the Pi + HAT case. |
 | Mon 23 – Wed 25 Nov (wk 48) | In the car: listen-only on the real bus, `candump`, then the dashboard. Note every ID seen. |
-| Thu 26 – Sun 29 Nov (wk 48) | Fix what the real bus showed. Drive test. Buffer. |
+| Thu 26 – Sun 29 Nov (wk 48) | Fix what the real bus showed. Drive test. Buffer. Pi box: design done Fri 27 Nov, printed and fitted by Sun 29 Nov (Tue 1 Dec at the latest). |
 
 ---
 
