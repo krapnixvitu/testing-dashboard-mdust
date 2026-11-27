@@ -25,7 +25,7 @@ made it and why, in [`../decisions.md`](../decisions.md); add new ones there too
 | Display | **Riverdi 7″ `RVT70HSHNWN00`.** The 5″ `RVT50HQHNWN00` is a spare, with no frame planned for it. |
 | Display frame and bracket | **3D printed**, no other material. **Mousa** (mechanics) is designing it (25 Nov). A taped-down panel is not acceptable in the car, so the frame is needed before the in-car test. |
 | Pi box (25 Nov) | **One 3D-printed box holds the whole Pi side:** the buck converter, the Pi 4 (still in its Joy-it case with the fans), the CAN HAT (on the box floor, wired by jumpers since 26 Nov), the CAN pass-through perfboard, and the CAN IN and OUT connectors. **Juan and Sara design the inside** (layout, connections, ease of work), taking that over from Mousa. **Mousa designs the outside** (how it mounts in the car) from their inside design. Mousa already has an inside design; Juan has asked where it is, to continue from it or start over. |
-| Pi box design (26 Nov) | Designed as code in the **mdust-cad** repo, project `dashboard-pi-box`: brief, decisions and model. Printed on Juan's Creality K2 Plus: PLA for fit tests, **ASA for the car** (PLA softens at 55–60 °C). **Every cable leaves through one wall** (CAN IN and OUT, HDMI, 12 V, ground, panel ground), so where the box sits in the car can be decided later. Design done Fri 27 Nov, fitted by Sun 29 Nov, Tue 1 Dec at the latest. |
+| Pi box design (26 Nov) | Designed as code in the **mdust-cad** repo, project `dashboard-pi-box`: brief, decisions and model. Printed on Juan's Creality K2 Plus: PLA for fit tests, **ASA for the car** (PLA softens at 55–60 °C). **Every cable leaves through one wall** (CAN IN and OUT, HDMI, 12 V, ground, panel ground), so where the box sits in the car can be decided later. Design done Fri 27 Nov, fitted by Sun 29 Nov, Tue 1 Dec at the latest. **Plain screws (27 Nov):** the boards screw straight into the box's printed posts, so the first box waits for no parts; brass heat-set inserts come with the next version (§5, items 15–17). |
 | HAT connection (26 Nov) | **No ribbon.** The 40-way ribbon's plug is wider than the opening in the Joy-it heatsink over the GPIO header. **Eight jumper wires** go from Pi pins 17–26 to the same pins on the HAT, which sits on the box floor (§2, "GPIO pin budget"). |
 | Wiring split (25 Nov) | **Juan** wires everything inside the dashboard that does not connect to the car or other subsystems (GND WAGO, buck → Pi, panel pigtail, HDMI, jumper wires → HAT, the CAN board and its HAT lead). **Valentina** wires everything that connects to the car: the two fuse slots with their fuses and flat receptacles, the ground connection, and the CAN cables between devices. She has the Dashboard MVP Wiring diagram. |
 | Parts | Electrokit order and the local parts (fuses, wire, heat shrink, cable ties) all received. |
@@ -476,6 +476,20 @@ Already on hand: a 12 V bench supply and spare microSD cards (team room), 120 Ω
 **Confirm the team has a crimp tool for WR-MPC3 / 3.0 mm contacts**; pliers or a generic
 tool make crimps that fail under vibration. The pass-through board (§4.3) also needs two
 PCB-mount WR-MPC3 headers.
+
+### Pi box screws (27 Nov)
+
+The first Pi box holds its boards with **plain screws straight into printed posts**: the
+screw cuts its own thread in the plastic, which holds well enough for boards that come out
+only a few times. **Heat-set inserts are for the next version, not week 48:** the
+perfboard becomes a PCB in a month or two and the box changes then anyway. Decided in the
+mdust-cad repo, `projects/dashboard-pi-box/decisions.md`.
+
+| # | Item | Qty | Why | Before week 48? |
+| :--- | :--- | :--- | :--- | :--- |
+| 15 | M2.5 screws, pan head: 8 mm and 6 mm | 6 × 8 mm, 4 × 6 mm | 8 mm for the CAN HAT's 4 holes (its posts are tall), 6 mm for the pass-through board's 2 holes (its posts are 4 mm, and an 8 mm screw would come out under the 2.4 mm floor); 2 spare of each. The detailed model confirms the lengths. | **Yes, for the first box.** Check the team room first, then a hardware store. |
+| 16 | M2 screws, pan head, about 6 mm | 6 | The buck's 4 holes (they are too small for M2.5); 2 spare. | **Yes, for the first box.** As item 15. |
+| 17 | Brass heat-set inserts, M2.5 and M2 | A pack of each | Metal threads in the posts, for a box that is opened often. Fitted with a soldering iron; practise on a scrap print. Electrokit has [M2.5](https://www.electrokit.com/en/threaded-insert-m2.5-l-5.3mm-brass) (stock not checked; no M2 seen). Ask Mousa or the team first. | **No, next version.** Tell the CAD side which ones are bought: their length sets the hole depth. |
 
 ### Not ordering
 
